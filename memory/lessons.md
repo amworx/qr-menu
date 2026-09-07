@@ -96,6 +96,20 @@
 - **Fix**: Map now includes the block: `percent: ['percent','scope'], fixed: ['fixed','scope'], bogo: ['bogo'], ...`.
 - **Lesson**: For type-dependent form blocks, render every block always and toggle `display` via a single map; every block id must be present in the map for the types that need it. Keeping all blocks in the DOM also preserves field values when the user switches type mid-edit.
 
+## LSSN-20260907-017 — Cart is two independent structures: items and offers
+- **Problem**: After adding clickable offers, the cart badge/sheet/WhatsApp ignored them — they only read `Object.entries(cart)`.
+- **Root cause**: The cart was designed as a single `{ itemId: qty }` map; offers are a different entity (dealId → presence) with no per-unit price.
+- **Fix**: Keep `cart = { itemId: qty }` for priced items and `cartOffers = { dealId: 1 }` for offers. Every consumer must read both: `updateCartBar()` badge = item count + offer count (total stays item-only), `renderOrderSheet()` renders offer lines (🎁 title + localized summary + remove ✕), `sendWhatsApp()` appends `🎁 title — summary` rows, and all empty-guards check `totalItems===0 && offerCount===0`.
+- **Lesson**: When adding a second entity type to a shopping flow, enumerate every consumer of the cart state (badge, sheet, message builder, empty states) and update each; introduce a combined "line count" helper so nothing reads only one structure.
+
+## LSSN-20260907-018 — View-mode toggles are pure CSS-class swaps, not duplicate renderers
+- **Problem**: Needed a list/grid toggle on the public menu without rewriting the item renderer twice.
+- **Root cause**: (n/a — design choice) The natural approach would have been two rendering functions or two markups.
+- **Fix**: One renderer; `viewMode` (from `localStorage 'qm-view'`, default grid) toggles one class on the container. Grid CSS (`.items-col`) is global (works on mobile AND desktop): `grid-template-columns:1fr 1fr`, `.item-card{flex-direction:column}`, image `width:100%;aspect-ratio:4/3`, full-width add/stepper. List = the original block/ticket layout. Button icon shows the *target* mode (`☰` in grid mode → switches to list; `▦` in list mode → switches to grid) with `aria-pressed` reflecting current mode.
+- **Lesson**: For layout switches, mutate one container class and let CSS express both layouts; persist the choice; make toggle buttons show what you'll switch TO, with `aria-pressed` = current state. Verify at mobile width that the grid computes `1fr 1fr` columns without body overflow (body.scrollWidth == innerWidth).
+
+(End of file - total 101 lines)
+
 (End of file - total 77 lines)
 
 (End of file - total 75 lines)

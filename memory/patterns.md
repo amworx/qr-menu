@@ -60,3 +60,21 @@ Reusable patterns extracted from repeated successes. Append only.
   3. `saveDeal()` builds a base object with nulls for irrelevant fields, then fills per-type values.
   4. Public menu: single `dealSummary(d)` switch returns localized AR/EN text per type.
 - **Ref**: admin.html deals + index.html `dealSummary`; docs/schema.sql deals; EVT-20260907-0009; LSSN-20260907-016.
+
+## PAT-20260907-008 — Offer cards as clickable order-line items (not a discount engine)
+- **When**: Public menu shows deals; tapping an offer must add it to the customer's order as a line item.
+- **How**:
+  1. Separate `cartOffers = { dealId: 1 }` from priced `cart = { itemId: qty }` (offers have no unit price; total stays item-only).
+  2. Deal card: `role=button`, `tabindex=0`, `onclick`/`onkeydown` → `toggleOffer(id)`; added state = `.deal-card.added` (white outline) + `✓ أُضيف إلى الطلب` chip + toast.
+  3. Every consumer reads both structures: badge = item qty sum + offer count; order sheet renders 🎁 line (title + `dealSummary(d)` + remove ✕); WhatsApp appends `🎁 title — summary`; empty-guards check items AND offers.
+  4. Rendering the offer's *numeric* discount on the total is a separate concern — only add that engine when discount math is explicitly requested.
+- **Ref**: index.html `toggleOffer`/`removeOffer`/`renderOrderSheet`/`sendWhatsApp`; EVT-20260907-0010; LSSN-20260907-017.
+
+## PAT-20260907-009 — CSS-class layout toggle (list vs grid) with localStorage persistence
+- **When**: A responsive list needs a user-facing view switcher (grid ⇄ list) without maintaining two render paths.
+- **How**:
+  1. State: `viewMode = localStorage.getItem(key) || 'grid'`; one container class (`items-col`) expresses the grid layout; list = the default block layout. One renderer, two CSS states.
+  2. Grid CSS global (desktop AND mobile): `grid-template-columns:1fr 1fr`, card `flex-direction:column`, media `width:100%;aspect-ratio:4/3`, full-width add/stepper. Item renderer just toggles the class + `display:grid|block`.
+  3. Toggle button icon shows the TARGET mode (`☰` when grid → tap for list; `▦` when list → tap for grid); `aria-pressed` = current mode; `title` localized.
+  4. Verify mobile: `body.scrollWidth === innerWidth`, computed grid columns ~ (width - padding - gap)/2.
+- **Ref**: index.html `toggleView`/`renderViewBtn`/`.items-col`; EVT-20260907-0010; LSSN-20260907-018.
