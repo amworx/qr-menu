@@ -28,3 +28,17 @@ Reusable patterns extracted from repeated successes. Append only.
   4. `toggleAdminLang()` flips `lang`, persists, calls `applyLang()`.
   5. All dynamic render functions, modals, toasts, confirms call `t('...')`; translate known server error strings via a small map in the error handler.
 - **Ref**: admin.html `I18N`/`applyLang`; index.html uses the same pattern; EVT-20260907-0007.
+
+## PAT-20260907-004 — Mobile table → labeled stacked cards (no horizontal overflow)
+- **When**: Any CRUD/admin table must remain readable at ~390px width with RTL content.
+- **How**:
+  1. Wrap every rendered `<table>` in `<div class="table-wrap">` (declarative tables too).
+  2. Add `data-label="${t(colName)}"` to every `<td>` (RTL / Arabic-safe labels).
+  3. At `@media (max-width:768px)`: `table,thead,tbody,tr,td{display:block}`, `thead{display:none}`, `td{display:flex;justify-content:space-between;gap:12px}`, `td::before{content:attr(data-label);opacity:.6;font-size:12px}`, `td:last-child{flex-direction:column;align-items:stretch}` (actions stack label above full-width buttons).
+  4. Verify: `scrollWidth > clientWidth` false on `document.documentElement` and `main-content`; table `getBoundingClientRect().left` ≥ 0 in RTL; header `h2`/`.dash-header` wrap instead of squeeze.
+- **Ref**: admin.html CSS + renderers; EVT-20260907-0008; LSSN-20260907-013.
+
+## PAT-20260907-005 — Sticky element offset from a variable-height header via measured CSS var
+- **When**: A sticky bar (tabs/filters) must sit flush below a header whose height changes by breakpoint or wraps.
+- **How**: On `:root` declare `--header-h:70px`; in the ≤768px block override `--header-h:104px`; in JS, after each tab render, measure `header.getBoundingClientRect().height` when `> 0` and set `document.documentElement.style.setProperty('--header-h', (height+1)+'px')`; the sticky rule uses `top:var(--header-h,104px)`.
+- **Ref**: admin.html `showTab()`; EVT-20260907-0008; LSSN-20260907-014.

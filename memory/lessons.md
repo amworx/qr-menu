@@ -71,3 +71,17 @@
 - **Root cause**: The browser still held a refresh token from an earlier manual-test session that had been invalidated/rotated. On load, supabase-js tries to refresh it, gets 400, clears the session, and shows the auth screen.
 - **Fix**: None needed — this is normal auth hygiene. Each successful login mints a fresh valid pair, so after login the app works normally.
 - **Lesson**: When auditing console errors after auth changes, distinguish startup refresh failures from functional failures. If the auth screen renders and login succeeds immediately after, a single refresh_token_not_found is stale-storage noise, not a bug.
+
+## LSSN-20260907-013 — On mobile, admin CRUD tables must become labeled stacked cards
+- **Problem**: Items table rendered 502px wide inside a 390px viewport; in RTL the table's left edge ran to x=-127, clipping data — mail body scrolled horizontally and fields were unreadable/overlapping.
+- **Root cause**: Fixed-width content (tables, long unbroken labels) inside a flexible column overflows the viewport; RTL direction makes the clip appear on the logical left.
+- **Fix**: Wrap tables in `<div class="table-wrap">`; at ≤768px: `table/thead/tbody/tr/td{display:block}`, hide `thead`, each `td` becomes a flex row with `::before{content:attr(data-label)}` label + value (`justify-content:space-between`), actions cell labels the buttons above (`flex-direction:column`). Every `<td>` carries `data-label="${t(...)}"`.
+- **Lesson**: Never let a table overflow horizontally on phones — convert to stacked cards with `data-label` attributes. Verify with `document.documentElement.scrollWidth > clientWidth` on body AND `#main-content` at the target viewport, and check the RTL-left edge of tables (measure `getBoundingClientRect().left`).
+
+## LSSN-20260907-014 — Set sticky offset var from measured parent only after layout is settled
+- **Problem**: Sticky mobile tab bar sat 24px too low — `--header-h` stayed at the 104px default while the responsive header measured 80px.
+- **Root cause**: The var was computed in `applyLang()` which ran before the dashboard was visible (`display:none` → rect height 0), and the margin/gap computed against the stale value; the header also wraps to two rows on phones so its height is not a fixed constant.
+- **Fix**: Compute `--header-h` from `header.getBoundingClientRect().height` in `showTab()` (runs after layout is stable) guarded by `height > 0`; use `top:var(--header-h,104px)` in the sticky rule.
+- **Lesson**: When a sticky element must sit flush below a variable-height header, measure the header after layout is settled (not at script parse / hidden state) and inject the value as a CSS var; always guard rect height > 0.
+
+(End of file - total 75 lines)
