@@ -73,6 +73,7 @@
     }
     .ctl:hover{transform:scale(1.08)}
     .ctl.lang{font-size:12px;font-weight:700;color:var(--text);padding:0 12px;width:auto;border-radius:20px}
+    .ctl.cur{font-size:11px;font-weight:800;color:var(--text);padding:0 11px;width:auto;border-radius:20px;letter-spacing:.4px;font-variant-numeric:tabular-nums}
 
     /* ═══ HERO ═══ */
     .hero{
@@ -93,15 +94,6 @@
     .hero .contact-row{display:flex;justify-content:center;gap:14px;margin-top:14px;font-size:12.5px;color:var(--text2);flex-wrap:wrap}
     .hero .contact-row a,.hero .contact-row span{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);border-radius:20px;background:color-mix(in srgb,var(--card) 70%,transparent);color:var(--text);font-weight:600;font-size:12px}
     .hero .contact-row a:hover{border-color:var(--primary)}
-
-    /* Currency segmented */
-    .currency-row{display:flex;justify-content:center;gap:6px;margin-top:16px}
-    .currency-btn{
-      padding:7px 16px;border-radius:20px;border:1px solid var(--border2);
-      background:var(--card);color:var(--text2);font-size:12.5px;font-weight:700;
-      transition:.18s ease;letter-spacing:.3px;
-    }
-    .currency-btn.active{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 4px 14px var(--primary-glow)}
 
     /* ═══ STICKY RAIL (categories) ═══ */
     .rail-wrap{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
@@ -259,6 +251,7 @@
   <!-- Controls -->
   <div class="controls">
     <button class="ctl" id="theme-btn" onclick="toggleTheme()" title="Theme" aria-label="Toggle theme">☀️</button>
+    <button class="ctl cur" id="currency-btn" onclick="cycleCurrency()" title="Currency" aria-label="Currency" style="display:none">SYP</button>
     <button class="ctl lang" id="lang-btn" onclick="toggleLang()">EN</button>
   </div>
 
@@ -356,6 +349,7 @@
     function render() {
       applyLang();
       renderHeader();
+      renderCurrencyBtn();
       renderCategories();
       renderDeals();
       renderItems();
@@ -384,20 +378,11 @@
       if (shop.phone) contactParts.push(`<span>📞 ${esc(shop.phone)}</span>`);
       if (shop.email) contactParts.push(`<a href="mailto:${esc(shop.email)}"><span>✉</span> ${esc(shop.email)}</a>`);
 
-      let currencyRow = '';
-      const currencies = shop.currencies || ['SYP'];
-      if (currencies.length > 1 && shop.show_currency_selector) {
-        currencyRow = `<div class="currency-row">` + currencies.map(c =>
-          `<button class="currency-btn ${c === activeCurrency ? 'active' : ''}" onclick="setCurrency('${c}')">${c}</button>`
-        ).join('') + `</div>`;
-      }
-
       h.innerHTML = `
         ${logo}
         <h1>${esc(name)}</h1>
         ${tagline ? `<p class="tagline">${esc(tagline)}</p>` : ''}
         ${contactParts.length ? `<div class="contact-row">${contactParts.join('')}</div>` : ''}
-        ${currencyRow}
       `;
       document.getElementById('shop-header').style.display = 'block';
     }
@@ -526,7 +511,26 @@
       render();
     }
 
-    function setCurrency(c) { activeCurrency = c; renderHeader(); renderItems(); updateCartBar(); }
+    function setCurrency(c) {
+      activeCurrency = c;
+      renderCurrencyBtn();
+      renderHeader();
+      renderItems();
+      updateCartBar();
+    }
+    function renderCurrencyBtn() {
+      const btn = document.getElementById('currency-btn');
+      const currencies = shop?.currencies || ['SYP'];
+      const show = shop?.show_currency_selector !== false && currencies.length > 1;
+      btn.style.display = show ? 'flex' : 'none';
+      if (show) btn.textContent = activeCurrency;
+    }
+    function cycleCurrency() {
+      const list = shop?.currencies || ['SYP'];
+      if (list.length < 2) return;
+      const idx = list.indexOf(activeCurrency);
+      setCurrency(list[(idx + 1) % list.length] || list[0]);
+    }
     function setCategory(id) { activeCategory = id; renderCategories(); renderItems(); }
 
     // Cart
