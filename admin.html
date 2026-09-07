@@ -116,7 +116,7 @@
 <div id="auth-screen">
   <div class="auth-card">
     <h1>QR Menu Admin</h1>
-    <p>Enter your email to receive a one-time login code.</p>
+    <p>Enter your email to receive a secure sign-in link.</p>
     <div class="field">
       <label>Email</label>
       <input type="email" id="auth-email" placeholder="you@email.com" value="amworxx@gmail.com">
@@ -127,6 +127,7 @@
         <input type="text" id="auth-otp" placeholder="123456" maxlength="6">
       </div>
       <button class="verify-btn" id="verify-btn" onclick="verifyOTP()">Verify &amp; Login</button>
+      <p style="font-size:12px;color:#94a3b8;margin-top:8px">Check your inbox — click the sign-in link in the email to open this dashboard.</p>
     </div>
     <button class="btn btn-primary" style="width:100%;margin-top:8px;padding:10px" id="send-otp-btn" onclick="sendOTP()">Send OTP Code</button>
     <div class="error" id="auth-error"></div>
@@ -180,7 +181,10 @@ async function sendOTP() {
   if (!email) return showAuthError('Enter your email');
   const btn = document.getElementById('send-otp-btn');
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Sending...';
-  const { error } = await sb.auth.signInWithOtp({ email });
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: 'https://amworx.github.io/qr-menu/admin.html' }
+  });
   btn.disabled = false; btn.textContent = 'Send OTP Code';
   if (error) return showAuthError(error.message);
   document.getElementById('otp-section').style.display = 'block';
@@ -211,11 +215,31 @@ document.getElementById('auth-email').addEventListener('keydown', e => { if (e.k
 
 // ─── INIT ───────────────────────────────────────────────────
 (async () => {
-  const { data: { session } } = await sb.auth.getSession();
+  // A sign-in link from Supabase may land here with ?token= (magic link) or ?code= (PKCE)
+  const params = new URLSearchParams(window.location.search);
+  const urlToken = params.get('token');
+  const urlCode = params.get('code');
+  let session = null;
+  try {
+    if (urlToken) {
+      const type = params.get('type') || 'magiclink';
+      const email = params.get('email') || '';
+      const { error } = await sb.auth.verifyOtp({ email, token: urlToken, type });
+      if (error) showAuthError(error.message);
+      else session = (await sb.auth.getSession()).data.session;
+    } else if (urlCode) {
+      const { error } = await sb.auth.exchangeCodeForSession(urlCode);
+      if (error) showAuthError(error.message);
+      else session = (await sb.auth.getSession()).data.session;
+    } else {
+      session = (await sb.auth.getSession()).data.session;
+    }
+  } catch (e) { showAuthError(e.message); }
   if (session?.user) {
     currentUser = session.user;
     showDashboard();
   }
+  if (urlToken || urlCode) history.replaceState(null, '', location.pathname + location.hash);
 })();
 
 sb.auth.onAuthStateChange((event, session) => {
