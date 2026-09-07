@@ -14,6 +14,7 @@
       --accent:#f59e0b;--accent2:#d97706;
       --success:#22c55e;--danger:#ef4444;--info:#3b82f6;
       --line:#334155;--radius:10px;
+      --header-h:70px;
     }
     body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
     a{color:var(--accent);text-decoration:none}
@@ -49,6 +50,8 @@
 
     /* Cards & Tables */
     .card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+    .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:16px}
+    .table-wrap table{margin-bottom:0}
     .card-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     .card-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
     .field{margin-bottom:12px}
@@ -112,10 +115,46 @@
     /* Responsive */
     @media(max-width:768px){
       .sidebar{display:none}
-      .mobile-tabs{display:flex}
+      .mobile-tabs{display:flex;position:sticky;top:var(--header-h,104px);z-index:90}
       .dash-body{flex-direction:column}
-      .main-content{padding:16px}
+      .main-content{padding:16px;overflow-x:hidden}
       .card-row,.card-row-3{grid-template-columns:1fr}
+
+      /* Header wraps to two tidy rows on phones (title on top, actions below) */
+      .dash-header{flex-wrap:wrap;gap:6px;padding:10px 16px}
+      .dash-header h2{width:100%;font-size:15px}
+      .dash-header .user-info{justify-content:flex-end;flex-wrap:wrap;gap:10px}
+      .dash-header .logout-btn{padding:8px 14px}
+      .lang-btn{padding:6px 14px}
+      :root{--header-h:104px}
+
+      /* Prevent iOS auto-zoom on small inputs */
+      input,select,textarea{font-size:16px}
+
+      /* Tables become stacked cards */
+      .table-wrap{overflow:visible;margin-bottom:12px}
+      .table-wrap table,.table-wrap thead,.table-wrap tbody,.table-wrap tr,.table-wrap td{display:block}
+      .table-wrap thead{display:none}
+      .table-wrap tbody{display:flex;flex-direction:column;gap:12px}
+      .table-wrap tr{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:4px 14px}
+      .table-wrap tr:hover td{background:transparent}
+      .table-wrap td{display:flex;justify-content:space-between;align-items:center;gap:10px;border:none;padding:9px 0;font-size:15px}
+      .table-wrap td::before{content:attr(data-label);font-size:11px;font-weight:600;color:var(--text2);flex-shrink:0;letter-spacing:.3px}
+      .table-wrap td:last-child{justify-content:flex-start;flex-wrap:wrap}
+      .table-wrap td:last-child::before{width:100%;margin-bottom:2px}
+      .table-wrap td.empty{display:flex;justify-content:center;padding:26px;font-size:14px;color:var(--text3)}
+      .table-wrap td.empty::before{content:none}
+
+      /* Touch-friendly buttons + full-width modal */
+      .btn{padding:10px 16px;min-height:42px}
+      .btn-sm{min-height:38px;padding:8px 14px;font-size:13px}
+      .modal-overlay{padding:12px}
+      .modal{padding:18px;max-width:100%}
+      .modal-actions .btn{flex:1;justify-content:center}
+      .toggle{width:44px;height:24px}
+      .toggle .slider::before{width:18px;height:18px}
+      .toggle input:checked+.slider::before{transform:translateX(20px)}
+      .btn-group{flex-wrap:wrap}
     }
   </style>
 </head>
@@ -228,6 +267,7 @@ const I18N = {
   title:            { en: 'Title', ar: 'العنوان' },
   discount:         { en: 'Discount', ar: 'الخصم' },
   valid:            { en: 'Valid', ar: 'الصلاحية' },
+  actions:          { en: 'Actions', ar: 'إجراءات' },
 
   general:          { en: 'General', ar: 'عام' },
   contact:          { en: 'Contact', ar: 'التواصل' },
@@ -303,6 +343,8 @@ function applyLang() {
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   document.title = t('app_title');
+  const header = document.querySelector('.dash-header');
+  if (header && header.getBoundingClientRect().height > 0) document.documentElement.style.setProperty('--header-h', (Math.round(header.getBoundingClientRect().height) + 1) + 'px');
   const langBtns = ['auth-lang-btn', 'dash-lang-btn'];
   langBtns.forEach(id => { const b = document.getElementById(id); if (b) b.textContent = lang === 'ar' ? 'EN' : 'AR'; });
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
@@ -450,6 +492,9 @@ function showTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.sidebar button, .mobile-tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   const c = document.getElementById('main-content');
+  const header = document.querySelector('.dash-header');
+  if (header && header.getBoundingClientRect().height > 0)
+    document.documentElement.style.setProperty('--header-h', (Math.round(header.getBoundingClientRect().height) + 1) + 'px');
   switch(tab) {
     case 'shop': c.innerHTML = renderShopTab(); break;
     case 'categories': c.innerHTML = renderCategoriesTab(); break;
@@ -545,16 +590,17 @@ function renderCategoriesTab() {
     <div class="btn-group" style="margin-top:0;margin-bottom:16px">
       <button class="btn btn-primary" onclick="openCategoryModal()">${t('new_category')}</button>
     </div>
+    <div class="table-wrap">
     <table>
       <thead><tr><th>${t('order')}</th><th>${t('name_en')}</th><th>${t('name_ar')}</th><th>${t('active')}</th><th></th></tr></thead>
       <tbody>
         ${allCategories.map(c => `
           <tr>
-            <td>${c.sort_order}</td>
-            <td>${esc(c.name)}</td>
-            <td dir="rtl">${esc(c.name_ar)}</td>
-            <td><label class="toggle"><input type="checkbox" ${c.is_active?'checked':''} onchange="toggleCategory('${c.id}','is_active',this.checked)"><span class="slider"></span></label></td>
-            <td>
+            <td data-label="${t('order')}">${c.sort_order}</td>
+            <td data-label="${t('name_en')}">${esc(c.name)}</td>
+            <td data-label="${t('name_ar')}" dir="rtl">${esc(c.name_ar)}</td>
+            <td data-label="${t('active')}"><label class="toggle"><input type="checkbox" ${c.is_active?'checked':''} onchange="toggleCategory('${c.id}','is_active',this.checked)"><span class="slider"></span></label></td>
+            <td data-label="${t('actions')}">
               <button class="btn btn-ghost btn-sm" onclick="openCategoryModal('${c.id}')">${t('edit')}</button>
               <button class="btn btn-danger btn-sm" onclick="deleteCategory('${c.id}')">${t('delete')}</button>
             </td>
@@ -563,6 +609,7 @@ function renderCategoriesTab() {
         ${allCategories.length===0 ? '<tr><td colspan="5" class="empty">' + t('no_categories') + '</td></tr>' : ''}
       </tbody>
     </table>
+    </div>
   `;
 }
 
@@ -618,6 +665,7 @@ function renderItemsTab() {
     <div class="btn-group" style="margin-top:0;margin-bottom:16px">
       <button class="btn btn-primary" onclick="openItemModal()">${t('new_item')}</button>
     </div>
+    <div class="table-wrap">
     <table>
       <thead><tr><th>${t('order')}</th><th>${t('name')}</th><th>${t('category')}</th><th>${t('available')}</th><th>${t('featured')}</th><th>${t('prices')}</th><th></th></tr></thead>
       <tbody>
@@ -626,13 +674,13 @@ function renderItemsTab() {
           const prices = (item.item_prices || []).map(p => p.is_visible ? `${p.currency} ${p.price}` : `<s>${p.currency} ${p.price}</s>`).join(' · ');
           return `
           <tr>
-            <td>${item.sort_order}</td>
-            <td>${esc(item.name)}<br><small style="color:var(--text3)">${esc(item.name_ar)}</small></td>
-            <td>${cat ? esc(cat.name) : '<span style="color:var(--text3)">—</span>'}</td>
-            <td><label class="toggle"><input type="checkbox" ${item.is_available?'checked':''} onchange="toggleItem('${item.id}','is_available',this.checked)"><span class="slider"></span></label></td>
-            <td><label class="toggle"><input type="checkbox" ${item.is_featured?'checked':''} onchange="toggleItem('${item.id}','is_featured',this.checked)"><span class="slider"></span></label></td>
-            <td style="font-size:12px">${prices || '<span style="color:var(--text3)">—</span>'}</td>
-            <td>
+            <td data-label="${t('order')}">${item.sort_order}</td>
+            <td data-label="${t('name')}">${esc(item.name)}<br><small style="color:var(--text3)">${esc(item.name_ar)}</small></td>
+            <td data-label="${t('category')}">${cat ? esc(cat.name) : '<span style="color:var(--text3)">—</span>'}</td>
+            <td data-label="${t('available')}"><label class="toggle"><input type="checkbox" ${item.is_available?'checked':''} onchange="toggleItem('${item.id}','is_available',this.checked)"><span class="slider"></span></label></td>
+            <td data-label="${t('featured')}"><label class="toggle"><input type="checkbox" ${item.is_featured?'checked':''} onchange="toggleItem('${item.id}','is_featured',this.checked)"><span class="slider"></span></label></td>
+            <td data-label="${t('prices')}" style="font-size:12px">${prices || '<span style="color:var(--text3)">—</span>'}</td>
+            <td data-label="${t('actions')}">
               <button class="btn btn-ghost btn-sm" onclick="openItemModal('${item.id}')">${t('edit')}</button>
               <button class="btn btn-danger btn-sm" onclick="deleteItem('${item.id}')">${t('delete')}</button>
             </td>
@@ -641,6 +689,7 @@ function renderItemsTab() {
         ${allItems.length===0 ? '<tr><td colspan="7" class="empty">' + t('no_items') + '</td></tr>' : ''}
       </tbody>
     </table>
+    </div>
   `;
 }
 
@@ -757,16 +806,17 @@ async function renderDealsTab() {
     <div class="btn-group" style="margin-top:0;margin-bottom:16px">
       <button class="btn btn-primary" onclick="openDealModal()">${t('new_deal')}</button>
     </div>
+    <div class="table-wrap">
     <table>
       <thead><tr><th>${t('title')}</th><th>${t('discount')}</th><th>${t('valid')}</th><th>${t('active')}</th><th></th></tr></thead>
       <tbody>
         ${(deals||[]).map(d => `
           <tr>
-            <td>${esc(d.title)}<br><small style="color:var(--text3)">${esc(d.title_ar)}</small></td>
-            <td>${d.discount_type==='percent' ? d.discount_value+'%' : d.discount_value+' '+d.currency}</td>
-            <td><small>${d.starts_at ? new Date(d.starts_at).toLocaleDateString() : '—'} → ${d.ends_at ? new Date(d.ends_at).toLocaleDateString() : '∞'}</small></td>
-            <td><label class="toggle"><input type="checkbox" ${d.is_active?'checked':''} onchange="toggleDeal('${d.id}',this.checked)"><span class="slider"></span></label></td>
-            <td>
+            <td data-label="${t('title')}">${esc(d.title)}<br><small style="color:var(--text3)">${esc(d.title_ar)}</small></td>
+            <td data-label="${t('discount')}">${d.discount_type==='percent' ? d.discount_value+'%' : d.discount_value+' '+d.currency}</td>
+            <td data-label="${t('valid')}"><small>${d.starts_at ? new Date(d.starts_at).toLocaleDateString() : '—'} → ${d.ends_at ? new Date(d.ends_at).toLocaleDateString() : '∞'}</small></td>
+            <td data-label="${t('active')}"><label class="toggle"><input type="checkbox" ${d.is_active?'checked':''} onchange="toggleDeal('${d.id}',this.checked)"><span class="slider"></span></label></td>
+            <td data-label="${t('actions')}">
               <button class="btn btn-ghost btn-sm" onclick="openDealModal('${d.id}')">${t('edit')}</button>
               <button class="btn btn-danger btn-sm" onclick="deleteDeal('${d.id}')">${t('delete')}</button>
             </td>
@@ -775,6 +825,7 @@ async function renderDealsTab() {
         ${(!deals||deals.length===0) ? '<tr><td colspan="5" class="empty">' + t('no_deals') + '</td></tr>' : ''}
       </tbody>
     </table>
+    </div>
   `;
 }
 
