@@ -1,500 +1,462 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QR Menu — Order via WhatsApp</title>
-<meta name="description" content="Digital QR menu with WhatsApp ordering — bilingual EN/AR, mobile-first, no backend needed.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧾</text></svg>">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<style>
-    :root {
-        --bg: #f7f2e9;
-        --card: #fffdf7;
-        --ink: #262019;
-        --dim: #6f675b;
-        --faint: #9a9082;
-        --line: #e8dfcf;
-        --accent: #c25e2e;
-        --accent-ink: #fff;
-        --sage: #2e7d5b;
-        --chip: #efe6d5;
-        --bar: #262019;
-        --bar-ink: #f7f2e9;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>QR Menu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --primary:#D97706;--accent:#92400E;
+      --bg:#fafaf9;--card:#ffffff;--text:#1c1917;--text2:#78716c;--text3:#a8a29e;
+      --border:#e7e5e4;--radius:12px;
+      --font-en:'Inter',system-ui,sans-serif;
+      --font-ar:'Noto Kufi Arabic',system-ui,sans-serif;
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-        font-family: 'Readex Pro', system-ui, sans-serif;
-        background: var(--bg);
-        color: var(--ink);
-        -webkit-font-smoothing: antialiased;
-    }
-    .mono { font-family: 'JetBrains Mono', monospace; }
+    [lang="ar"]{--font-en:'Noto Kufi Arabic',system-ui,sans-serif}
+    body{font-family:var(--font-en);background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:100px}
+    body[dir="rtl"]{font-family:var(--font-ar)}
 
-    .sheet { max-width: 640px; margin: 0 auto; min-height: 100vh; background: var(--bg); }
+    /* Loading */
+    .loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:12px}
+    .loading-screen .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
+    .loading-screen p{color:var(--text2);font-size:14px}
+    @keyframes spin{to{transform:rotate(360deg)}}
 
-    /* header */
-    .hd {
-        background: var(--bar);
-        color: var(--bar-ink);
-        padding: 26px 20px 22px;
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 12px;
-    }
-    .hd .shop-name { font-size: 1.35rem; font-weight: 700; letter-spacing: .2px; }
-    .hd .shop-tag { font-size: .7rem; color: #b9b0a1; margin-top: 4px; letter-spacing: .4px; }
-    .hd .qr-btn {
-        background: none; border: 1px solid #4a4237; color: var(--bar-ink);
-        font-size: .72rem; padding: 8px 11px; border-radius: 8px; cursor: pointer;
-        font-family: 'JetBrains Mono', monospace; white-space: nowrap;
-    }
-    .hd .qr-btn:hover { border-color: #c25e2e; color: #e2956a; }
+    /* Header */
+    .shop-header{text-align:center;padding:32px 16px 20px;background:var(--card);border-bottom:1px solid var(--border)}
+    .shop-header .logo{width:64px;height:64px;border-radius:50%;object-fit:cover;margin-bottom:12px;border:3px solid var(--primary)}
+    .shop-header h1{font-size:22px;font-weight:700;margin-bottom:4px}
+    .shop-header .tagline{color:var(--text2);font-size:14px}
+    .shop-header .contact-row{display:flex;justify-content:center;gap:16px;margin-top:12px;font-size:13px;color:var(--text2)}
+    .shop-header .contact-row a{color:var(--primary);text-decoration:none;font-weight:500}
 
-    /* lang toggle */
-    .langbar {
-        background: var(--bar);
-        padding: 0 20px 12px;
-        display: flex; justify-content: flex-end; gap: 6px;
-    }
-    .langbar button {
-        font-family: 'Readex Pro', sans-serif; font-size: .72rem; padding: 5px 12px;
-        border-radius: 20px; border: 1px solid #4a4237; background: transparent;
-        color: #b9b0a1; cursor: pointer;
-    }
-    .langbar button.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    /* Language toggle */
+    .lang-toggle{position:fixed;top:12px;right:12px;z-index:50;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text)}
 
-    /* category tabs */
-    .cats {
-        position: sticky; top: 0; z-index: 20;
-        display: flex; gap: 8px; overflow-x: auto; padding: 14px 20px;
-        background: var(--bg); border-bottom: 1px solid var(--line);
-        scrollbar-width: none;
-    }
-    .cats::-webkit-scrollbar { display: none; }
-    .cat-pill {
-        flex: 0 0 auto; font-family: 'Readex Pro', sans-serif; font-size: .82rem; font-weight: 500;
-        padding: 8px 15px; border-radius: 20px; border: 1px solid var(--line);
-        background: var(--card); color: var(--ink); cursor: pointer; transition: all .15s ease;
-    }
-    .cat-pill.on { background: var(--ink); border-color: var(--ink); color: var(--bar-ink); }
+    /* Currency selector */
+    .currency-bar{display:flex;justify-content:center;gap:8px;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40}
+    .currency-btn{padding:6px 14px;border-radius:16px;border:1px solid var(--border);background:var(--bg);font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);transition:.15s}
+    .currency-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 
-    /* items */
-    .items { padding: 8px 20px 120px; }
-    .item {
-        display: flex; align-items: center; gap: 14px;
-        background: var(--card); border: 1px solid var(--line); border-radius: 12px;
-        padding: 14px 15px; margin-bottom: 10px;
-    }
-    .item .grow { flex: 1; min-width: 0; }
-    .item .nm { font-weight: 600; font-size: .95rem; }
-    .item .dc { font-size: .75rem; color: var(--dim); margin-top: 3px; line-height: 1.45; }
-    .item .pr { font-family: 'JetBrains Mono', monospace; font-size: .78rem; color: var(--accent); font-weight: 600; margin-top: 6px; white-space: nowrap; }
-    .addb {
-        width: 40px; height: 40px; flex: 0 0 40px; border-radius: 10px; border: 1px solid var(--line);
-        background: var(--card); color: var(--ink); font-size: 1.25rem; font-weight: 600; cursor: pointer;
-        display: flex; align-items: center; justify-content: center; transition: all .15s ease;
-    }
-    .addb:hover { border-color: var(--accent); color: var(--accent); }
-    .addb.in { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .stepper {
-        display: flex; align-items: center; gap: 10px;
-        background: var(--accent); border-radius: 10px; padding: 4px 8px; flex: 0 0 auto;
-    }
-    .stepper button { background: none; border: none; color: #fff; font-size: 1.05rem; width: 26px; height: 26px; cursor: pointer; font-weight: 600; }
-    .stepper .q { color: #fff; font-family: 'JetBrains Mono', monospace; font-size: .85rem; min-width: 16px; text-align: center; }
+    /* Categories */
+    .cat-tabs{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .cat-tabs::-webkit-scrollbar{display:none}
+    .cat-tab{padding:8px 16px;border-radius:20px;border:1px solid var(--border);background:var(--card);font-size:13px;font-weight:500;white-space:nowrap;cursor:pointer;color:var(--text2);transition:.15s}
+    .cat-tab.active{background:var(--text);color:#fff;border-color:var(--text)}
 
-    /* empty state */
-    .empty { text-align: center; color: var(--faint); font-size: .85rem; padding: 60px 20px; }
+    /* Items */
+    .items-grid{padding:8px 16px;display:flex;flex-direction:column;gap:12px}
+    .item-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;gap:12px;align-items:flex-start;transition:.15s}
+    .item-card:active{transform:scale(.98)}
+    .item-img{width:64px;height:64px;border-radius:8px;object-fit:cover;background:var(--bg);flex-shrink:0}
+    .item-info{flex:1;min-width:0}
+    .item-name{font-size:15px;font-weight:600;margin-bottom:2px}
+    .item-name-ar{font-size:13px;color:var(--text2);margin-bottom:4px}
+    .item-desc{font-size:12px;color:var(--text2);margin-bottom:6px;line-height:1.4}
+    .item-price{font-size:16px;font-weight:700;color:var(--primary)}
+    .item-price .old-price{text-decoration:line-through;color:var(--text3);font-size:12px;font-weight:400;margin-right:6px}
+    .item-badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:600;background:var(--primary);color:#fff;margin-bottom:4px}
+    .item-unavailable{opacity:.5;pointer-events:none}
+    .item-add{width:32px;height:32px;border-radius:50%;border:2px solid var(--primary);background:transparent;color:var(--primary);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.15s}
+    .item-add:hover{background:var(--primary);color:#fff}
 
-    /* floating order bar */
-    .obar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; justify-content: center; pointer-events: none; }
-    .obar-in {
-        pointer-events: auto; max-width: 640px; width: 100%; margin: 0 12px 14px;
-        background: var(--bar); color: var(--bar-ink); border-radius: 14px;
-        padding: 13px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
-        box-shadow: 0 8px 24px rgba(38,32,25,.25); cursor: pointer;
-    }
-    .obar .cnt { font-family: 'JetBrains Mono', monospace; font-size: .78rem; color: #e2956a; font-weight: 600; }
-    .obar .tot { font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 600; }
-    .obar .send {
-        background: var(--accent); color: #fff; border: none; border-radius: 9px;
-        padding: 10px 16px; font-family: 'JetBrains Mono', monospace; font-size: .78rem; font-weight: 600; cursor: pointer;
-    }
-    .obar .send:hover { background: #a84d24; }
-    .hidden { display: none !important; }
+    /* Cart */
+    .cart-bar{position:fixed;bottom:0;left:0;right:0;background:var(--primary);color:#fff;padding:12px 16px;display:none;align-items:center;justify-content:space-between;z-index:50;box-shadow:0 -4px 20px rgba(0,0,0,.15)}
+    .cart-bar.visible{display:flex}
+    .cart-count{font-size:14px;font-weight:600}
+    .cart-total{font-size:16px;font-weight:700}
+    .cart-btn{padding:10px 20px;border:none;border-radius:8px;background:#fff;color:var(--primary);font-size:14px;font-weight:700;cursor:pointer}
+    .cart-btn:disabled{opacity:.5}
 
-    /* bottom sheet (order panel) */
-    .sheetc { position: fixed; inset: 0; z-index: 40; background: rgba(38,32,25,.45); display: flex; align-items: flex-end; justify-content: center; }
-    .sheetp {
-        max-width: 640px; width: 100%; background: var(--card); border-radius: 20px 20px 0 0;
-        padding: 20px 20px 24px; max-height: 82vh; overflow-y: auto;
-    }
-    .sheetp .tt { font-weight: 700; font-size: 1.05rem; margin-bottom: 4px; }
-    .sheetp .sub { font-size: .74rem; color: var(--dim); margin-bottom: 16px; }
-    .row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
-    .row .nm { flex: 1; font-size: .88rem; font-weight: 500; }
-    .row .pt { font-family: 'JetBrains Mono', monospace; font-size: .78rem; color: var(--dim); }
-    .row .mmm { display: flex; align-items: center; gap: 8px; }
-    .row .mmm button { width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-size: .9rem; }
-    .row .mmm span { font-family: 'JetBrains Mono', monospace; font-size: .85rem; min-width: 14px; text-align: center; }
-    .gtotal { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
-    .gtotal .g { font-weight: 700; }
-    .gtotal .gv { font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; font-weight: 700; color: var(--accent); }
-    .sendbg {
-        width: 100%; margin-top: 14px; background: #25d366; color: #062b16; border: none; border-radius: 12px;
-        padding: 14px; font-family: 'JetBrains Mono', monospace; font-size: .85rem; font-weight: 700; cursor: pointer;
-        display: flex; align-items: center; justify-content: center; gap: 8px;
-    }
-    .sendbg:hover { background: #1fb959; }
-    .closer { background: none; border: none; color: var(--dim); display: block; margin: 12px auto 0; font-size: .78rem; cursor: pointer; }
+    /* Footer */
+    .shop-footer{text-align:center;padding:20px 16px;color:var(--text3);font-size:12px;border-top:1px solid var(--border);margin-top:24px}
 
-    /* footer */
-    .ft { text-align: center; font-size: .7rem; color: var(--faint); padding: 26px 20px 96px; line-height: 1.7; }
-    .ft .mono { color: var(--dim); }
+    /* Deals banner */
+    .deals-banner{margin:8px 16px;padding:12px 16px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:var(--radius);color:#fff}
+    .deals-banner h3{font-size:14px;font-weight:700;margin-bottom:4px}
+    .deals-banner p{font-size:12px;opacity:.9}
 
-    /* print */
-    @media print {
-        .cats, .obar, .langbar, .hd .qr-btn, .addb, .stepper { display: none !important; }
-        .hd { background: none; color: var(--ink); border-bottom: 2px solid var(--ink); }
-        .hd .shop-tag { color: var(--dim); }
-        .items { padding: 12px 6px; }
-        body { background: #fff; }
-        .sheet { max-width: 100%; }
-        .item { border: none; border-bottom: 1px dotted var(--line); border-radius: 0; padding: 8px 0; }
-        .item .np { flex: 0 0 88px; text-align: right; }
-        .item .pr { text-align: right; }
-    }
-    @media (min-width: 480px) {
-        .hd { padding: 30px 24px 24px; }
-        .items { padding-left: 24px; padding-right: 24px; }
-    }
-</style>
+    /* Empty */
+    .empty-msg{text-align:center;padding:40px 16px;color:var(--text3);font-size:14px}
+
+    /* WhatsApp order modal */
+    .order-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:none;align-items:flex-end;justify-content:center}
+    .order-modal.visible{display:flex}
+    .order-sheet{background:var(--card);border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;padding:20px}
+    .order-sheet h3{font-size:18px;font-weight:700;margin-bottom:12px}
+    .order-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px}
+    .order-item .qty{display:flex;align-items:center;gap:8px}
+    .order-item .qty button{width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:var(--bg);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    .order-total-row{display:flex;justify-content:space-between;padding:12px 0;font-size:16px;font-weight:700;border-top:2px solid var(--text)}
+    .order-whatsapp{width:100%;margin-top:12px;padding:14px;border:none;border-radius:10px;background:#25D366;color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+    .order-whatsapp:disabled{opacity:.5}
+    .order-note{width:100%;margin-top:8px;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:13px;resize:none;min-height:60px;font-family:inherit}
+  </style>
 </head>
 <body>
-<div class="sheet">
-    <!-- header -->
-    <header class="hd">
-        <div>
-            <div class="shop-name" id="shopName">Al‑Sahari Café</div>
-            <div class="shop-tag mono" id="shopTag">QR MENU // ORDER VIA WHATSAPP</div>
-        </div>
-        <button class="qr-btn" id="qrBtn" type="button">⌗ QR</button>
-    </header>
-    <div class="langbar">
-        <button id="btnEn" type="button">EN</button>
-        <button id="btnAr" type="button">عربي</button>
+  <!-- Loading -->
+  <div class="loading-screen" id="loading">
+    <div class="spinner"></div>
+    <p>Loading menu...</p>
+  </div>
+
+  <!-- Language toggle -->
+  <button class="lang-toggle" id="lang-btn" onclick="toggleLang()">AR</button>
+
+  <!-- Shop header (injected) -->
+  <div class="shop-header" id="shop-header" style="display:none"></div>
+
+  <!-- Currency selector (injected) -->
+  <div class="currency-bar" id="currency-bar" style="display:none"></div>
+
+  <!-- Category tabs (injected) -->
+  <div class="cat-tabs" id="cat-tabs" style="display:none"></div>
+
+  <!-- Deals (injected) -->
+  <div id="deals-section"></div>
+
+  <!-- Items grid (injected) -->
+  <div class="items-grid" id="items-grid" style="display:none"></div>
+
+  <!-- Cart bar -->
+  <div class="cart-bar" id="cart-bar">
+    <div>
+      <div class="cart-count" id="cart-count">0 items</div>
+      <div class="cart-total" id="cart-total">0</div>
     </div>
+    <button class="cart-btn" onclick="openOrderSheet()">Review Order</button>
+  </div>
 
-    <!-- category tabs -->
-    <nav class="cats" id="cats"></nav>
+  <!-- Order review modal -->
+  <div class="order-modal" id="order-modal" onclick="if(event.target===this)closeOrderSheet()">
+    <div class="order-sheet" id="order-sheet"></div>
+  </div>
 
-    <!-- items -->
-    <main class="items" id="items" aria-live="polite"></main>
-    <div class="empty hidden" id="empty">— empty menu —</div>
+  <!-- Footer (injected) -->
+  <div class="shop-footer" id="shop-footer" style="display:none"></div>
 
-    <!-- floating order bar -->
-    <div class="obar" id="obar">
-        <div class="obar-in" id="obarIn">
-            <div>
-                <div class="cnt" id="obarCnt">0</div>
-                <div class="tot" id="obarTot">—</div>
+  <script src="config.js"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ─── STATE ──────────────────────────────────────────────
+    let shop = null;
+    let categories = [];
+    let items = [];
+    let deals = [];
+    let lang = 'en';
+    let activeCurrency = 'SYP';
+    let activeCategory = null;
+    let cart = {}; // { itemId: qty }
+
+    // ─── INIT ───────────────────────────────────────────────
+    (async () => {
+      // Detect language from browser or hash
+      const hash = window.location.hash.replace('#', '');
+      if (hash === 'ar' || hash === 'en') {
+        lang = hash;
+      } else {
+        lang = navigator.language.startsWith('ar') ? 'ar' : 'en';
+      }
+
+      // Load shop (first active shop, or by slug in URL)
+      const slug = new URLSearchParams(window.location.search).get('shop');
+      let query = sb.from('shops').select('*').eq('is_active', true);
+      if (slug) query = query.eq('slug', slug);
+      const { data: shops } = await query.limit(1);
+
+      if (!shops || shops.length === 0) {
+        document.getElementById('loading').innerHTML = '<p style="color:var(--text2)">No shop found.</p>';
+        return;
+      }
+      shop = shops[0];
+      activeCurrency = shop.currency_default || 'SYP';
+
+      // Load categories
+      const { data: cats } = await sb.from('categories').select('*').eq('shop_id', shop.id).eq('is_active', true).order('sort_order');
+      categories = cats || [];
+
+      // Load items with prices
+      const { data: its } = await sb.from('items').select('*, item_prices(*)').eq('shop_id', shop.id).eq('is_available', true).order('sort_order');
+      items = (its || []).filter(i => {
+        // Only show items that have at least one visible price
+        return (i.item_prices || []).some(p => p.is_visible);
+      });
+
+      // Load active deals
+      const now = new Date().toISOString();
+      const { data: dls } = await sb.from('deals').select('*').eq('shop_id', shop.id).eq('is_active', true)
+        .or(`starts_at.is.null,starts_at.lte.${now}`)
+        .or(`ends_at.is.null,ends_at.gte.${now}`)
+        .order('sort_order');
+      deals = dls || [];
+
+      // Apply theme colors
+      document.documentElement.style.setProperty('--primary', shop.primary_color || '#D97706');
+      document.documentElement.style.setProperty('--accent', shop.accent_color || '#92400E');
+
+      render();
+      document.getElementById('loading').style.display = 'none';
+    })();
+
+    // ─── RENDER ─────────────────────────────────────────────
+    function render() {
+      applyLang();
+      renderHeader();
+      renderCurrencyBar();
+      renderCategories();
+      renderDeals();
+      renderItems();
+      renderFooter();
+    }
+
+    function applyLang() {
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+      document.body.dir = lang === 'ar' ? 'rtl' : 'ltr';
+      document.getElementById('lang-btn').textContent = lang === 'en' ? 'AR' : 'EN';
+      document.title = lang === 'ar' ? (shop.name_ar || shop.name) : shop.name;
+    }
+
+    function renderHeader() {
+      const h = document.getElementById('shop-header');
+      h.style.display = 'block';
+      const logo = shop.logo_url ? `<img class="logo" src="${esc(shop.logo_url)}" alt="${esc(shop.name)}">` : '';
+      const name = lang === 'ar' ? (shop.name_ar || shop.name) : shop.name;
+      const tagline = lang === 'ar' ? (shop.tagline_ar || shop.tagline) : shop.tagline;
+      const contactParts = [];
+      if (shop.whatsapp) contactParts.push(`<a href="https://wa.me/${esc(shop.whatsapp)}">WhatsApp</a>`);
+      if (shop.phone) contactParts.push(`<span>${esc(shop.phone)}</span>`);
+      if (shop.email) contactParts.push(`<a href="mailto:${esc(shop.email)}">${esc(shop.email)}</a>`);
+      h.innerHTML = `
+        ${logo}
+        <h1>${esc(name)}</h1>
+        ${tagline ? `<p class="tagline">${esc(tagline)}</p>` : ''}
+        ${contactParts.length ? `<div class="contact-row">${contactParts.join('')}</div>` : ''}
+      `;
+    }
+
+    function renderCurrencyBar() {
+      const bar = document.getElementById('currency-bar');
+      const currencies = shop.currencies || ['SYP'];
+      if (currencies.length <= 1 && !shop.show_currency_selector) {
+        bar.style.display = 'none';
+        return;
+      }
+      bar.style.display = 'flex';
+      bar.innerHTML = currencies.map(c =>
+        `<button class="currency-btn ${c === activeCurrency ? 'active' : ''}" onclick="setCurrency('${c}')">${c}</button>`
+      ).join('');
+    }
+
+    function renderCategories() {
+      const tabs = document.getElementById('cat-tabs');
+      if (categories.length === 0) { tabs.style.display = 'none'; return; }
+      tabs.style.display = 'flex';
+      const allLabel = lang === 'ar' ? 'الكل' : 'All';
+      tabs.innerHTML = `<button class="cat-tab ${activeCategory === null ? 'active' : ''}" onclick="setCategory(null)">${allLabel}</button>` +
+        categories.map(c => {
+          const name = lang === 'ar' ? (c.name_ar || c.name) : c.name;
+          return `<button class="cat-tab ${activeCategory === c.id ? 'active' : ''}" onclick="setCategory('${c.id}')">${esc(name)}</button>`;
+        }).join('');
+    }
+
+    function renderDeals() {
+      const sec = document.getElementById('deals-section');
+      if (deals.length === 0) { sec.innerHTML = ''; return; }
+      sec.innerHTML = deals.map(d => {
+        const title = lang === 'ar' ? (d.title_ar || d.title) : d.title;
+        const desc = lang === 'ar' ? (d.description_ar || d.description) : d.description;
+        const discount = d.discount_type === 'percent' ? `${d.discount_value}% OFF` : `${d.discount_value} ${d.currency} OFF`;
+        return `<div class="deals-banner"><h3>🔥 ${esc(title)} — ${discount}</h3>${desc ? `<p>${esc(desc)}</p>` : ''}</div>`;
+      }).join('');
+    }
+
+    function renderItems() {
+      const grid = document.getElementById('items-grid');
+      const filtered = activeCategory ? items.filter(i => i.category_id === activeCategory) : items;
+      if (filtered.length === 0) {
+        grid.style.display = 'block';
+        grid.innerHTML = `<div class="empty-msg">${lang === 'ar' ? 'لا عناصر بعد' : 'No items yet'}</div>`;
+        return;
+      }
+      grid.style.display = 'flex';
+      grid.innerHTML = filtered.map(item => {
+        const name = lang === 'ar' ? (item.name_ar || item.name) : item.name;
+        const desc = lang === 'ar' ? (item.description_ar || item.description) : item.description;
+        const priceObj = (item.item_prices || []).find(p => p.currency === activeCurrency && p.is_visible);
+        const price = priceObj ? formatPrice(priceObj.price, activeCurrency) : '';
+        const img = item.image_url ? `<img class="item-img" src="${esc(item.image_url)}" alt="">` : '';
+        const badge = item.is_featured ? `<span class="item-badge">${lang === 'ar' ? 'مميز' : 'Featured'}</span>` : '';
+        const inCart = cart[item.id] || 0;
+        return `
+          <div class="item-card">
+            ${img}
+            <div class="item-info">
+              ${badge}
+              <div class="item-name">${esc(name)}</div>
+              ${desc ? `<div class="item-desc">${esc(desc)}</div>` : ''}
+              ${price ? `<div class="item-price">${price}</div>` : ''}
             </div>
-            <button class="send" id="obarSend" type="button">WhatsApp →</button>
-        </div>
-    </div>
+            <button class="item-add" onclick="addToCart('${item.id}')" title="Add">+</button>
+          </div>
+        `;
+      }).join('');
+    }
 
-    <!-- order bottom-sheet -->
-    <div class="sheetc hidden" id="sheetc">
-        <div class="sheetp">
-            <div class="tt" id="sheetTitle">Your order</div>
-            <div class="sub" id="sheetSub">Review and send it to us on WhatsApp.</div>
-            <div id="sheetRows"></div>
-            <div class="gtotal">
-                <span class="g" id="gTotalLbl">Total</span>
-                <span class="gv" id="gTotalVal">—</span>
+    function renderFooter() {
+      const f = document.getElementById('shop-footer');
+      f.style.display = 'block';
+      const text = lang === 'ar' ? (shop.footer_text_ar || shop.footer_text || '') : (shop.footer_text || '');
+      f.textContent = text || `© ${new Date().getFullYear()} ${shop.name}`;
+    }
+
+    // ─── ACTIONS ────────────────────────────────────────────
+    function toggleLang() {
+      lang = lang === 'en' ? 'ar' : 'en';
+      window.location.hash = lang;
+      render();
+    }
+
+    function setCurrency(c) {
+      activeCurrency = c;
+      renderCurrencyBar();
+      renderItems();
+    }
+
+    function setCategory(id) {
+      activeCategory = id;
+      renderCategories();
+      renderItems();
+    }
+
+    function addToCart(itemId) {
+      cart[itemId] = (cart[itemId] || 0) + 1;
+      updateCartBar();
+    }
+
+    function removeFromCart(itemId) {
+      if (cart[itemId]) {
+        cart[itemId]--;
+        if (cart[itemId] <= 0) delete cart[itemId];
+      }
+      updateCartBar();
+      renderOrderSheet();
+    }
+
+    function updateCartBar() {
+      const bar = document.getElementById('cart-bar');
+      const totalItems = Object.values(cart).reduce((s, q) => s + q, 0);
+      if (totalItems === 0) {
+        bar.classList.remove('visible');
+        return;
+      }
+      bar.classList.add('visible');
+      document.getElementById('cart-count').textContent = `${totalItems} ${lang === 'ar' ? 'عناصر' : 'items'}`;
+      const total = Object.entries(cart).reduce((sum, [id, qty]) => {
+        const item = items.find(i => i.id === id);
+        const priceObj = (item?.item_prices || []).find(p => p.currency === activeCurrency && p.is_visible);
+        return sum + (priceObj ? priceObj.price * qty : 0);
+      }, 0);
+      document.getElementById('cart-total').textContent = formatPrice(total, activeCurrency);
+    }
+
+    function openOrderSheet() {
+      document.getElementById('order-modal').classList.add('visible');
+      renderOrderSheet();
+    }
+
+    function closeOrderSheet() {
+      document.getElementById('order-modal').classList.remove('visible');
+    }
+
+    function renderOrderSheet() {
+      const sheet = document.getElementById('order-sheet');
+      const totalItems = Object.values(cart).reduce((s, q) => s + q, 0);
+      if (totalItems === 0) {
+        sheet.innerHTML = `<h3>${lang === 'ar' ? 'سلة فارغة' : 'Cart is empty'}</h3><p style="color:var(--text2);margin-top:8px">${lang === 'ar' ? 'أضف عناصر من القائمة' : 'Add items from the menu'}</p>`;
+        return;
+      }
+
+      let rows = '';
+      let total = 0;
+      for (const [id, qty] of Object.entries(cart)) {
+        const item = items.find(i => i.id === id);
+        if (!item) continue;
+        const name = lang === 'ar' ? (item.name_ar || item.name) : item.name;
+        const priceObj = (item.item_prices || []).find(p => p.currency === activeCurrency && p.is_visible);
+        const unitPrice = priceObj ? priceObj.price : 0;
+        const lineTotal = unitPrice * qty;
+        total += lineTotal;
+        rows += `
+          <div class="order-item">
+            <span>${esc(name)} × ${qty}</span>
+            <div class="qty">
+              <span>${formatPrice(lineTotal, activeCurrency)}</span>
+              <button onclick="removeFromCart('${id}')">−</button>
             </div>
-            <button class="sendbg" id="sendBtn" type="button">▼ Send order via WhatsApp</button>
-            <button class="closer" id="closeBtn" type="button">✕ close</button>
-        </div>
-    </div>
+          </div>
+        `;
+      }
 
-    <footer class="ft" id="foot">
-        <span class="mono">QR MENU</span> · digital menu with WhatsApp ordering<br>
-        made by amworx — amworx.github.io
-    </footer>
-</div>
+      const noteLabel = lang === 'ar' ? 'ملاحظات الطلب (اختياري)' : 'Order notes (optional)';
+      const waLabel = lang === 'ar' ? 'إرسال عبر واتساب' : 'Send via WhatsApp';
+      const totalLabel = lang === 'ar' ? 'المجموع' : 'Total';
 
-<script>
-/* ================= EDIT ME — café data ================= */
-const CONFIG = {
-    shop: "Al-Sahari Café",
-    tag: "QR MENU // ORDER VIA WHATSAPP",
-    /* international format, digits only, no + */
-    whatsapp: "963992656853",
-    currency: "SYP"
-};
-/* bilingual menu — edit names/prices freely */
-const MENU = [
-    {
-        id: "coffee", icon: "☕",
-        name: { en: "Coffee", ar: "قهوة" },
-        items: [
-            { name: { en: "Turkish Coffee", ar: "قهوة تركية" }, desc: { en: "Served strong with cardamom", ar: "تُقدَّم مركّزة مع الهيل" }, price: 20000 },
-            { name: { en: "Arabic Coffee", ar: "قهوة عربية" }, desc: { en: "With cardamom & dates", ar: "مع الهيل والتمر" }, price: 22000 },
-            { name: { en: "Espresso", ar: "إسبريسو" }, desc: { en: "Double shot", ar: "جرعة مزدوجة" }, price: 15000 },
-            { name: { en: "Americano", ar: "أمريكانو" }, desc: { en: "Smooth & black", ar: "ناعمة وسوداء" }, price: 18000 },
-            { name: { en: "Cappuccino", ar: "كابتشينو" }, desc: { en: "Silky milk foam", ar: "رغوة حليب ناعمة" }, price: 25000 },
-            { name: { en: "Flat White", ar: "فلات وايت" }, desc: { en: "Velvety double shot", ar: "جرعة مزدوجة مخملية" }, price: 28000 }
-        ]
-    },
-    {
-        id: "cold", icon: "🧊",
-        name: { en: "Cold Drinks", ar: "مشروبات باردة" },
-        items: [
-            { name: { en: "Iced Latte", ar: "لاتيه مثلّج" }, desc: { en: "Espresso over cold milk", ar: "إسبريسو مع حليب بارد" }, price: 30000 },
-            { name: { en: "Fresh Orange Juice", ar: "عصير برتقال طازج" }, desc: { en: "Cold-pressed daily", ar: "عصير طازج يومياً" }, price: 22000 },
-            { name: { en: "Lemon Mint", ar: "ليمون بالنعناع" }, desc: { en: "Cool & refreshing", ar: "منعش وبارد" }, price: 18000 },
-            { name: { en: "Virgin Mojito", ar: "موهيتو بدون كحول" }, desc: { en: "Lime, mint & soda", ar: "ليمون ونعناع وصودا" }, price: 25000 }
-        ]
-    },
-    {
-        id: "food", icon: "🥪",
-        name: { en: "Food", ar: "مأكولات" },
-        items: [
-            { name: { en: "Cheese Croissant", ar: "كرواسون بالجبنة" }, desc: { en: "Baked fresh in-house", ar: "مخبوز طازج في المحل" }, price: 24000 },
-            { name: { en: "Chicken Panini", ar: "بانيني دجاج" }, desc: { en: "Grilled & pressed", ar: "مشوي ومضغوط" }, price: 45000 },
-            { name: { en: "Margherita Pizza", ar: "بيتزا مارغريتا" }, desc: { en: "Basil, mozzarella", ar: "ريحان وموزاريلا" }, price: 55000 },
-            { name: { en: "Club Sandwich", ar: "ساندويش كلوب" }, desc: { en: "Triple layer, fries", ar: "ثلاث طبقات مع البطاطا" }, price: 40000 }
-        ]
-    },
-    {
-        id: "dessert", icon: "🍰",
-        name: { en: "Desserts", ar: "حلويات" },
-        items: [
-            { name: { en: "Kunafa", ar: "كنافة" }, desc: { en: "Hot, with pistachio", ar: "ساخنة مع الفستق" }, price: 35000 },
-            { name: { en: "Chocolate Cake", ar: "كعكة الشوكولاتة" }, desc: { en: "Rich Belgian cocoa", ar: "كاكاو بلجيكي غني" }, price: 30000 },
-            { name: { en: "Cheesecake", ar: "تشيز كيك" }, desc: { en: "Baked, berry topping", ar: "مخبوزة مع التوت" }, price: 32000 },
-            { name: { en: "Baklava (2 pcs)", ar: "بقلاوة (قطعتان)" }, desc: { en: "Crispy, syrup", ar: "مقرمشة بالقطر" }, price: 15000 }
-        ]
+      sheet.innerHTML = `
+        <h3>${lang === 'ar' ? 'مراجعة الطلب' : 'Review Order'}</h3>
+        ${rows}
+        <div class="order-total-row"><span>${totalLabel}</span><span>${formatPrice(total, activeCurrency)}</span></div>
+        <textarea class="order-note" id="order-note" placeholder="${noteLabel}"></textarea>
+        <button class="order-whatsapp" onclick="sendWhatsApp()">${waLabel}</button>
+      `;
     }
-];
-/* ====================================================== */
 
-const I18N = {
-    en: {
-        title: "QR Menu — Order via WhatsApp",
-        yourOrder: "Your order",
-        review: "Review and send it to us on WhatsApp.",
-        total: "Total",
-        send: "▼ Send order via WhatsApp",
-        close: "✕ close",
-        orderBar: "items",
-        openCart: "Review order",
-        empty: "— the menu is empty —",
-        msgHeader: "New order",
-        tableNote: "Table / notes:",
-        foot: "QR MENU · digital menu with WhatsApp ordering<br>made by amworx — amworx.github.io"
-    },
-    ar: {
-        title: "قائمة QR — اطلب عبر واتساب",
-        yourOrder: "طلبك",
-        review: "راجع طلبك وأرسله إلينا عبر واتساب.",
-        total: "المجموع",
-        send: "▼ أرسل الطلب عبر واتساب",
-        close: "✕ إغلاق",
-        orderBar: "أصناف",
-        openCart: "مراجعة الطلب",
-        empty: "— القائمة فارغة —",
-        msgHeader: "طلب جديد",
-        tableNote: "الطاولة / ملاحظات:",
-        foot: "قائمة QR · منيو رقمي مع الطلب عبر واتساب<br>صُنع بواسطة amworx — amworx.github.io"
+    function sendWhatsApp() {
+      const totalItems = Object.values(cart).reduce((s, q) => s + q, 0);
+      if (totalItems === 0) return;
+
+      const lines = [];
+      lines.push(lang === 'ar' ? `*طلب جديد — ${shop.name}*` : `*New Order — ${shop.name}*`);
+      lines.push('');
+
+      let total = 0;
+      for (const [id, qty] of Object.entries(cart)) {
+        const item = items.find(i => i.id === id);
+        if (!item) continue;
+        const name = lang === 'ar' ? (item.name_ar || item.name) : item.name;
+        const priceObj = (item.item_prices || []).find(p => p.currency === activeCurrency && p.is_visible);
+        const unitPrice = priceObj ? priceObj.price : 0;
+        const lineTotal = unitPrice * qty;
+        total += lineTotal;
+        lines.push(`• ${name} × ${qty} — ${formatPrice(lineTotal, activeCurrency)}`);
+      }
+
+      lines.push('');
+      lines.push(`${lang === 'ar' ? 'المجموع' : 'Total'}: *${formatPrice(total, activeCurrency)}*`);
+
+      const note = document.getElementById('order-note')?.value?.trim();
+      if (note) {
+        lines.push('');
+        lines.push(`${lang === 'ar' ? 'ملاحظات' : 'Notes'}: ${note}`);
+      }
+
+      const msg = encodeURIComponent(lines.join('\n'));
+      const phone = shop.whatsapp?.replace(/[^0-9]/g, '') || '';
+      const url = phone ? `https://wa.me/${phone}?text=${msg}` : `https://wa.me/?text=${msg}`;
+      window.open(url, '_blank');
     }
-};
 
-let lang = localStorage.getItem("qrmenu_lang") || "en";
-const order = {}; // id -> qty
-try { Object.assign(order, JSON.parse(localStorage.getItem("qrmenu_order") || "{}")); } catch (e) {}
-
-/* ---------- helpers ---------- */
-const $ = (s) => document.querySelector(s);
-const money = (n) => n.toLocaleString("en-US") + " " + CONFIG.currency;
-
-/* ---------- render ---------- */
-function renderCats() {
-    const cats = $("#cats");
-    cats.innerHTML = "";
-    MENU.forEach((c, i) => {
-        const b = document.createElement("button");
-        b.className = "cat-pill" + (i === 0 ? " on" : "");
-        b.type = "button";
-        b.textContent = c.icon + " " + (lang === "ar" ? c.name.ar : c.name.en);
-        b.onclick = () => { selectCat(i); };
-        cats.appendChild(b);
-    });
-}
-
-let activeCat = 0;
-function selectCat(i) {
-    activeCat = i;
-    document.querySelectorAll(".cat-pill").forEach((b, j) => b.classList.toggle("on", j === i));
-    renderItems();
-}
-
-function renderItems() {
-    const box = $("#items");
-    const cat = MENU[activeCat];
-    box.innerHTML = "";
-    if (!cat || !cat.items.length) { $("#empty").classList.remove("hidden"); return; }
-    $("#empty").classList.add("hidden");
-    cat.items.forEach(it => {
-        const key = cat.id + ":" + it.name.en;
-        const el = document.createElement("div");
-        el.className = "item";
-        el.innerHTML = `
-            <div class="grow">
-                <div class="nm">${lang === "ar" ? it.name.ar : it.name.en}</div>
-                <div class="dc">${lang === "ar" ? it.desc.ar : it.desc.en}</div>
-                <div class="pr">${money(it.price)}</div>
-            </div>`;
-        const ctrl = document.createElement("div");
-        ctrl.id = "ctrl-" + key.replace(/[^a-z0-9]/gi, "");
-        el.appendChild(ctrl);
-        box.appendChild(el);
-        renderCtrl(ctrl, key, it);
-    });
-    refreshBar();
-}
-
-function renderCtrl(ctrl, key, it) {
-    const q = order[key] || 0;
-    if (!q) {
-        const b = document.createElement("button");
-        b.className = "addb";
-        b.type = "button";
-        b.textContent = "+";
-        b.setAttribute("aria-label", "Add " + it.name.en);
-        b.onclick = () => { order[key] = 1; persistOrder(); renderCtrl(ctrl, key, it); refreshBar(); };
-        ctrl.innerHTML = "";
-        ctrl.appendChild(b);
-    } else {
-        ctrl.innerHTML = `<div class="stepper">
-            <button type="button" aria-label="decrease">−</button>
-            <span class="q">${q}</span>
-            <button type="button" aria-label="increase">+</button>
-        </div>`;
-        const [dec, inc] = ctrl.querySelectorAll("button");
-        dec.onclick = () => { order[key]--; if (order[key] <= 0) delete order[key]; persistOrder(); renderCtrl(ctrl, key, it); refreshBar(); };
-        inc.onclick = () => { order[key]++; persistOrder(); renderCtrl(ctrl, key, it); refreshBar(); };
+    // ─── HELPERS ────────────────────────────────────────────
+    function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    function formatPrice(amount, currency) {
+      const formatted = new Intl.NumberFormat(lang === 'ar' ? 'ar-SY' : 'en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
+      return `${formatted} ${currency}`;
     }
-}
-
-/* ---------- order state ---------- */
-function persistOrder() {
-    try { localStorage.setItem("qrmenu_order", JSON.stringify(order)); } catch (e) {}
-}
-function orderLines() {
-    const lines = [];
-    MENU.forEach(cat => cat.items.forEach(it => {
-        const key = cat.id + ":" + it.name.en;
-        if (order[key]) lines.push({ cat, it, qty: order[key], key });
-    }));
-    return lines;
-}
-function totalAmount() {
-    return orderLines().reduce((s, l) => s + l.it.price * l.qty, 0);
-}
-function refreshBar() {
-    const lines = orderLines();
-    const n = lines.reduce((s, l) => s + l.qty, 0);
-    const bar = $("#obarIn");
-    if (n === 0) { bar.classList.add("hidden"); return; }
-    bar.classList.remove("hidden");
-    $("#obarCnt").textContent = n + " " + I18N[lang].orderBar;
-    $("#obarTot").textContent = money(totalAmount());
-}
-
-/* ---------- bottom sheet ---------- */
-function openSheet() {
-    const lines = orderLines();
-    if (!lines.length) return;
-    const rows = $("#sheetRows");
-    rows.innerHTML = "";
-    lines.forEach(l => {
-        const r = document.createElement("div");
-        r.className = "row";
-        r.innerHTML = `<span class="nm">${lang === "ar" ? l.it.name.ar : l.it.name.en}</span>
-            <span class="pt">${money(l.it.price)}</span>
-            <div class="mmm">
-                <button type="button" aria-label="decrease">−</button>
-                <span>${l.qty}</span>
-                <button type="button" aria-label="increase">+</button>
-            </div>`;
-        const [dec, inc] = r.querySelectorAll("button");
-        dec.onclick = () => {
-            order[l.key]--;
-            if (order[l.key] <= 0) delete order[l.key];
-            persistOrder(); openSheet(); refreshBar();
-        };
-        inc.onclick = () => { order[l.key]++; persistOrder(); openSheet(); refreshBar(); };
-        rows.appendChild(r);
-    });
-    $("#gTotalVal").textContent = money(totalAmount());
-    $("#sheetc").classList.remove("hidden");
-}
-
-function sendWhatsApp() {
-    const lines = orderLines();
-    if (!lines.length) return;
-    const q = (n) => encodeURIComponent(n) + " ";
-    const body = lines.map(l => q(l.qty) + q("×") + q(lang === "ar" ? l.it.name.ar : l.it.name.en) + q("-") + q(money(l.it.price * l.qty))).join("\n");
-    const total = q("*" + I18N[lang].total + ": " + money(totalAmount()) + "*");
-    const note = q("_" + I18N[lang].tableNote + " ");
-    const msg = "*" + I18N[lang].msgHeader + " — " + CONFIG.shop + "*\n\n" + body + "\n\n" + total + "\n" + note;
-    window.open("https://wa.me/" + CONFIG.whatsapp + "?text=" + encodeURIComponent(msg.replace(/  /g, " ").trim()), "_blank");
-}
-
-/* ---------- language ---------- */
-function setLang(l) {
-    lang = l;
-    localStorage.setItem("qrmenu_lang", l);
-    document.documentElement.lang = l;
-    document.documentElement.dir = l === "ar" ? "rtl" : "ltr";
-    $("#btnEn").classList.toggle("on", l === "en");
-    $("#btnAr").classList.toggle("on", l === "ar");
-    document.title = I18N[l].title;
-    $("#shopName").textContent = CONFIG.shop;
-    $("#shopTag").textContent = CONFIG.tag;
-    $("#sheetTitle").textContent = I18N[l].yourOrder;
-    $("#sheetSub").textContent = I18N[l].review;
-    $("#gTotalLbl").textContent = I18N[l].total;
-    $("#sendBtn").textContent = I18N[l].send;
-    $("#closeBtn").textContent = I18N[l].close;
-    $("#foot").innerHTML = I18N[l].foot;
-    renderCats();
-    renderItems();
-}
-
-/* ---------- QR (free public API, no key) ---------- */
-$("#qrBtn").onclick = () => {
-    const url = location.href.split("?")[0];
-    window.open("https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data=" + encodeURIComponent(url), "_blank", "width=360,height=360");
-};
-
-/* ---------- wiring ---------- */
-$("#btnEn").onclick = () => setLang("en");
-$("#btnAr").onclick = () => setLang("ar");
-$("#obarIn").onclick = (e) => { if (e.target.id !== "obarSend") openSheet(); };
-$("#obarSend").onclick = (e) => { e.stopPropagation(); openSheet(); };
-$("#sendBtn").onclick = () => sendWhatsApp();
-$("#closeBtn").onclick = () => $("#sheetc").classList.add("hidden");
-$("#sheetc").onclick = (e) => { if (e.target.id === "sheetc") $("#sheetc").classList.add("hidden"); };
-
-setLang(lang);
-</script>
+  </script>
 </body>
 </html>
