@@ -30,8 +30,26 @@
 - **Root cause**: Windows PowerShell 5.1 console can't render Arabic; the value was actually stored correctly (UTF-8). The `????` was display-only.
 - **Fix**: Write the API response to a UTF-8 (no BOM) temp file (`[System.IO.File]::WriteAllText` with `UTF8Encoding($false)`) and Read it back — showed `"name_ar":"جودي جوي"` correctly.
 - **Lesson**: Never trust Windows PS console output for non-Latin text. If a check involves Arabic/Arabic-script data, dump to a UTF-8 file and verify with the Read tool before assuming corruption.
-## LSSN-20260907-006 � Free-tier Supabase + default email provider: no email template customization
-- **Problem**: Sign-in "magic link" email contained only a link, and the link pointed to http://localhost:3000 (default site_url) � useless. User wanted an OTP code in the email.
+## LSSN-20260907-006 � Free-tier Supabase + default email provider: no email template customization
+- **Problem**: Sign-in "magic link" email contained only a link, and the link pointed to http://localhost:3000 (default site_url) � useless. User wanted an OTP code in the email.
 - **Root cause**: (1) The default magic_link template shows only {{ .ConfirmationURL }} (no token); (2) site_url was the Supabase default; (3) template modification is BLOCKED on free tier with the default email provider (Management API returned: "Email template modification is not available for free tier projects using the default email provider").
-- **Fix**: Made the emailed link useful instead: set site_url + uri_allow_list to the real app, pass emailRedirectTo to admin.html from signInWithOtp, and have admin.html complete the session from ?token= (verifyOtp) or ?code= (exchangeCodeForSession). OTP length aligned to 6. For actual OTP-code emails, the user would need custom SMTP (or paid plan) � then templates become editable.
+- **Fix**: Made the emailed link useful instead: set site_url + uri_allow_list to the real app, pass emailRedirectTo to admin.html from signInWithOtp, and have admin.html complete the session from ?token= (verifyOtp) or ?code= (exchangeCodeForSession). OTP length aligned to 6. For actual OTP-code emails, the user would need custom SMTP (or paid plan) � then templates become editable.
 - **Lesson**: Before promising "OTP email", check the auth config: on free tier + built-in email, users get a magic link only; plan the redirect URL to be a real page that processes token/code params.
+
+## LSSN-20260907-007 — supabase-js on Edge Runtime: import via full URL, not bare specifier
+- **Problem**: Deploying an edge function failed bundle with: "Relative import path @supabase/supabase-js not prefixed with / or ./ or ../".
+- **Root cause**: The Supabase edge bundler does not resolve bare npm specifiers; it needs a fully-qualified URL.
+- **Fix**: `import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'` instead of `'@supabase/supabase-js'`.
+- **Lesson**: In Supabase Edge Functions use `https://esm.sh/@supabase/supabase-js@2` (jsDelivr/esm.sh), not the bare package name. Also deploy the function via Management API: `POST /v1/projects/{ref}/functions/deploy?slug=<name>` multipart with a `file` field + a `metadata` field (JSON string: `{"entrypoint_path":"index.ts","verify_jwt":false,"name":"..."}`). Pass the metadata JSON from a file to avoid PowerShell string-mangling quotes.
+
+## LSSN-20260907-008 — Hosted Supabase magic-link redemption is a 303 GET returning session in Location#fragment
+- **Problem**: `auth.admin.generateLink({type:'magiclink'})` returned a token, but the client `sb.auth.verifyOtp({email, token, type:'magiclink'})` POST failed with "Token has expired or is invalid" — even with the exact token.
+- **Root cause**: Hosted Supabase uses a PKCE/implicit-style magic-link flow. Redemption happens via a GET/SDP 303 to `/auth/v1/verify?token=...&type=magiclink&redirect_to=...` (the same request the browser makes when the user clicks the emailed link). That 303's `Location` header points to `redirect_to#access_token=...&refresh_token=...&expires_in=...&...`. The client library's `verifyOtp({type:'magiclink'})` POST is not the working path for this flow.
+- **Fix**: Do the exchange server-side in an edge function: `fetch(verifyUrl, { redirect: 'manual' })`, read `location`, strip the `#`, parse the URLSearchParams, and return `access_token`/`refresh_token`/`expires_in`. Client then calls `sb.auth.setSession({access_token, refresh_token, expires_at})` to establish a real authenticated session — which preserves RLS (`owner_email = auth.email()`).
+- **Lesson**: When minting sessions programmatically for hosted Supabase, prefer exchange-through-the-verify-URL over client `verifyOtp` for the magic-link type. Verify with curl: `GET .../auth/v1/verify?token=...&type=magiclink&redirect_to=<encoded>` returns 303 with the session fragment.
+
+## LSSN-20260907-009 — Adding Jekyll-hostile files (e.g. .ts) to a GitHub Pages site requires .nojekyll
+- **Problem**: After adding `supabase/functions/admin-login-gate/index.ts`, GitHub Pages deployment errored and the old page kept being served.
+- **Root cause**: The repo had no `.nojekyll`. Jekyll's build (which processes the project for Pages) choked or mishandled the TypeScript file, causing an errored build.
+- **Fix**: Add an empty `.nojekyll` at repo root so Pages serves the raw static files without running Jekyll. Build succeeded in ~21s afterwards.
+- **Lesson**: Any GitHub Pages repo that serves non-Jekyll-friendly artifacts (source `*.ts`, `supabase/` folders, etc.) should include `.nojekyll` to bypass Jekyll processing. Verify via `gh api repos/<owner>/<repo>/pages/builds --jq '.[0].status'`.
