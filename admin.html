@@ -28,11 +28,8 @@
     .auth-card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:40px;width:100%;max-width:400px}
     .auth-card h1{font-size:20px;margin-bottom:4px}
     .auth-card p{color:var(--text2);font-size:13px;margin-bottom:24px}
-    .auth-card .otp-group{display:flex;gap:8px}
-    .auth-card .otp-group input{flex:1}
-    .auth-card .otp-group button{white-space:nowrap;padding:8px 16px;background:var(--accent);color:#000;border:none;border-radius:6px;font-weight:600;font-size:14px}
-    .auth-card .otp-group button:disabled{opacity:.5}
-    .auth-card .verify-btn{width:100%;margin-top:12px;padding:10px;background:var(--success);color:#000;border:none;border-radius:6px;font-weight:600;font-size:14px}
+    .auth-card .login-btn{width:100%;margin-top:12px;padding:12px;background:var(--accent);color:#000;border:none;border-radius:6px;font-weight:600;font-size:14px}
+    .auth-card .login-btn:disabled{opacity:.5}
     .auth-card .error{color:var(--danger);font-size:13px;margin-top:8px}
 
     /* Dashboard */
@@ -116,20 +113,12 @@
 <div id="auth-screen">
   <div class="auth-card">
     <h1>QR Menu Admin</h1>
-    <p>Enter your email to receive a secure sign-in link.</p>
+    <p>Login with the admin email — no code needed.</p>
     <div class="field">
       <label>Email</label>
       <input type="email" id="auth-email" placeholder="you@email.com" value="amworxx@gmail.com">
     </div>
-    <div id="otp-section" style="display:none">
-      <div class="field">
-        <label>One-Time Code</label>
-        <input type="text" id="auth-otp" placeholder="123456" maxlength="6">
-      </div>
-      <button class="verify-btn" id="verify-btn" onclick="verifyOTP()">Verify &amp; Login</button>
-      <p style="font-size:12px;color:#94a3b8;margin-top:8px">Check your inbox — click the sign-in link in the email to open this dashboard.</p>
-    </div>
-    <button class="btn btn-primary" style="width:100%;margin-top:8px;padding:10px" id="send-otp-btn" onclick="sendOTP()">Send OTP Code</button>
+    <button class="login-btn" id="login-btn" onclick="loginWithEmail()">Login</button>
     <div class="error" id="auth-error"></div>
   </div>
 </div>
@@ -176,33 +165,37 @@ let allCategories = [];
 let allItems = [];
 
 // ─── AUTH ───────────────────────────────────────────────────
-async function sendOTP() {
+// Interim email-only login: the edge function verifies the email server-side
+// against the shop owner, mints a magic-link token, exchanges it server-side,
+// and hands back a ready access/refresh pair — no email is ever sent.
+// This creates a real Supabase session (auth.email() = typed email) so RLS works.
+async function loginWithEmail() {
   const email = document.getElementById('auth-email').value.trim();
-  if (!email) return showAuthError('Enter your email');
-  const btn = document.getElementById('send-otp-btn');
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Sending...';
-  const { error } = await sb.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: 'https://amworx.github.io/qr-menu/admin.html' }
-  });
-  btn.disabled = false; btn.textContent = 'Send OTP Code';
-  if (error) return showAuthError(error.message);
-  document.getElementById('otp-section').style.display = 'block';
-  document.getElementById('auth-otp').focus();
-  showAuthError(''); // clear
-}
-
-async function verifyOTP() {
-  const email = document.getElementById('auth-email').value.trim();
-  const otp = document.getElementById('auth-otp').value.trim();
-  if (!otp) return showAuthError('Enter the 6-digit code');
-  const btn = document.getElementById('verify-btn');
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Verifying...';
-  const { data, error } = await sb.auth.verifyOtp({ email, token: otp, type: 'email' });
-  btn.disabled = false; btn.textContent = 'Verify & Login';
-  if (error) return showAuthError(error.message);
-  currentUser = data.user;
-  showDashboard();
+  if (!email) return showAuthError('Enter the admin email');
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Signing in...';
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-login-gate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Login failed');
+    const { error } = await sb.auth.setSession({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at: Math.floor(Date.now() / 1000) + (data.expires_in || 3600),
+    });
+    if (error) throw new Error(error.message);
+    currentUser = (await sb.auth.getSession()).data.session?.user;
+    if (!currentUser) throw new Error('Session was not created');
+    showDashboard();
+    return;
+  } catch (e) {
+    showAuthError(e.message || 'Login failed');
+  }
+  btn.disabled = false; btn.textContent = 'Login';
 }
 
 function showAuthError(msg) {
@@ -210,8 +203,7 @@ function showAuthError(msg) {
 }
 
 // Enter key support
-document.getElementById('auth-otp').addEventListener('keydown', e => { if (e.key === 'Enter') verifyOTP(); });
-document.getElementById('auth-email').addEventListener('keydown', e => { if (e.key === 'Enter') sendOTP(); });
+document.getElementById('auth-email').addEventListener('keydown', e => { if (e.key === 'Enter') loginWithEmail(); });
 
 // ─── INIT ───────────────────────────────────────────────────
 (async () => {
