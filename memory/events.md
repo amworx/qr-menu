@@ -141,3 +141,15 @@
 - **errors**: None
 - **lessons**: LSSN-20260907-020 (a quantity stepper is not a removal affordance — reviewers expect a one-tap remove; add ✕/🗑 per line and route it through the same refresh trio as all cart mutators)
 - **tags**: order-review, remove-item, one-tap, cart-ux, deploy, verify
+
+## EVT-20260907-0013
+
+- **timestamp**: 2026-09-07
+- **mode**: BUILD / UI-FIX / DEPLOY
+- **action**: Offer add-order button no longer overlaps the description/summary text above it
+- **summary**: User: "there is overlap between the add order button and the above text 'Description'". Investigated all layouts (deal cards, item cards grid/list, admin deal/item modals, order sheet) via rect measurements — the literal label "Description" exists only in admin modals (which were clean). The real defect was on the **public menu deal cards**: with the earlier `margin-top:auto` CTA alignment, the tallest card (the one with a description) had ZERO free space, so the `.deal-add` button sat flush against the `.deal-badge` summary text (measured gap = 0px, badge bottom == button top). Stress test confirmed it: with a 3-line Arabic description the button still touched the badge. Fix in `index.html`: `.deal-badge` margin changed `margin-top:8px` → `margin:8px 0 14px` — guarantees a 14px minimum gap above the CTA even on the tallest card, while `.deal-add{margin-top:auto}` keeps every button bottom-aligned at the same y. Verified: 3 live deals all have gap ≥14px (14 on described cards, 40 on short cards), all add buttons at identical y (438px) at 375px; long-description stress card (3 lines) still gap 14px, no overlap, no overflow; console clean. Stress card deleted after test (TEST rows = 0).
+- **result**: Success — commit `d9147b6` pushed; Pages build `built`; verified live.
+- **files**: `index.html`
+- **errors**: None
+- **lessons**: LSSN-20260907-021 (margin-top:auto CTA alignment can produce 0-gap collisions on the tallest equal-height card — pair it with a fixed margin-bottom on the element above so the minimum gap is never zero; always stress-test with a multi-line/3-line description, not just the current data)
+- **tags**: ui-fix, deal-card, overlap, cta-gap, margin-top-auto, stress-test, deploy, verify

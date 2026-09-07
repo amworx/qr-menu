@@ -120,6 +120,14 @@
 - **Fix**: `removeItem(id)` deletes the cart entry and runs the standard refresh trio (`renderItems(); renderOrderSheet(); updateCartBar()`); each `.order-line` gets a `.ol-remove` ✕ button (visible on both row backgrounds via `--card2` + border). Reuses the same styling as the offer-line ✕.
 - **Lesson**: Any editable quantity control in a review/summary should be accompanied by a one-tap removal; keep every cart mutator calling the same refresh trio so badge, sheet, and menu stay in sync.
 
+## LSSN-20260907-021 — `margin-top:auto` CTA alignment can create 0-gap collisions; pair it with a minimum gap
+- **Problem**: User reported the order-add button overlapping the summary text above it on offer cards.
+- **Root cause**: Cards in a flex row stretch to equal height; `margin-top:auto` on the CTA pins it to the bottom. On the tallest card (the one with a description) free space = 0, so the button sat flush against the badge text (measured gap 0px). Under the previous non-flex layout this couldn't happen; the alignment fix introduced it.
+- **Fix**: Give the element above the CTA a bottom margin: `.deal-badge{margin:8px 0 14px}`. `margin-top:auto` still pins every button to the bottom (same y across cards); the margin guarantees a minimum 14px gap even on the tallest card. Stress-tested at 375px with a deliberately long 3-line Arabic description: gap stayed 14px, no overlap/clip.
+- **Lesson**: When using `margin-top:auto` to align CTAs across equal-height cards, always pair it with a bottom margin on the preceding element — auto margins can be 0. Test with the LONGEST plausible text (multi-line descriptions), not just current data.
+
+(End of file - total 139 lines)
+
 (End of file - total 125 lines)
 
 (End of file - total 101 lines)
