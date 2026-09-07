@@ -126,6 +126,17 @@
 - **Fix**: Give the element above the CTA a bottom margin: `.deal-badge{margin:8px 0 14px}`. `margin-top:auto` still pins every button to the bottom (same y across cards); the margin guarantees a minimum 14px gap even on the tallest card. Stress-tested at 375px with a deliberately long 3-line Arabic description: gap stayed 14px, no overlap/clip.
 - **Lesson**: When using `margin-top:auto` to align CTAs across equal-height cards, always pair it with a bottom margin on the preceding element — auto margins can be 0. Test with the LONGEST plausible text (multi-line descriptions), not just current data.
 
+## LSSN-20260907-022 — WhatsApp `wa.me` → `api.whatsapp.com` redirect drops non-BMP (emoji) chars
+- **Problem**: The order text sent to WhatsApp showed `�` where 🎁 should be, while the same string rendered fine in the DOM.
+- **Root cause**: Not our encoding — `encodeURIComponent('🎁')` correctly produces `%F0%9F%8E%81`. WhatsApp's server-side redirect from `wa.me/?text=` to `api.whatsapp.com/send/?text=` re-encodes the URL and replaces supplementary-plane (surrogate-pair, >U+FFFF) characters like U+1F381 with U+FFFD. BMP chars (`•` U+2022, `—` U+2014, `−` U+2212, `★` U+2605, Arabic/Cyrillic) survive; empirically confirmed: `★ Offer test` survives, `🎁` becomes `�`.
+- **Fix**: In the WhatsApp message use only BMP-safe markers (`★` instead of `🎁`) and strip ALL surrogate pairs before encoding: `lines.join('\n').replace(/[\uD800-\uDFFF]/g, '')`. The UI (sheet/cards) can keep emoji — only the wa.me text must be sanitized. Non-BMP emoji inside user-entered titles (e.g. "ميغا 🚀") are stripped the same way.
+- **Lesson**: Before shipping any "share to WhatsApp" deep link, test with an emoji-bearing string end-to-end; preemptively strip non-BMP characters or use BMP-safe glyphs in the message text. Verify lat/long platforms' redirects, not just your own encoding.
+
+## LSSN-20260907-023 — Pricing engine pattern for menu offers
+- **Problem**: Offers added to an order had 0 value; the order total ignored them.
+- **Approach**: One `computeOrder()` snapshot (items, offers with savings, subtotal, discountLines, discount, total) reused by FAB, order sheet and WhatsApp so all three can never disagree. Deal math is pure and per-deal: percent/fixed use a scope subtotal (item/category/all); BOGO needs `item_id` present with `qty ≥ buy+get` (groups = floor(qty/(buy+get)) × get × unit price); bundle needs ALL bundle item ids in cart (≥1 each) and saves `Σ unit prices − bundle_price`; min_order triggers past `min_total` with % or fixed reward. Fixed/bundle/min-fixed discounts only apply in the deal's own currency (percent applies anywhere). Stacking is additive and capped: `discount = min(Σ savings, subtotal)`; `total = max(subtotal − discount, 0)` — explainable, never negative.
+- **Lesson**: Compute one order snapshot once and derive every UI/outbound representation from it; scope-based discounts need the cart's items+quantities, not just an offer line; always cap total discount at subtotal to avoid negative orders when offers stack.
+
 (End of file - total 139 lines)
 
 (End of file - total 125 lines)

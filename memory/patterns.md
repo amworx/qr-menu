@@ -78,3 +78,21 @@ Reusable patterns extracted from repeated successes. Append only.
   3. Toggle button icon shows the TARGET mode (`☰` when grid → tap for list; `▦` when list → tap for grid); `aria-pressed` = current mode; `title` localized.
   4. Verify mobile: `body.scrollWidth === innerWidth`, computed grid columns ~ (width - padding - gap)/2.
 - **Ref**: index.html `toggleView`/`renderViewBtn`/`.items-col`; EVT-20260907-0010; LSSN-20260907-018.
+
+## PAT-20260907-010 — Order pricing engine: one computeOrder() snapshot for FAB/sheet/WhatsApp
+- **When**: Any discount/offer must affect the order value; every UI/outbound representation must agree.
+- **How**:
+  1. One pure function `computeOrder()` returns `{ itemsList, offers[], subtotal, discountLines[], discount, total }` from cart + cartOffers + deals + activeCurrency; FAB, sheet and WhatsApp all consume it — impossible to disagree.
+  2. Deal math per type (see LSSN-023): percent/fixed apply to a SCOPE subtotal (item/category/all); BOGO requires the target item in cart with `qty ≥ buy+get` (groups = floor(qty/(buy+get))×get×unit); bundle requires ALL item ids present and saves Σ prices − bundle_price; min_order triggers past threshold with % or fixed reward. Money-valued deals (fixed/bundle/min-fixed) only count in the deal's own currency; percent works in any.
+  3. Stacking is ADDITIVE and capped: `discount = min(Σ savings, subtotal)`, `total = max(subtotal − discount, 0)`.
+  4. Round monetary values for DB (`Math.round(x*100)/100`); display stays `formatPrice`.
+- **Ref**: index.html `computeOrder`/`dealSavings`/`scopeSubtotalValue`; EVT-20260907-0015; LSSN-20260907-023. Supersedes the "total stays item-only" note in PAT-008 step 4 (discount engine now exists).
+
+## PAT-20260907-011 — Public order record: bigserial number + anon-insert RLS + WhatsApp
+- **When**: A public (unauthenticated) form must assign each submission a sequential number and persist it for the owner, without breaking when offline/backend-down.
+- **How**:
+  1. Table: `id bigserial primary key` = displayed order number; payload columns incl. `items/offers/discount_lines jsonb`; index on `shop_id`; FK `shop_id references shops(id) on delete cascade`.
+  2. RLS: `alter table ... enable row level security;` + anon policy `for insert with check (true)` (FK protects integrity) + owner policy `for all using (shop_id in (select id from shops where owner_email = auth.email()))`. NOTE: `create policy if not exists` is invalid SQL — use a DO block guarded by `pg_policies`.
+  3. Client: `await sb.from('orders').insert({...}).select('id').single()` → number = returned `id`; on failure use a client fallback (`'T' + String(Date.now()).slice(-6)`) so WhatsApp still opens with a number.
+  4. WhatsApp deep links: strip surrogate pairs before `encodeURIComponent` (`str.replace(/[\uD800-\uDFFF]/g,'')`) and prefer BMP-safe markers (`★`) — the wa.me→api.whatsapp.com redirect replaces non-BMP emoji with U+FFFD.
+- **Ref**: docs/schema.sql orders; index.html `sendWhatsApp`; EVT-20260907-0014; LSSN-20260907-022.

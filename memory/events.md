@@ -153,3 +153,27 @@
 - **errors**: None
 - **lessons**: LSSN-20260907-021 (margin-top:auto CTA alignment can produce 0-gap collisions on the tallest equal-height card — pair it with a fixed margin-bottom on the element above so the minimum gap is never zero; always stress-test with a multi-line/3-line description, not just the current data)
 - **tags**: ui-fix, deal-card, overlap, cta-gap, margin-top-auto, stress-test, deploy, verify
+
+## EVT-20260907-0014
+
+- **timestamp**: 2026-09-07
+- **mode**: BUILD / DATA / DEPLOY
+- **action**: Every order now gets a sequential ID/number and is recorded server-side
+- **summary**: Added an `orders` table (bigserial `id` = the displayed order number, `shop_id`, `currency`, `subtotal`, `discount`, `total`, `items` jsonb, `offers` jsonb, `discount_lines` jsonb, `note`, `created_at`). RLS: anon can INSERT (public order form), only the shop owner can manage (`shop_id in (select id from shops where owner_email = auth.email())`). `sendWhatsApp()` now inserts the order first, gets `data.id`, and the WhatsApp header shows `*New Order #<id> — <shop>*` (fallback `T<epoch-tail>` if the insert fails, so ordering never breaks offline). Verified: orders #1/#2 EN + #3 AR recorded with correct numbers; test rows TRUNCATEd (restart identity) so real orders start at #1. `docs/schema.sql` updated (table + index + policies).
+- **result**: Success — commit `052c838` pushed; Pages build `built`; verified live (105,000 − 35,600 = 69,400 SYP).
+- **files**: `index.html`, `docs/schema.sql`, Supabase `orders` table
+- **errors**: `create policy if not exists` is NOT valid Postgres — used DO block with `pg_policies` guard instead; PowerShell double-quoted here-string expands `$` — used single-quoted here-string for SQL with `$$`.
+- **lessons**: LSSN-20260907-022 (WhatsApp redirect mangles non-BMP emoji) + LSSN-20260907-023 (pricing engine pattern)
+- **tags**: orders, order-number, bigserial, RLS-public-insert, whatsapp, fallback, deploy, verify
+
+## EVT-20260907-0015
+
+- **timestamp**: 2026-09-07
+- **mode**: BUILD / PRICING / DEPLOY
+- **action**: Offers now affect the order value (were 0-value line items)
+- **summary**: Built `computeOrder()` pricing engine in `index.html` — a single snapshot used by FAB, sheet and WhatsApp: `itemUnitPrice`, `cartSubtotal`, `scopeSubtotalValue` (item/category/all), `dealSavings` (percent → % of scope subtotal; fixed → min(value, scope subtotal) and only in matching currency; bogo → floor(qty/(buy+get))×get×unit price of the target item; bundle → sum of bundle item prices − bundle_price when all present; min_order → % or fixed after threshold), and final `discount = min(Σ savings, subtotal)` / `total = subtotal − discount` (additive stacking, never negative). FAB total shows the discounted total; the sheet shows Subtotal, one green `−X` per offer, and Total; the WhatsApp message shows per-offer savings and `Total after discount`. Verified: Manakish×3 + Coffee×2 (105,000) + Offer#1 BOGO −25,000 + Mega 10% −10,500 + 24 Offer −100 = **69,400**; offers-only → total 0 with no fake discounts; BOGO with qty < buy+get → no discount; AR + EN both correct.
+- **result**: Success — commit `052c838` pushed; Pages build `built`; verified live.
+- **files**: `index.html`
+- **errors**: None (beyond the emoji issue fixed in the same session — see LSSN-022)
+- **lessons**: LSSN-20260907-023
+- **tags**: pricing, discounts, bogo, bundle, percent, fixed, min-order, computeOrder, addititive-cap, deploy, verify
