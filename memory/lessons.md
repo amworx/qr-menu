@@ -30,3 +30,8 @@
 - **Root cause**: Windows PowerShell 5.1 console can't render Arabic; the value was actually stored correctly (UTF-8). The `????` was display-only.
 - **Fix**: Write the API response to a UTF-8 (no BOM) temp file (`[System.IO.File]::WriteAllText` with `UTF8Encoding($false)`) and Read it back — showed `"name_ar":"جودي جوي"` correctly.
 - **Lesson**: Never trust Windows PS console output for non-Latin text. If a check involves Arabic/Arabic-script data, dump to a UTF-8 file and verify with the Read tool before assuming corruption.
+## LSSN-20260907-006 � Free-tier Supabase + default email provider: no email template customization
+- **Problem**: Sign-in "magic link" email contained only a link, and the link pointed to http://localhost:3000 (default site_url) � useless. User wanted an OTP code in the email.
+- **Root cause**: (1) The default magic_link template shows only {{ .ConfirmationURL }} (no token); (2) site_url was the Supabase default; (3) template modification is BLOCKED on free tier with the default email provider (Management API returned: "Email template modification is not available for free tier projects using the default email provider").
+- **Fix**: Made the emailed link useful instead: set site_url + uri_allow_list to the real app, pass emailRedirectTo to admin.html from signInWithOtp, and have admin.html complete the session from ?token= (verifyOtp) or ?code= (exchangeCodeForSession). OTP length aligned to 6. For actual OTP-code emails, the user would need custom SMTP (or paid plan) � then templates become editable.
+- **Lesson**: Before promising "OTP email", check the auth config: on free tier + built-in email, users get a magic link only; plan the redirect URL to be a real page that processes token/code params.

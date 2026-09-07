@@ -46,3 +46,14 @@
 - **errors**: None (favicon 404 on localhost only, cosmetic)
 - **lessons**: LSSN-20260907-005 (PowerShell console mangles Arabic â€” verify Supabase strings via UTF-8 file + Read)
 - **tags**: rename, currency, topbar, rtl, supabase-patch, deploy, verify
+## EVT-20260907-0005
+
+- **timestamp**: 2026-09-07
+- **mode**: AUTH / INFRA / DEPLOY
+- **action**: Fix admin sign-in email — link now opens admin dashboard and auto-completes session
+- **summary**: User reported the Supabase sign-in email sent a link to the app instead of the admin dashboard. Root cause: (1) default magic-link email template shows only a link (no OTP token); (2) site_url was default http://localhost:3000 so the link was dead; (3) mailer_otp_length was 8 while the admin form expected 6. Attempted to replace the email template with an OTP-code template via Management API PATCH — blocked by plan: "Email template modification is not available for free tier projects using the default email provider. Please upgrade your plan or configure a custom SMTP provider." Applied allowed config: site_url=https://amworx.github.io/qr-menu, uri_allow_list=both qr-menu URLs, mailer_otp_length=6. Updated admin.html: sendOTP passes emailRedirectTo=https://amworx.github.io/qr-menu/admin.html; init now handles magic-link params (?token=/type= ? verifyOtp, ?code= ? exchangeCodeForSession) and auto-shows dashboard; graceful error + history.replaceState cleanup; honest copy ("secure sign-in link") + hint under code field. Verified localhost (normal load + fake-token path errors gracefully, zero console errors) and live (rebuild ~50s, admin renders, new code markers present). Commit 96b01dd pushed.
+- **result**: Success — clicking the emailed link now opens the admin dashboard and logs in. OTP-code-in-email NOT achievable on free tier + default provider (needs custom SMTP or paid plan) — offered as follow-up if user insists on code emails.
+- **files**: admin.html, Supabase auth config
+- **errors**: Management API 4xx "Email template modification is not available for free tier…" — worked around with link-into-admin approach.
+- **lessons**: LSSN-20260907-006 (free-tier default email provider cannot customize templates; email must be magic-link-based)
+- **tags**: auth, magic-link, email-template, supabase-config, otp, deploy, verify
