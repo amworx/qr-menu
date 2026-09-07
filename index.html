@@ -116,7 +116,6 @@
       color:#fff;position:relative;overflow:hidden;
       box-shadow:0 8px 24px var(--primary-glow);
     }
-    .deal-card::after{content:'%';position:absolute;bottom:-26px;inset-inline-end:2px;font-size:130px;font-weight:800;opacity:.12;line-height:1}
     .deal-ribbon{position:absolute;top:0;inset-inline-start:12px;background:rgba(0,0,0,.22);color:#fff;font-size:10px;font-weight:800;padding:5px 10px;border-radius:0 0 10px 10px;letter-spacing:.5px}
     .deal-card h3{font-size:15px;font-weight:800;margin:12px 0 4px}
     .deal-card p{font-size:12px;opacity:.95;line-height:1.5}
@@ -400,6 +399,23 @@
         }).join('');
     }
 
+    // Localized summary of an offer for the customer-facing card
+    function dealSummary(d) {
+      const c = d.currency || shop.currency_default || 'SYP';
+      const ar = lang === 'ar';
+      const dt = d.deal_type || d.discount_type || 'percent';
+      switch (dt) {
+        case 'percent': return ar ? `خصم ${d.discount_value}%` : `${d.discount_value}% OFF`;
+        case 'fixed':   return ar ? `خصم ${d.discount_value} ${c}` : `${d.discount_value} ${c} OFF`;
+        case 'bogo':    return ar ? `اشترِ ${d.buy_qty || 1} واحصل على ${d.get_qty || 1} مجاناً` : `BUY ${d.buy_qty || 1} GET ${d.get_qty || 1} FREE`;
+        case 'bundle':  return ar ? `باقة ${(d.bundle_items || []).length} أصناف بـ ${d.bundle_price} ${c}` : `COMBO ${(d.bundle_items || []).length} items for ${d.bundle_price} ${c}`;
+        case 'min_order': return ar
+          ? (d.reward_type === 'percent' ? `أنفق ${d.min_total} واحصل على خصم ${d.discount_value}%` : `أنفق ${d.min_total} واحصل على خصم ${d.discount_value} ${c}`)
+          : (d.reward_type === 'percent' ? `Spend ${d.min_total} get ${d.discount_value}% off` : `Spend ${d.min_total} get ${d.discount_value} ${c} off`);
+        default: return ar ? 'خصم' : 'OFF';
+      }
+    }
+
     function renderDeals() {
       const sec = document.getElementById('deals-section');
       if (deals.length === 0) { sec.style.display = 'none'; return; }
@@ -407,14 +423,13 @@
       sec.innerHTML = deals.map(d => {
         const title = lang === 'ar' ? (d.title_ar || d.title) : d.title;
         const desc = lang === 'ar' ? (d.description_ar || d.description) : d.description;
-        const discount = d.discount_type === 'percent' ? `${d.discount_value}%` : `${d.discount_value} ${d.currency}`;
         const ribbon = lang === 'ar' ? 'عرض خاص' : 'SPECIAL —';
         return `
           <div class="deal-card">
-            <span class="deal-ribbon">${ribbon} ${discount}</span>
+            <span class="deal-ribbon">${ribbon}</span>
             <h3>${esc(title)}</h3>
             ${desc ? `<p>${esc(desc)}</p>` : ''}
-            <span class="deal-badge">🔥 ${discount} ${lang === 'ar' ? 'خصم' : 'OFF'}</span>
+            <span class="deal-badge">🔥 ${esc(dealSummary(d))}</span>
           </div>`;
       }).join('');
     }

@@ -70,7 +70,13 @@ create table if not exists item_prices (
   unique(item_id, currency)
 );
 
--- ─── DEALS ──────────────────────────────────────────────────
+-- ─── DEALS / OFFERS ────────────────────────────────────────
+-- deal_type: percent | fixed | bogo | bundle | min_order
+--   percent   — X% off (scope: a single item, a category, or all)
+--   fixed     — X fixed amount off (scope: item / category / all)
+--   bogo      — Buy X Get Y Free (applies to one item: item_id + buy_qty/get_qty)
+--   bundle    — Combo: chosen items (bundle_items jsonb[]) sold at bundle_price
+--   min_order — Spend min_total → reward (reward_type percent|fixed, value in discount_value)
 create table if not exists deals (
   id uuid primary key default uuid_generate_v4(),
   shop_id uuid references shops(id) on delete cascade,
@@ -78,16 +84,53 @@ create table if not exists deals (
   title_ar text default '',
   description text default '',
   description_ar text default '',
-  discount_type text default 'percent',          -- 'percent' or 'fixed'
+  deal_type text default 'percent',
   discount_value numeric(10,2) default 0,
-  currency text default 'SYP',                   -- for fixed discounts
+  currency text default 'SYP',
+  applies_to text default 'all',                 -- item | category | all
+  item_id uuid,                                  -- when applies_to='item' (also bogo)
+  category_id uuid,                              -- when applies_to='category'
+  buy_qty int,                                   -- bogo: buy X
+  get_qty int,                                   -- bogo: get Y free
+  min_total numeric(12,2),                       -- min_order threshold
+  reward_type text,                              -- min_order: percent | fixed
+  bundle_price numeric(12,2),                    -- bundle set price
+  bundle_items jsonb,                            -- bundle: array of item ids
   min_qty int default 1,
   starts_at timestamptz,
   ends_at timestamptz,
   is_active boolean default true,
   sort_order int default 0,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  constraint deals_deal_type_check check (deal_type in ('percent','fixed','bogo','bundle','min_order')),
+  constraint deals_applies_to_check check (applies_to in ('item','category','all')),
+  constraint deals_reward_type_check check (reward_type is null or reward_type in ('percent','fixed'))
 );
+
+-- ─── MIGRATION (2026-09-07) — existing DBs that had the old deals table ──
+-- The original table used `discount_type` ('percent'|'fixed'). This adds the
+-- extended deal model and backfills deal_type. Idempotent; safe on 0 rows.
+-- alter table deals add column if not exists deal_type text;
+-- alter table deals add column if not exists applies_to text;
+-- alter table deals add column if not exists item_id uuid;
+-- alter table deals add column if not exists category_id uuid;
+-- alter table deals add column if not exists buy_qty int;
+-- alter table deals add column if not exists get_qty int;
+-- alter table deals add column if not exists min_total numeric(12,2);
+-- alter table deals add column if not exists reward_type text;
+-- alter table deals add column if not exists bundle_price numeric(12,2);
+-- alter table deals add column if not exists bundle_items jsonb;
+-- update deals set deal_type = coalesce(nullif(discount_type,''),'percent') where deal_type is null;
+-- update deals set applies_to = coalesce(applies_to,'all');
+-- alter table deals alter column deal_type set not null;
+-- alter table deals alter column deal_type set default 'percent';
+-- alter table deals alter column applies_to set default 'all';
+-- alter table deals drop constraint if exists deals_deal_type_check;
+-- alter table deals drop constraint if exists deals_applies_to_check;
+-- alter table deals drop constraint if exists deals_reward_type_check;
+-- alter table deals add constraint deals_deal_type_check check (deal_type in ('percent','fixed','bogo','bundle','min_order'));
+-- alter table deals add constraint deals_applies_to_check check (applies_to in ('item','category','all'));
+-- alter table deals add constraint deals_reward_type_check check (reward_type is null or reward_type in ('percent','fixed'));
 
 -- ─── INDEXES ────────────────────────────────────────────────
 create index if not exists idx_categories_shop on categories(shop_id);

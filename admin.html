@@ -69,6 +69,20 @@
     .btn-sm{padding:5px 10px;font-size:12px}
     .btn-group{display:flex;gap:8px;margin-top:16px}
 
+    /* Item toolbar (search / filter / sort) */
+    .item-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px}
+    .item-toolbar .item-search{flex:1;min-width:180px}
+    .item-toolbar select{min-width:120px;flex:0 1 auto}
+    .item-count{font-size:12px;color:var(--text2);margin-inline-start:auto;white-space:nowrap}
+
+    /* Deal modal dynamic fields */
+    .deal-fields{display:none}
+    .bundle-pick{display:flex;flex-wrap:wrap;gap:8px}
+    .bundle-pick label.chip{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);border:1px solid var(--line);border-radius:16px;padding:6px 12px;cursor:pointer;background:var(--bg)}
+    .bundle-pick label.chip input{width:auto}
+    .bundle-pick label.chip:has(input:checked){background:var(--accent);color:#000;border-color:var(--accent)}
+    .deal-note{font-size:12px;color:var(--text2);margin:-6px 0 10px}
+
     /* Language toggle */
     .auth-lang-row{display:flex;justify-content:flex-end;margin-bottom:8px}
     .lang-btn{padding:4px 12px;border:1px solid var(--line);border-radius:16px;background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer}
@@ -155,6 +169,8 @@
       .toggle .slider::before{width:18px;height:18px}
       .toggle input:checked+.slider::before{transform:translateX(20px)}
       .btn-group{flex-wrap:wrap}
+      .item-toolbar input,.item-toolbar select{flex:1 1 100%}
+      .item-count{margin-inline-start:0}
     }
   </style>
 </head>
@@ -224,6 +240,9 @@ let currentShop = null;
 let allCategories = [];
 let allItems = [];
 let currentTab = 'shop';
+// Items list UX state (search / filter / sort / pagination)
+let itemQuery = '', itemCat = '', itemSort = 'order', itemShown = 50;
+const ITEM_PAGE = 50;
 
 // ─── I18N (Arabic default) ─────────────────────────────────
 let lang = localStorage.getItem('qm-admin-lang') || 'ar';
@@ -335,7 +354,42 @@ const I18N = {
   visible:          { en: 'Visible', ar: 'ظاهر' },
   hidden:           { en: 'Hidden', ar: 'مخفي' },
   currencies_updated:{ en: 'Currencies updated', ar: 'تم تحديث العملات' },
-  default_currency_updated:{ en: 'Default currency updated', ar: 'تم تحديث العملة الافتراضية' }
+  default_currency_updated:{ en: 'Default currency updated', ar: 'تم تحديث العملة الافتراضية' },
+
+  // Items — search & filters
+  items_search:     { en: 'Search items…', ar: 'ابحث في العناصر…' },
+  all_categories:   { en: 'All categories', ar: 'كل التصنيفات' },
+  sort_order_asc:   { en: 'Order', ar: 'الترتيب' },
+  sort_name:        { en: 'Name', ar: 'الاسم' },
+  sort_price_low:   { en: 'Price: low → high', ar: 'السعر: من الأقل إلى الأعلى' },
+  sort_price_high:  { en: 'Price: high → low', ar: 'السعر: من الأعلى إلى الأقل' },
+  showing:          { en: 'Showing', ar: 'عرض' },
+  of:               { en: 'of', ar: 'من' },
+  load_more:        { en: 'Load more', ar: 'عرض المزيد' },
+  no_match:         { en: 'No items match your search.', ar: 'لا توجد عناصر تطابق البحث.' },
+
+  // Deals — offer types & fields
+  offer:            { en: 'Offer', ar: 'العرض' },
+  deal_type_label:  { en: 'Offer Type', ar: 'نوع العرض' },
+  bogo:             { en: 'Buy X Get Y Free', ar: 'اشترِ X واحصل على Y مجاناً' },
+  bundle:           { en: 'Bundle / Combo', ar: 'باقة / كومبو' },
+  min_order:        { en: 'Spend Threshold', ar: 'عرض الحد الأدنى' },
+  applies_to:       { en: 'Applies To', ar: 'ينطبق على' },
+  scope_item:       { en: 'A specific item', ar: 'عنصر محدد' },
+  scope_category:   { en: 'A category', ar: 'تصنيف محدد' },
+  scope_all:        { en: 'All items', ar: 'كل العناصر' },
+  select_item:      { en: 'Select item…', ar: 'اختر عنصراً…' },
+  select_category:  { en: 'Select category…', ar: 'اختر تصنيفاً…' },
+  buy_qty:          { en: 'Buy (quantity)', ar: 'اشترِ (الكمية)' },
+  get_qty:          { en: 'Get free (quantity)', ar: 'احصل مجاناً (الكمية)' },
+  bundle_items:     { en: 'Combo Items', ar: 'عناصر الباقة' },
+  bundle_price:     { en: 'Combo Price', ar: 'سعر الباقة' },
+  min_total:        { en: 'Minimum Order Amount', ar: 'الحد الأدنى لقيمة الطلب' },
+  reward_type:      { en: 'Reward Type', ar: 'نوع المكافأة' },
+  reward_value:     { en: 'Reward Value', ar: 'قيمة المكافأة' },
+  percent_off:      { en: 'Percent off', ar: 'نسبة مئوية (%)' },
+  fixed_off:        { en: 'Fixed amount off', ar: 'مبلغ ثابت' },
+  currency:         { en: 'Currency', ar: 'العملة' }
 };
 function t(key) { return (I18N[key] && I18N[key][lang]) || (I18N[key] && I18N[key].en) || key; }
 
@@ -498,7 +552,7 @@ function showTab(tab) {
   switch(tab) {
     case 'shop': c.innerHTML = renderShopTab(); break;
     case 'categories': c.innerHTML = renderCategoriesTab(); break;
-    case 'items': c.innerHTML = renderItemsTab(); break;
+    case 'items': c.innerHTML = renderItemsTab(); renderItemRows(); break;
     case 'deals': c.innerHTML = `<div class="empty">${t('loading_deals')}</div>`; renderDealsTab().then(html => { c.innerHTML = html; }); break;
     case 'currencies': c.innerHTML = renderCurrenciesTab(); break;
   }
@@ -665,32 +719,78 @@ function renderItemsTab() {
     <div class="btn-group" style="margin-top:0;margin-bottom:16px">
       <button class="btn btn-primary" onclick="openItemModal()">${t('new_item')}</button>
     </div>
-    <div class="table-wrap">
-    <table>
-      <thead><tr><th>${t('order')}</th><th>${t('name')}</th><th>${t('category')}</th><th>${t('available')}</th><th>${t('featured')}</th><th>${t('prices')}</th><th></th></tr></thead>
-      <tbody>
-        ${allItems.map(item => {
-          const cat = allCategories.find(c => c.id === item.category_id);
-          const prices = (item.item_prices || []).map(p => p.is_visible ? `${p.currency} ${p.price}` : `<s>${p.currency} ${p.price}</s>`).join(' · ');
-          return `
-          <tr>
-            <td data-label="${t('order')}">${item.sort_order}</td>
-            <td data-label="${t('name')}">${esc(item.name)}<br><small style="color:var(--text3)">${esc(item.name_ar)}</small></td>
-            <td data-label="${t('category')}">${cat ? esc(cat.name) : '<span style="color:var(--text3)">—</span>'}</td>
-            <td data-label="${t('available')}"><label class="toggle"><input type="checkbox" ${item.is_available?'checked':''} onchange="toggleItem('${item.id}','is_available',this.checked)"><span class="slider"></span></label></td>
-            <td data-label="${t('featured')}"><label class="toggle"><input type="checkbox" ${item.is_featured?'checked':''} onchange="toggleItem('${item.id}','is_featured',this.checked)"><span class="slider"></span></label></td>
-            <td data-label="${t('prices')}" style="font-size:12px">${prices || '<span style="color:var(--text3)">—</span>'}</td>
-            <td data-label="${t('actions')}">
-              <button class="btn btn-ghost btn-sm" onclick="openItemModal('${item.id}')">${t('edit')}</button>
-              <button class="btn btn-danger btn-sm" onclick="deleteItem('${item.id}')">${t('delete')}</button>
-            </td>
-          </tr>`;
-        }).join('')}
-        ${allItems.length===0 ? '<tr><td colspan="7" class="empty">' + t('no_items') + '</td></tr>' : ''}
-      </tbody>
-    </table>
+    <div class="item-toolbar">
+      <input class="item-search" id="item-search" placeholder="${t('items_search')}" value="${esc(itemQuery)}" oninput="itemQuery=this.value; itemShown=${ITEM_PAGE}; renderItemRows();">
+      <select id="item-cat-filter" onchange="itemCat=this.value; itemShown=${ITEM_PAGE}; renderItemRows();">
+        <option value="">${t('all_categories')}</option>
+        ${allCategories.map(c => `<option value="${c.id}" ${itemCat===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
+      </select>
+      <select id="item-sort" onchange="itemSort=this.value; itemShown=${ITEM_PAGE}; renderItemRows();">
+        <option value="order" ${itemSort==='order'?'selected':''}>${t('sort_order_asc')}</option>
+        <option value="name" ${itemSort==='name'?'selected':''}>${t('sort_name')}</option>
+        <option value="price_low" ${itemSort==='price_low'?'selected':''}>${t('sort_price_low')}</option>
+        <option value="price_high" ${itemSort==='price_high'?'selected':''}>${t('sort_price_high')}</option>
+      </select>
+      <span class="item-count" id="item-count"></span>
     </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>${t('order')}</th><th>${t('name')}</th><th>${t('category')}</th><th>${t('available')}</th><th>${t('featured')}</th><th>${t('prices')}</th><th></th></tr></thead>
+        <tbody id="items-tbody"></tbody>
+      </table>
+    </div>
+    <div id="item-more-wrap" style="text-align:center"></div>
   `;
+}
+
+function filteredItems() {
+  const q = itemQuery.trim().toLowerCase();
+  let list = allItems.filter(i => {
+    if (itemCat && i.category_id !== itemCat) return false;
+    if (!q) return true;
+    return [i.name, i.name_ar, i.description, i.description_ar].join(' ').toLowerCase().includes(q);
+  });
+  const priceOf = i => { const p = (i.item_prices || []).find(p => p.currency === currentShop.currency_default); return p ? Number(p.price) : 0; };
+  if (itemSort === 'name') list = [...list].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  else if (itemSort === 'price_low') list = [...list].sort((a, b) => priceOf(a) - priceOf(b));
+  else if (itemSort === 'price_high') list = [...list].sort((a, b) => priceOf(b) - priceOf(a));
+  else list = [...list].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  return list;
+}
+
+function renderItemRows() {
+  const tbody = document.getElementById('items-tbody');
+  if (!tbody) return;
+  const list = filteredItems();
+  const slice = list.slice(0, itemShown);
+  const count = document.getElementById('item-count');
+  if (count) count.textContent = `${t('showing')} ${slice.length} ${t('of')} ${list.length}`;
+  const more = document.getElementById('item-more-wrap');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">${t('no_match')}</td></tr>`;
+    if (more) more.innerHTML = '';
+    return;
+  }
+  tbody.innerHTML = slice.map(item => {
+    const cat = allCategories.find(c => c.id === item.category_id);
+    const prices = (item.item_prices || []).map(p => p.is_visible ? `${p.currency} ${p.price}` : `<s>${p.currency} ${p.price}</s>`).join(' · ');
+    return `
+      <tr>
+        <td data-label="${t('order')}">${item.sort_order}</td>
+        <td data-label="${t('name')}">${esc(item.name)}<br><small style="color:var(--text3)">${esc(item.name_ar)}</small></td>
+        <td data-label="${t('category')}">${cat ? esc(cat.name) : '<span style="color:var(--text3)">—</span>'}</td>
+        <td data-label="${t('available')}"><label class="toggle"><input type="checkbox" ${item.is_available?'checked':''} onchange="toggleItem('${item.id}','is_available',this.checked)"><span class="slider"></span></label></td>
+        <td data-label="${t('featured')}"><label class="toggle"><input type="checkbox" ${item.is_featured?'checked':''} onchange="toggleItem('${item.id}','is_featured',this.checked)"><span class="slider"></span></label></td>
+        <td data-label="${t('prices')}" style="font-size:12px">${prices || '<span style="color:var(--text3)">—</span>'}</td>
+        <td data-label="${t('actions')}">
+          <button class="btn btn-ghost btn-sm" onclick="openItemModal('${item.id}')">${t('edit')}</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteItem('${item.id}')">${t('delete')}</button>
+        </td>
+      </tr>`;
+  }).join('');
+  if (more) more.innerHTML = list.length > itemShown
+    ? `<button class="btn btn-ghost" onclick="itemShown += ${ITEM_PAGE}; renderItemRows();">${t('load_more')} (${list.length - itemShown})</button>`
+    : '';
 }
 
 function openItemModal(id) {
@@ -799,6 +899,32 @@ async function deleteItem(id) {
 }
 
 // ─── DEALS ──────────────────────────────────────────────────
+function dealLabel(d) {
+  const c = d.currency || currentShop.currency_default || 'SYP';
+  switch (d.deal_type) {
+    case 'percent': return `-${d.discount_value}%`;
+    case 'fixed':   return `-${d.discount_value} ${c}`;
+    case 'bogo':    return `${d.buy_qty || 1} + ${d.get_qty || 1}`;
+    case 'bundle':  return `${(d.bundle_items || []).length}x ${d.bundle_price} ${c}`;
+    case 'min_order': return d.reward_type === 'percent'
+      ? `≥${d.min_total} → -${d.discount_value}%`
+      : `≥${d.min_total} → -${d.discount_value} ${c}`;
+    default: return d.discount_type === 'percent' ? `-${d.discount_value}%` : `-${d.discount_value} ${c}`;
+  }
+}
+
+function dealScopeLine(d) {
+  if (d.applies_to === 'item') {
+    const it = allItems.find(i => i.id === d.item_id);
+    return it ? t('scope_item') + ': ' + (it.name || '') : t('scope_item');
+  }
+  if (d.applies_to === 'category') {
+    const cat = allCategories.find(i => i.id === d.category_id);
+    return cat ? t('scope_category') + ': ' + (cat.name || '') : t('scope_category');
+  }
+  return t('scope_all');
+}
+
 async function renderDealsTab() {
   const { data: deals } = await sb.from('deals').select('*').eq('shop_id', currentShop.id).order('sort_order');
   return `
@@ -808,12 +934,12 @@ async function renderDealsTab() {
     </div>
     <div class="table-wrap">
     <table>
-      <thead><tr><th>${t('title')}</th><th>${t('discount')}</th><th>${t('valid')}</th><th>${t('active')}</th><th></th></tr></thead>
+      <thead><tr><th>${t('title')}</th><th>${t('offer')}</th><th>${t('valid')}</th><th>${t('active')}</th><th></th></tr></thead>
       <tbody>
         ${(deals||[]).map(d => `
           <tr>
-            <td data-label="${t('title')}">${esc(d.title)}<br><small style="color:var(--text3)">${esc(d.title_ar)}</small></td>
-            <td data-label="${t('discount')}">${d.discount_type==='percent' ? d.discount_value+'%' : d.discount_value+' '+d.currency}</td>
+            <td data-label="${t('title')}">${esc(d.title)}<br><small style="color:var(--text3)">${esc(d.title_ar)} · ${esc(dealScopeLine(d))}</small></td>
+            <td data-label="${t('offer')}"><span style="font-weight:700;color:var(--accent2)">${esc(dealLabel(d))}</span></td>
             <td data-label="${t('valid')}"><small>${d.starts_at ? new Date(d.starts_at).toLocaleDateString() : '—'} → ${d.ends_at ? new Date(d.ends_at).toLocaleDateString() : '∞'}</small></td>
             <td data-label="${t('active')}"><label class="toggle"><input type="checkbox" ${d.is_active?'checked':''} onchange="toggleDeal('${d.id}',this.checked)"><span class="slider"></span></label></td>
             <td data-label="${t('actions')}">
@@ -825,6 +951,74 @@ async function renderDealsTab() {
         ${(!deals||deals.length===0) ? '<tr><td colspan="5" class="empty">' + t('no_deals') + '</td></tr>' : ''}
       </tbody>
     </table>
+    </div>
+  `;
+}
+
+function dealFieldsHTML(deal) {
+  const d = deal || {};
+  const type = d.deal_type || 'percent';
+  const currencies = (currentShop.currencies || ['SYP']).map(c => `<option value="${c}" ${d.currency===c?'selected':''}>${c}</option>`).join('');
+  const itemOpts = allItems.map(i => `<option value="${i.id}" ${d.item_id===i.id?'selected':''}>${esc(i.name)}${i.name_ar ? ' — ' + esc(i.name_ar) : ''}</option>`).join('');
+  const catOpts = allCategories.map(c => `<option value="${c.id}" ${d.category_id===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
+  const bundleChecked = ids => (d.bundle_items || []).includes(ids) ? 'checked' : '';
+  const bundleItems = allItems.length ? allItems.map(i => `
+      <label class="chip"><input type="checkbox" value="${i.id}" ${bundleChecked(i.id)}> ${esc(i.name)}</label>`
+    ).join('') : `<div class="deal-note">${t('no_items')}</div>`;
+
+  return `
+    ${/* percent */ ''}
+    <div class="deal-fields" data-dt="percent">
+      <div class="field"><label>${t('percent_off')}</label><input type="number" step="0.01" min="0" max="100" id="m-deal-percent-value" value="${d.deal_type==='percent' ? d.discount_value : ''}"></div>
+    </div>
+    ${/* fixed */ ''}
+    <div class="deal-fields" data-dt="fixed">
+      <div class="card-row-3">
+        <div class="field"><label>${t('fixed_off')}</label><input type="number" step="0.01" min="0" id="m-deal-fixed-value" value="${d.deal_type==='fixed' ? d.discount_value : ''}"></div>
+        <div class="field"><label>${t('currency')}</label><select id="m-deal-fixed-currency">${currencies}</select></div>
+      </div>
+    </div>
+    ${/* bogo */ ''}
+    <div class="deal-fields" data-dt="bogo">
+      <div class="card-row">
+        <div class="field"><label>${t('buy_qty')}</label><input type="number" min="1" id="m-deal-buy" value="${d.deal_type==='bogo' ? (d.buy_qty || 2) : 2}"></div>
+        <div class="field"><label>${t('get_qty')}</label><input type="number" min="1" id="m-deal-get" value="${d.deal_type==='bogo' ? (d.get_qty || 1) : 1}"></div>
+      </div>
+      <div class="field"><label>${t('select_item')}</label><select id="m-deal-item-list"><option value="">—</option>${itemOpts}</select></div>
+    </div>
+    ${/* bundle */ ''}
+    <div class="deal-fields" data-dt="bundle">
+      <div class="field"><label>${t('bundle_items')}</label><div class="bundle-pick">${bundleItems}</div></div>
+      <div class="card-row-3">
+        <div class="field"><label>${t('bundle_price')}</label><input type="number" step="0.01" min="0" id="m-deal-bundle-price" value="${d.deal_type==='bundle' ? d.bundle_price : ''}"></div>
+        <div class="field"><label>${t('currency')}</label><select id="m-deal-bundle-currency">${currencies}</select></div>
+      </div>
+    </div>
+    ${/* min_order */ ''}
+    <div class="deal-fields" data-dt="min_order">
+      <div class="card-row-3">
+        <div class="field"><label>${t('min_total')}</label><input type="number" step="0.01" min="0" id="m-deal-min" value="${d.deal_type==='min_order' ? d.min_total : ''}"></div>
+        <div class="field"><label>${t('reward_type')}</label><select id="m-deal-reward-type"><option value="percent" ${d.reward_type!=='fixed'?'selected':''}>${t('percent_off')}</option><option value="fixed" ${d.reward_type==='fixed'?'selected':''}>${t('fixed_off')}</option></select></div>
+        <div class="field"><label>${t('reward_value')}</label><input type="number" step="0.01" min="0" id="m-deal-reward-value" value="${d.deal_type==='min_order' ? d.discount_value : ''}"></div>
+      </div>
+    </div>
+    <div class="deal-fields" data-dt="scope">
+      <div class="field">
+        <label>${t('applies_to')}</label>
+        <select id="m-deal-scope" onchange="dealScopeChanged()">
+          <option value="all" ${(d.applies_to||'all')==='all'?'selected':''}>${t('scope_all')}</option>
+          <option value="item" ${d.applies_to==='item'?'selected':''}>${t('scope_item')}</option>
+          <option value="category" ${d.applies_to==='category'?'selected':''}>${t('scope_category')}</option>
+        </select>
+      </div>
+      <div class="field" id="m-deal-item-wrap" style="${d.applies_to==='item'?'':'display:none'}">
+        <label>${t('select_item')}</label>
+        <select id="m-deal-item"><option value="">—</option>${itemOpts}</select>
+      </div>
+      <div class="field" id="m-deal-cat-wrap" style="${d.applies_to==='category'?'':'display:none'}">
+        <label>${t('select_category')}</label>
+        <select id="m-deal-cat"><option value="">—</option>${catOpts}</select>
+      </div>
     </div>
   `;
 }
@@ -845,22 +1039,17 @@ async function openDealModal(id) {
       <div class="field"><label>${t('desc_en')}</label><textarea id="m-deal-desc">${deal ? esc(deal.description) : ''}</textarea></div>
       <div class="field"><label>${t('desc_ar')}</label><textarea id="m-deal-desc-ar" dir="rtl">${deal ? esc(deal.description_ar) : ''}</textarea></div>
     </div>
-    <div class="card-row-3">
-      <div class="field">
-        <label>${t('discount_type')}</label>
-        <select id="m-deal-type">
-          <option value="percent" ${deal?.discount_type==='percent'?'selected':''}>${t('percent')}</option>
-          <option value="fixed" ${deal?.discount_type==='fixed'?'selected':''}>${t('fixed')}</option>
-        </select>
-      </div>
-      <div class="field"><label>${t('value')}</label><input type="number" step="0.01" id="m-deal-value" value="${deal ? deal.discount_value : ''}"></div>
-      <div class="field">
-        <label>${t('currency_for_fixed')}</label>
-        <select id="m-deal-currency">
-          ${(currentShop.currencies||['SYP']).map(c => `<option value="${c}" ${deal?.currency===c?'selected':''}>${c}</option>`).join('')}
-        </select>
-      </div>
+    <div class="field">
+      <label>${t('deal_type_label')}</label>
+      <select id="m-deal-type" onchange="dealTypeChanged()">
+        <option value="percent" ${(deal?.deal_type||'percent')==='percent'?'selected':''}>${t('percent')}</option>
+        <option value="fixed" ${deal?.deal_type==='fixed'?'selected':''}>${t('fixed')}</option>
+        <option value="bogo" ${deal?.deal_type==='bogo'?'selected':''}>${t('bogo')}</option>
+        <option value="bundle" ${deal?.deal_type==='bundle'?'selected':''}>${t('bundle')}</option>
+        <option value="min_order" ${deal?.deal_type==='min_order'?'selected':''}>${t('min_order')}</option>
+      </select>
     </div>
+    <div id="m-deal-fields">${dealFieldsHTML(deal)}</div>
     <div class="card-row">
       <div class="field"><label>${t('starts_at')}</label><input type="date" id="m-deal-start" value="${deal?.starts_at ? deal.starts_at.split('T')[0] : ''}"></div>
       <div class="field"><label>${t('ends_at')}</label><input type="date" id="m-deal-end" value="${deal?.ends_at ? deal.ends_at.split('T')[0] : ''}"></div>
@@ -871,17 +1060,51 @@ async function openDealModal(id) {
     </div>
   `;
   document.getElementById('modal-overlay').style.display = 'flex';
+  dealTypeChanged();
+}
+
+function dealTypeChanged() {
+  const type = gv('m-deal-type') || 'percent';
+  const fields = {
+    percent: ['percent', 'scope'], fixed: ['fixed', 'scope'],
+    bogo: ['bogo'], bundle: ['bundle'], min_order: ['min_order']
+  };
+  document.querySelectorAll('#m-deal-fields .deal-fields').forEach(el => {
+    const show = fields[type] && fields[type].includes(el.dataset.dt);
+    el.style.display = show ? 'block' : 'none';
+  });
+}
+
+function dealScopeChanged() {
+  const scope = gv('m-deal-scope');
+  document.getElementById('m-deal-item-wrap').style.display = scope === 'item' ? 'block' : 'none';
+  document.getElementById('m-deal-cat-wrap').style.display = scope === 'category' ? 'block' : 'none';
+}
+
+function dealBundleItems() {
+  return Array.from(document.querySelectorAll('#m-deal-fields .bundle-pick input:checked')).map(i => i.value);
 }
 
 async function saveDeal(id) {
+  const dt = gv('m-deal-type');
+  const scope = (dt === 'percent' || dt === 'fixed') ? (gv('m-deal-scope') || 'all') : (dt === 'bogo' ? 'item' : 'all');
   const data = {
     title: gv('m-deal-title'), title_ar: gv('m-deal-title-ar'),
     description: gv('m-deal-desc'), description_ar: gv('m-deal-desc-ar'),
-    discount_type: gv('m-deal-type'), discount_value: parseFloat(gv('m-deal-value')) || 0,
-    currency: gv('m-deal-currency'),
+    deal_type: dt, shop_id: currentShop.id,
     starts_at: gv('m-deal-start') || null, ends_at: gv('m-deal-end') || null,
-    shop_id: currentShop.id
+    applies_to: scope, item_id: null, category_id: null,
+    buy_qty: null, get_qty: null, min_total: null, reward_type: null,
+    bundle_price: null, bundle_items: null,
+    discount_value: 0, currency: currentShop.currency_default || 'SYP'
   };
+  if (scope === 'item') data.item_id = gv('m-deal-item') || null;
+  if (scope === 'category') data.category_id = gv('m-deal-cat') || null;
+  if (dt === 'percent') data.discount_value = parseFloat(gv('m-deal-percent-value')) || 0;
+  if (dt === 'fixed') { data.discount_value = parseFloat(gv('m-deal-fixed-value')) || 0; data.currency = gv('m-deal-fixed-currency'); }
+  if (dt === 'bogo') { data.buy_qty = parseInt(gv('m-deal-buy')) || 1; data.get_qty = parseInt(gv('m-deal-get')) || 1; data.item_id = gv('m-deal-item-list') || null; }
+  if (dt === 'bundle') { data.bundle_items = dealBundleItems(); data.bundle_price = parseFloat(gv('m-deal-bundle-price')) || 0; data.currency = gv('m-deal-bundle-currency'); }
+  if (dt === 'min_order') { data.min_total = parseFloat(gv('m-deal-min')) || 0; data.reward_type = gv('m-deal-reward-type'); data.discount_value = parseFloat(gv('m-deal-reward-value')) || 0; }
   let error;
   if (id) {
     ({ error } = await sb.from('deals').update(data).eq('id', id));
