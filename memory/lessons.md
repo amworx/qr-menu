@@ -108,6 +108,20 @@
 - **Fix**: One renderer; `viewMode` (from `localStorage 'qm-view'`, default grid) toggles one class on the container. Grid CSS (`.items-col`) is global (works on mobile AND desktop): `grid-template-columns:1fr 1fr`, `.item-card{flex-direction:column}`, image `width:100%;aspect-ratio:4/3`, full-width add/stepper. List = the original block/ticket layout. Button icon shows the *target* mode (`☰` in grid mode → switches to list; `▦` in list mode → switches to grid) with `aria-pressed` reflecting current mode.
 - **Lesson**: For layout switches, mutate one container class and let CSS express both layouts; persist the choice; make toggle buttons show what you'll switch TO, with `aria-pressed` = current state. Verify at mobile width that the grid computes `1fr 1fr` columns without body overflow (body.scrollWidth == innerWidth).
 
+## LSSN-20260907-019 — Pin a card CTA to the same position via flex column + margin-top:auto
+- **Problem**: The "أضف +" chip on offer cards sat at different heights because card content varied (some cards had descriptions, badge text lengths differed).
+- **Root cause**: `.deal-card` was a block; the chip followed content height, so its y position depended on how much content was above it.
+- **Fix**: Make `.deal-card{display:flex;flex-direction:column}`; change the CTA to `margin-top:auto;align-self:flex-start`. All cards in the horizontal flex row stretch to equal height (default `align-items:stretch`), so every CTA pins to the bottom at the exact same y.
+- **Lesson**: For "same CTA position across variable-content cards", the flex-column + `margin-top:auto` combo is the standard fix — no JS measuring. Normalize inner `p` margins so spacing is consistent whether descriptions exist or not.
+
+## LSSN-20260907-020 — Steppers are not removal affordances; add a per-line ✕
+- **Problem**: In the order review, removing an item required tapping − until quantity reached 0 — tedious and non-obvious.
+- **Root cause**: The order sheet reused the menu's stepper control and had no explicit remove action.
+- **Fix**: `removeItem(id)` deletes the cart entry and runs the standard refresh trio (`renderItems(); renderOrderSheet(); updateCartBar()`); each `.order-line` gets a `.ol-remove` ✕ button (visible on both row backgrounds via `--card2` + border). Reuses the same styling as the offer-line ✕.
+- **Lesson**: Any editable quantity control in a review/summary should be accompanied by a one-tap removal; keep every cart mutator calling the same refresh trio so badge, sheet, and menu stay in sync.
+
+(End of file - total 125 lines)
+
 (End of file - total 101 lines)
 
 (End of file - total 77 lines)

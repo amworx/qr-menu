@@ -117,3 +117,27 @@
 - **errors**: None (favicon 404 only); one stray placeholder item id polluted a test cart — cleaned in test only.
 - **lessons**: LSSN-20260907-017 (memorize that cart has two independent structures — `cart` items and `cartOffers` — every consumer (badge, sheet, WhatsApp) must read both; badges combine counts, totals stay item-only); LSSN-20260907-018 (view-mode toggles are pure CSS-class swaps — no duplicate renderers; keep one renderer that branches on the class, persist choice in localStorage, and make the button icon show the *target* mode)
 - **tags**: offers, clickable-deals, add-to-order, cart, order-sheet, whatsapp, list-view, grid-view, view-toggle, responsive, deploy, verify
+
+## EVT-20260907-0011
+
+- **timestamp**: 2026-09-07
+- **mode**: BUILD / UI-FIX / DEPLOY
+- **action**: Offer add-button pinned to the same spot on all deal cards
+- **summary**: User: "the add offer button location on all offer cards should be in the same location". Deal cards had varying content (some with description, badge text lengths differ) so `.deal-add` chips landed at different y positions per card. Fix in `index.html` CSS: `.deal-card` became `display:flex;flex-direction:column`, `.deal-add` changed `margin-top:10px` → `margin-top:auto` + `align-self:flex-start` (pins chip to card bottom), `.deal-badge` got `align-self:flex-start`, `.deal-card p` got explicit `margin:0 0 8px` (normalizes spacing regardless of description presence). Cards are equal height (flex row stretch), so bottom alignment = identical button position. Verified: all 3 deal cards' `.deal-add` `getBoundingClientRect().top` = 424px (single unique value) at 375px and grid; zero console errors.
+- **result**: Success — commit `e90b767` pushed; Pages build `built`.
+- **files**: `index.html`
+- **errors**: None
+- **lessons**: LSSN-20260907-019 (to pin a CTA at the same position across cards of varying content, make the card a flex column and give the CTA `margin-top:auto` — flex-row stretch equalizes card heights so all CTAs align at the bottom)
+- **tags**: ui-fix, deal-card, cta-alignment, flexbox, margin-top-auto, deploy, verify
+
+## EVT-20260907-0012
+
+- **timestamp**: 2026-09-07
+- **mode**: BUILD / FEATURE / DEPLOY
+- **action**: One-tap remove (✕) for items in the order review sheet
+- **summary**: User: "in order review there should be a remove item from order, now the user has to press - till the amount reaches 0". Item rows in `renderOrderSheet()` had only the stepper; removing meant pressing − down to zero. Added `removeItem(id)` (`delete cart[id]; renderItems(); renderOrderSheet(); updateCartBar()` — same refresh trio as other cart mutators) and an `✕` button (`.ol-remove`, existing style augmented with `background:var(--card2);border:1px solid var(--border2);cursor:pointer` so it's visible on both plain item rows and card2 offer rows) after the stepper, with localized `aria-label` (إزالة العنصر / Remove item). Verified localhost at 375px: built cart (3 items + 1 offer) → each `.order-line` shows ✕; one tap removed قهوة عربية ×2 (badge 5→3, total 30k→32k); clearing all rows shows empty-cart state and hides FAB; zero console errors.
+- **result**: Success — commit `c5a44b8` pushed; Pages build started.
+- **files**: `index.html`
+- **errors**: None
+- **lessons**: LSSN-20260907-020 (a quantity stepper is not a removal affordance — reviewers expect a one-tap remove; add ✕/🗑 per line and route it through the same refresh trio as all cart mutators)
+- **tags**: order-review, remove-item, one-tap, cart-ux, deploy, verify
