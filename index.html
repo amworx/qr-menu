@@ -1,142 +1,301 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>QR Menu</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Kufi+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{
-      --primary:#D97706;--accent:#92400E;
-      --bg:#fafaf9;--card:#ffffff;--text:#1c1917;--text2:#78716c;--text3:#a8a29e;
-      --border:#e7e5e4;--radius:12px;
-      --font-en:'Inter',system-ui,sans-serif;
-      --font-ar:'Noto Kufi Arabic',system-ui,sans-serif;
-    }
-    [lang="ar"]{--font-en:'Noto Kufi Arabic',system-ui,sans-serif}
-    body{font-family:var(--font-en);background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:100px}
-    body[dir="rtl"]{font-family:var(--font-ar)}
 
-    /* Loading */
-    .loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:12px}
-    .loading-screen .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
-    .loading-screen p{color:var(--text2);font-size:14px}
+    /* ═══ THEMES ═══ */
+    :root[data-theme="dark"]{
+      --bg:#0d0a07; --bg-soft:#151009; --card:#1a140d; --card2:#221a11;
+      --text:#f5efe6; --text2:#b8a899; --text3:#83735f;
+      --border:#2b2015; --border2:#3a2c1d;
+      --primary:#e08a2e; --primary-2:#c96a12; --accent:#f5b14e;
+      --primary-glow:rgba(224,138,46,.28);
+      --wa:#25d366; --wa-dark:#1da851;
+      --danger:#e05d4b;
+      --shadow:0 8px 30px rgba(0,0,0,.45);
+      --hero-grad:radial-gradient(120% 90% at 50% 0%, rgba(224,138,46,.16) 0%, rgba(13,10,7,0) 60%);
+      --surface-grad:linear-gradient(180deg,#1a140d 0%,#151009 100%);
+    }
+    :root[data-theme="light"]{
+      --bg:#faf5ee; --bg-soft:#f3ead9; --card:#fffdf8; --card2:#f8f0e2;
+      --text:#291d12; --text2:#6f5c48; --text3:#a08c74;
+      --border:#e8dcc8; --border2:#dccdb4;
+      --primary:#c46a1b; --primary-2:#a6540f; --accent:#e08a2e;
+      --primary-glow:rgba(196,106,27,.16);
+      --wa:#1da851; --wa-dark:#128c3e;
+      --danger:#d64545;
+      --shadow:0 8px 30px rgba(120,80,30,.12);
+      --hero-grad:radial-gradient(120% 90% at 50% 0%, rgba(224,138,46,.14) 0%, rgba(250,245,238,0) 60%);
+      --surface-grad:linear-gradient(180deg,#fffdf8 0%,#faf5ee 100%);
+    }
+
+    html{-webkit-text-size-adjust:100%}
+    body{
+      font-family:'Inter',system-ui,sans-serif;
+      background:var(--bg); color:var(--text);
+      min-height:100vh; padding-bottom:110px;
+      transition:background .3s ease,color .3s ease;
+      -webkit-tap-highlight-color:transparent;
+    }
+    html[lang="ar"] body, html[lang="ar"] button, html[lang="ar"] input{font-family:'Noto Kufi Arabic',system-ui,sans-serif}
+    button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+    a{color:inherit;text-decoration:none}
+    img{display:block}
+    input{font-family:inherit}
+
+    /* ═══ LOADING ═══ */
+    .loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:14px}
+    .loading-screen .cup{width:52px;height:52px;border:3px solid var(--border2);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;position:relative}
+    .loading-screen .cup::after{content:'';position:absolute;inset:8px;border:2px solid var(--primary);border-radius:50%;opacity:.35}
+    .loading-screen p{color:var(--text2);font-size:14px;letter-spacing:.3px}
     @keyframes spin{to{transform:rotate(360deg)}}
 
-    /* Header */
-    .shop-header{text-align:center;padding:32px 16px 20px;background:var(--card);border-bottom:1px solid var(--border)}
-    .shop-header .logo{width:64px;height:64px;border-radius:50%;object-fit:cover;margin-bottom:12px;border:3px solid var(--primary)}
-    .shop-header h1{font-size:22px;font-weight:700;margin-bottom:4px}
-    .shop-header .tagline{color:var(--text2);font-size:14px}
-    .shop-header .contact-row{display:flex;justify-content:center;gap:16px;margin-top:12px;font-size:13px;color:var(--text2)}
-    .shop-header .contact-row a{color:var(--primary);text-decoration:none;font-weight:500}
+    /* ═══ FLOATING CONTROLS (theme + lang) ═══ */
+    .controls{
+      position:fixed;inset-inline-end:14px;top:14px;z-index:60;
+      display:flex;gap:8px;
+    }
+    .ctl{
+      width:40px;height:40px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      background:color-mix(in srgb,var(--card) 88%,transparent);
+      border:1px solid var(--border2);
+      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+      font-size:17px;transition:transform .15s ease,background .2s ease;
+      box-shadow:var(--shadow);
+    }
+    .ctl:hover{transform:scale(1.08)}
+    .ctl.lang{font-size:12px;font-weight:700;color:var(--text);padding:0 12px;width:auto;border-radius:20px}
 
-    /* Language toggle */
-    .lang-toggle{position:fixed;top:12px;right:12px;z-index:50;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text)}
+    /* ═══ HERO ═══ */
+    .hero{
+      text-align:center;padding:56px 20px 30px;
+      background:var(--surface-grad),var(--hero-grad);
+      border-bottom:1px solid var(--border);
+      position:relative;overflow:hidden;
+    }
+    .hero::before{
+      content:'';position:absolute;inset:0;pointer-events:none;
+      background-image:radial-gradient(var(--border2) 1px,transparent 1px);
+      background-size:26px 26px;opacity:.18;
+    }
+    .hero-inner{position:relative}
+    .hero .logo{width:76px;height:76px;border-radius:50%;object-fit:cover;margin:0 auto 14px;border:3px solid var(--primary);box-shadow:0 0 0 6px var(--primary-glow)}
+    .hero h1{font-size:28px;font-weight:800;letter-spacing:-.3px;margin-bottom:6px}
+    .hero .tagline{color:var(--text2);font-size:14.5px}
+    .hero .contact-row{display:flex;justify-content:center;gap:14px;margin-top:14px;font-size:12.5px;color:var(--text2);flex-wrap:wrap}
+    .hero .contact-row a,.hero .contact-row span{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);border-radius:20px;background:color-mix(in srgb,var(--card) 70%,transparent);color:var(--text);font-weight:600;font-size:12px}
+    .hero .contact-row a:hover{border-color:var(--primary)}
 
-    /* Currency selector */
-    .currency-bar{display:flex;justify-content:center;gap:8px;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40}
-    .currency-btn{padding:6px 14px;border-radius:16px;border:1px solid var(--border);background:var(--bg);font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);transition:.15s}
-    .currency-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+    /* Currency segmented */
+    .currency-row{display:flex;justify-content:center;gap:6px;margin-top:16px}
+    .currency-btn{
+      padding:7px 16px;border-radius:20px;border:1px solid var(--border2);
+      background:var(--card);color:var(--text2);font-size:12.5px;font-weight:700;
+      transition:.18s ease;letter-spacing:.3px;
+    }
+    .currency-btn.active{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 4px 14px var(--primary-glow)}
 
-    /* Categories */
-    .cat-tabs{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    /* ═══ STICKY RAIL (categories) ═══ */
+    .rail-wrap{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+    .cat-tabs{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
     .cat-tabs::-webkit-scrollbar{display:none}
-    .cat-tab{padding:8px 16px;border-radius:20px;border:1px solid var(--border);background:var(--card);font-size:13px;font-weight:500;white-space:nowrap;cursor:pointer;color:var(--text2);transition:.15s}
-    .cat-tab.active{background:var(--text);color:#fff;border-color:var(--text)}
+    .cat-tab{
+      padding:8px 18px;border-radius:20px;border:1px solid var(--border);
+      background:var(--card);color:var(--text2);font-size:13px;font-weight:600;white-space:nowrap;
+      transition:.18s ease;
+    }
+    .cat-tab:active{transform:scale(.96)}
+    .cat-tab.active{background:var(--text);color:var(--bg);border-color:var(--text);font-weight:700}
 
-    /* Items */
-    .items-grid{padding:8px 16px;display:flex;flex-direction:column;gap:12px}
-    .item-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;gap:12px;align-items:flex-start;transition:.15s}
-    .item-card:active{transform:scale(.98)}
-    .item-img{width:64px;height:64px;border-radius:8px;object-fit:cover;background:var(--bg);flex-shrink:0}
-    .item-info{flex:1;min-width:0}
-    .item-name{font-size:15px;font-weight:600;margin-bottom:2px}
-    .item-name-ar{font-size:13px;color:var(--text2);margin-bottom:4px}
-    .item-desc{font-size:12px;color:var(--text2);margin-bottom:6px;line-height:1.4}
-    .item-price{font-size:16px;font-weight:700;color:var(--primary)}
-    .item-price .old-price{text-decoration:line-through;color:var(--text3);font-size:12px;font-weight:400;margin-right:6px}
-    .item-badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:600;background:var(--primary);color:#fff;margin-bottom:4px}
-    .item-unavailable{opacity:.5;pointer-events:none}
-    .item-add{width:32px;height:32px;border-radius:50%;border:2px solid var(--primary);background:transparent;color:var(--primary);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.15s}
-    .item-add:hover{background:var(--primary);color:#fff}
+    /* ═══ DEALS ═══ */
+    .deals-scroll{display:flex;gap:12px;padding:16px;overflow-x:auto;scrollbar-width:none}
+    .deals-scroll::-webkit-scrollbar{display:none}
+    .deal-card{
+      flex:0 0 auto;width:230px;border-radius:18px;padding:16px;
+      background:linear-gradient(135deg,var(--primary),var(--primary-2));
+      color:#fff;position:relative;overflow:hidden;
+      box-shadow:0 8px 24px var(--primary-glow);
+    }
+    .deal-card::after{content:'%';position:absolute;bottom:-26px;inset-inline-end:2px;font-size:130px;font-weight:800;opacity:.12;line-height:1}
+    .deal-ribbon{position:absolute;top:0;inset-inline-start:12px;background:rgba(0,0,0,.22);color:#fff;font-size:10px;font-weight:800;padding:5px 10px;border-radius:0 0 10px 10px;letter-spacing:.5px}
+    .deal-card h3{font-size:15px;font-weight:800;margin:12px 0 4px}
+    .deal-card p{font-size:12px;opacity:.95;line-height:1.5}
+    .deal-badge{display:inline-block;font-size:11px;font-weight:800;background:rgba(255,255,255,.2);padding:3px 10px;border-radius:12px;margin-top:8px}
 
-    /* Cart */
-    .cart-bar{position:fixed;bottom:0;left:0;right:0;background:var(--primary);color:#fff;padding:12px 16px;display:none;align-items:center;justify-content:space-between;z-index:50;box-shadow:0 -4px 20px rgba(0,0,0,.15)}
-    .cart-bar.visible{display:flex}
-    .cart-count{font-size:14px;font-weight:600}
-    .cart-total{font-size:16px;font-weight:700}
-    .cart-btn{padding:10px 20px;border:none;border-radius:8px;background:#fff;color:var(--primary);font-size:14px;font-weight:700;cursor:pointer}
-    .cart-btn:disabled{opacity:.5}
+    /* ═══ MENU (editorial tickets) ═══ */
+    .menu-wrap{max-width:640px;margin:0 auto;padding:8px 14px}
+    .section-label{display:flex;align-items:center;gap:10px;margin:14px 4px 10px;color:var(--text3);font-size:12px;font-weight:700;letter-spacing:1px}
+    .section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+    .item-card{
+      background:var(--card);border:1px solid var(--border);border-radius:20px;
+      padding:14px 16px;margin-bottom:12px;display:flex;gap:14px;align-items:flex-start;
+      transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+      position:relative;overflow:hidden;
+    }
+    .item-card:hover{transform:translateY(-2px);border-color:var(--border2);box-shadow:var(--shadow)}
+    .item-card.featured{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary),0 8px 24px var(--primary-glow)}
+    .item-card.featured::before{content:'✦';position:absolute;top:8px;inset-inline-end:10px;color:var(--accent);font-size:13px}
 
-    /* Footer */
-    .shop-footer{text-align:center;padding:20px 16px;color:var(--text3);font-size:12px;border-top:1px solid var(--border);margin-top:24px}
+    .item-media{flex-shrink:0}
+    .item-img{width:72px;height:72px;border-radius:18px;object-fit:cover;border:1px solid var(--border)}
+    .item-img.ph{width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,var(--card2),var(--border));display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--text3)}
 
-    /* Deals banner */
-    .deals-banner{margin:8px 16px;padding:12px 16px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:var(--radius);color:#fff}
-    .deals-banner h3{font-size:14px;font-weight:700;margin-bottom:4px}
-    .deals-banner p{font-size:12px;opacity:.9}
+    .item-body{flex:1;min-width:0}
+    .item-top{display:flex;align-items:baseline;gap:8px}
+    .item-name{font-size:15.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .item-dots{flex:1;border-bottom:2px dotted var(--border2);transform:translateY(-4px);min-width:12px}
+    .item-price{font-size:15.5px;font-weight:800;color:var(--primary);white-space:nowrap;font-variant-numeric:tabular-nums}
+    .item-sub{display:flex;align-items:baseline;gap:8px;margin-top:2px}
+    .item-name-ar{font-size:12.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
+    .item-desc{font-size:12px;color:var(--text2);line-height:1.55;margin-top:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+
+    .badge-feat{display:inline-block;font-size:9.5px;font-weight:800;background:var(--primary);color:#fff;padding:2px 8px;border-radius:10px;margin-inline-start:8px;letter-spacing:.3px;transform:translateY(-1px)}
+
+    /* Stepper */
+    .stepper{
+      display:inline-flex;align-items:center;gap:4px;margin-top:8px;
+      background:var(--card2);border:1px solid var(--border2);border-radius:30px;padding:4px;
+      width:fit-content;
+    }
+    .stepper button{width:30px;height:30px;border-radius:50%;background:var(--card);border:1px solid var(--border2);color:var(--text);font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:.15s ease}
+    .stepper button:active{transform:scale(.9)}
+    .stepper button.minus:hover{border-color:var(--danger);color:var(--danger)}
+    .stepper button.plus{background:var(--primary);border-color:var(--primary);color:#fff}
+    .stepper button.plus:hover{background:var(--primary-2);border-color:var(--primary-2)}
+    .stepper input{
+      width:46px;text-align:center;background:transparent;border:none;color:var(--text);
+      font-size:15px;font-weight:700;-moz-appearance:textfield;outline:none;
+    }
+    .stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+    .add-btn{
+      display:inline-flex;align-items:center;gap:7px;margin-top:8px;
+      padding:8px 18px;border-radius:30px;background:var(--primary);color:#fff;
+      font-size:13px;font-weight:700;transition:.15s ease;box-shadow:0 4px 14px var(--primary-glow);
+    }
+    .add-btn:hover{background:var(--primary-2)}
+    .add-btn:active{transform:scale(.95)}
+    .add-btn span{font-size:16px;line-height:1}
+
+    /* ═══ FLOATING CART ═══ */
+    .cart-fab{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:55;display:none;filter:drop-shadow(var(--shadow));animation:pop .25s ease}
+    .cart-fab.visible{display:block}
+    .cart-pill{
+      display:flex;align-items:center;gap:14px;background:var(--text);color:var(--bg);
+      padding:10px 12px 10px 18px;border-radius:50px;max-width:calc(100vw - 40px);
+    }
+    .cart-count-wrap{display:flex;align-items:center;gap:8px}
+    .cart-badge{background:var(--primary);color:#fff;font-weight:800;font-size:12px;min-width:26px;height:26px;border-radius:26px;display:flex;align-items:center;justify-content:center;padding:0 7px}
+    .cart-total{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .cart-review{background:var(--primary);color:#fff;padding:11px 18px;border-radius:40px;font-size:13px;font-weight:800;display:flex;align-items:center;gap:6px;transition:.15s ease;white-space:nowrap}
+    .cart-review:hover{background:var(--primary-2)}
+    .cart-review:active{transform:scale(.96)}
+    @keyframes pop{from{transform:translateX(-50%) scale(.8);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
+
+    /* ═══ ORDER MODAL ═══ */
+    .order-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:none;align-items:flex-end;justify-content:center}
+    .order-modal.visible{display:flex}
+    .order-sheet{
+      background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;
+      max-height:85vh;overflow-y:auto;padding:22px 20px calc(20px + env(safe-area-inset-bottom));
+      animation:slideUp .3s ease;
+    }
+    @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    .sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+    .sheet-head h3{font-size:18px;font-weight:800}
+    .sheet-close{width:32px;height:32px;border-radius:50%;background:var(--card2);color:var(--text2);display:flex;align-items:center;justify-content:center;font-size:15px}
+    .order-line{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+    .order-line:last-of-type{border-bottom:none}
+    .ol-name{flex:1;font-size:13.5px;font-weight:600;min-width:0}
+    .ol-name small{display:block;color:var(--text3);font-weight:400;font-size:11px}
+    .ol-price{font-size:13.5px;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums;white-space:nowrap}
+    .order-total-row{display:flex;justify-content:space-between;padding:14px 0 4px;font-size:17px;font-weight:800;border-top:2px solid var(--border2);margin-top:6px;font-variant-numeric:tabular-nums}
+    .order-note{width:100%;margin-top:12px;padding:12px 14px;border:1px solid var(--border2);border-radius:14px;background:var(--card2);font-size:13px;resize:none;min-height:64px;color:var(--text)}
+    .order-note::placeholder{color:var(--text3)}
+    .order-whatsapp{width:100%;margin-top:12px;padding:15px;border:none;border-radius:16px;background:var(--wa);color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:9px;transition:.15s ease;box-shadow:0 6px 20px rgba(37,211,102,.3)}
+    .order-whatsapp:hover{background:var(--wa-dark)}
+    .order-whatsapp:disabled{opacity:.5;pointer-events:none}
 
     /* Empty */
-    .empty-msg{text-align:center;padding:40px 16px;color:var(--text3);font-size:14px}
+    .empty-msg{text-align:center;padding:46px 16px;color:var(--text3);font-size:14px}
+    .empty-msg .big{font-size:34px;display:block;margin-bottom:10px}
 
-    /* WhatsApp order modal */
-    .order-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:none;align-items:flex-end;justify-content:center}
-    .order-modal.visible{display:flex}
-    .order-sheet{background:var(--card);border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;padding:20px}
-    .order-sheet h3{font-size:18px;font-weight:700;margin-bottom:12px}
-    .order-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px}
-    .order-item .qty{display:flex;align-items:center;gap:8px}
-    .order-item .qty button{width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:var(--bg);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-    .order-total-row{display:flex;justify-content:space-between;padding:12px 0;font-size:16px;font-weight:700;border-top:2px solid var(--text)}
-    .order-whatsapp{width:100%;margin-top:12px;padding:14px;border:none;border-radius:10px;background:#25D366;color:#fff;font-size:16px;font-weight:700;cursor:pointer}
-    .order-whatsapp:disabled{opacity:.5}
-    .order-note{width:100%;margin-top:8px;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:13px;resize:none;min-height:60px;font-family:inherit}
+    /* Footer */
+    .shop-footer{text-align:center;padding:24px 16px;color:var(--text3);font-size:12px;border-top:1px solid var(--border);margin-top:28px}
+
+    /* Toast */
+    .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);z-index:120;background:var(--text);color:var(--bg);padding:10px 18px;border-radius:30px;font-size:12.5px;font-weight:600;opacity:0;transition:.25s ease;pointer-events:none;white-space:nowrap}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+    @media (max-width:420px){
+      .hero{padding:48px 14px 24px}
+      .item-img,.item-img.ph{width:60px;height:60px;border-radius:14px}
+      .menu-wrap{padding:8px 10px}
+      .item-card{padding:12px 13px}
+      .deals-scroll{padding:12px}
+    }
+    @media (min-width:760px){
+      .menu-wrap{max-width:760px}
+      .items-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+      .item-card{margin-bottom:0}
+      .items-col .item-card.featured::before{display:none}
+    }
   </style>
 </head>
 <body>
   <!-- Loading -->
   <div class="loading-screen" id="loading">
-    <div class="spinner"></div>
-    <p>Loading menu...</p>
+    <div class="cup"></div>
+    <p id="loading-text">جارٍ تحميل القائمة...</p>
   </div>
 
-  <!-- Language toggle -->
-  <button class="lang-toggle" id="lang-btn" onclick="toggleLang()">AR</button>
+  <!-- Controls -->
+  <div class="controls">
+    <button class="ctl" id="theme-btn" onclick="toggleTheme()" title="Theme" aria-label="Toggle theme">☀️</button>
+    <button class="ctl lang" id="lang-btn" onclick="toggleLang()">EN</button>
+  </div>
 
   <!-- Shop header (injected) -->
-  <div class="shop-header" id="shop-header" style="display:none"></div>
+  <header class="hero" id="shop-header" style="display:none"><div class="hero-inner" id="hero-inner"></div></header>
 
-  <!-- Currency selector (injected) -->
-  <div class="currency-bar" id="currency-bar" style="display:none"></div>
-
-  <!-- Category tabs (injected) -->
-  <div class="cat-tabs" id="cat-tabs" style="display:none"></div>
+  <!-- Category rail (injected) -->
+  <div class="rail-wrap" id="rail-wrap" style="display:none"><div class="cat-tabs" id="cat-tabs"></div></div>
 
   <!-- Deals (injected) -->
-  <div id="deals-section"></div>
+  <div class="deals-scroll" id="deals-section" style="display:none"></div>
 
-  <!-- Items grid (injected) -->
-  <div class="items-grid" id="items-grid" style="display:none"></div>
+  <!-- Menu -->
+  <main class="menu-wrap">
+    <div class="section-label" id="section-label" style="display:none"></div>
+    <div id="items-grid" style="display:none"></div>
+  </main>
 
-  <!-- Cart bar -->
-  <div class="cart-bar" id="cart-bar">
-    <div>
-      <div class="cart-count" id="cart-count">0 items</div>
-      <div class="cart-total" id="cart-total">0</div>
+  <!-- Floating cart -->
+  <div class="cart-fab" id="cart-fab">
+    <div class="cart-pill">
+      <div class="cart-count-wrap">
+        <span class="cart-badge" id="cart-count">0</span>
+        <span class="cart-total" id="cart-total">0</span>
+      </div>
+      <button class="cart-review" onclick="openOrderSheet()"><span id="cart-review-text">الطلب</span> ⟨⟩</button>
     </div>
-    <button class="cart-btn" onclick="openOrderSheet()">Review Order</button>
   </div>
 
-  <!-- Order review modal -->
+  <!-- Order modal -->
   <div class="order-modal" id="order-modal" onclick="if(event.target===this)closeOrderSheet()">
     <div class="order-sheet" id="order-sheet"></div>
   </div>
 
-  <!-- Footer (injected) -->
   <div class="shop-footer" id="shop-footer" style="display:none"></div>
+
+  <div class="toast" id="toast"></div>
 
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -144,60 +303,50 @@
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // ─── STATE ──────────────────────────────────────────────
-    let shop = null;
-    let categories = [];
-    let items = [];
-    let deals = [];
-    let lang = 'en';
+    let shop = null, categories = [], items = [], deals = [];
+    let lang = 'ar';
+    let theme = localStorage.getItem('qm-theme') || 'dark';
     let activeCurrency = 'SYP';
     let activeCategory = null;
     let cart = {}; // { itemId: qty }
 
     // ─── INIT ───────────────────────────────────────────────
     (async () => {
-      // Detect language from browser or hash
-      const hash = window.location.hash.replace('#', '');
-      if (hash === 'ar' || hash === 'en') {
-        lang = hash;
-      } else {
-        lang = navigator.language.startsWith('ar') ? 'ar' : 'en';
-      }
+      // Theme first (no flash)
+      document.documentElement.dataset.theme = theme;
+      updateThemeBtn();
 
-      // Load shop (first active shop, or by slug in URL)
+      // Language: hash > saved > Arabic default
+      const hash = window.location.hash.replace('#', '');
+      if (hash === 'ar' || hash === 'en') lang = hash;
+      else lang = localStorage.getItem('qm-lang') || 'ar';
+      window.location.hash = lang;
+
       const slug = new URLSearchParams(window.location.search).get('shop');
       let query = sb.from('shops').select('*').eq('is_active', true);
       if (slug) query = query.eq('slug', slug);
       const { data: shops } = await query.limit(1);
 
       if (!shops || shops.length === 0) {
-        document.getElementById('loading').innerHTML = '<p style="color:var(--text2)">No shop found.</p>';
+        document.getElementById('loading').innerHTML = '<p style="color:var(--text2)">لا يوجد متجر / No shop found.</p>';
         return;
       }
       shop = shops[0];
       activeCurrency = shop.currency_default || 'SYP';
 
-      // Load categories
       const { data: cats } = await sb.from('categories').select('*').eq('shop_id', shop.id).eq('is_active', true).order('sort_order');
       categories = cats || [];
 
-      // Load items with prices
       const { data: its } = await sb.from('items').select('*, item_prices(*)').eq('shop_id', shop.id).eq('is_available', true).order('sort_order');
-      items = (its || []).filter(i => {
-        // Only show items that have at least one visible price
-        return (i.item_prices || []).some(p => p.is_visible);
-      });
+      items = (its || []).filter(i => (i.item_prices || []).some(p => p.is_visible));
 
-      // Load active deals
       const now = new Date().toISOString();
       const { data: dls } = await sb.from('deals').select('*').eq('shop_id', shop.id).eq('is_active', true)
-        .or(`starts_at.is.null,starts_at.lte.${now}`)
-        .or(`ends_at.is.null,ends_at.gte.${now}`)
-        .order('sort_order');
+        .or(`starts_at.is.null,starts_at.lte.${now}`).or(`ends_at.is.null,ends_at.gte.${now}`).order('sort_order');
       deals = dls || [];
 
-      // Apply theme colors
-      document.documentElement.style.setProperty('--primary', shop.primary_color || '#D97706');
-      document.documentElement.style.setProperty('--accent', shop.accent_color || '#92400E');
+      document.documentElement.style.setProperty('--primary', shop.primary_color || '#e08a2e');
+      document.documentElement.style.setProperty('--primary-2', shop.accent_color || shop.primary_color || '#c96a12');
 
       render();
       document.getElementById('loading').style.display = 'none';
@@ -207,58 +356,59 @@
     function render() {
       applyLang();
       renderHeader();
-      renderCurrencyBar();
       renderCategories();
       renderDeals();
       renderItems();
       renderFooter();
+      updateCartBar();
     }
 
     function applyLang() {
       document.documentElement.lang = lang;
       document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-      document.body.dir = lang === 'ar' ? 'rtl' : 'ltr';
       document.getElementById('lang-btn').textContent = lang === 'en' ? 'AR' : 'EN';
-      document.title = lang === 'ar' ? (shop.name_ar || shop.name) : shop.name;
+      document.title = lang === 'ar' ? (shop?.name_ar || shop?.name || 'QR Menu') : (shop?.name || 'QR Menu');
+      document.getElementById('loading-text').textContent = lang === 'ar' ? 'جارٍ تحميل القائمة...' : 'Loading menu...';
+      document.getElementById('cart-review-text').textContent = lang === 'ar' ? 'الطلب' : 'Order';
+      const label = document.getElementById('section-label');
+      label.textContent = lang === 'ar' ? 'من القائمة' : 'FROM THE MENU';
     }
 
     function renderHeader() {
-      const h = document.getElementById('shop-header');
-      h.style.display = 'block';
+      const h = document.getElementById('hero-inner');
       const logo = shop.logo_url ? `<img class="logo" src="${esc(shop.logo_url)}" alt="${esc(shop.name)}">` : '';
       const name = lang === 'ar' ? (shop.name_ar || shop.name) : shop.name;
       const tagline = lang === 'ar' ? (shop.tagline_ar || shop.tagline) : shop.tagline;
       const contactParts = [];
-      if (shop.whatsapp) contactParts.push(`<a href="https://wa.me/${esc(shop.whatsapp)}">WhatsApp</a>`);
-      if (shop.phone) contactParts.push(`<span>${esc(shop.phone)}</span>`);
-      if (shop.email) contactParts.push(`<a href="mailto:${esc(shop.email)}">${esc(shop.email)}</a>`);
+      if (shop.whatsapp) contactParts.push(`<a href="https://wa.me/${esc(shop.whatsapp)}"><span>✆</span> WhatsApp</a>`);
+      if (shop.phone) contactParts.push(`<span>📞 ${esc(shop.phone)}</span>`);
+      if (shop.email) contactParts.push(`<a href="mailto:${esc(shop.email)}"><span>✉</span> ${esc(shop.email)}</a>`);
+
+      let currencyRow = '';
+      const currencies = shop.currencies || ['SYP'];
+      if (currencies.length > 1 && shop.show_currency_selector) {
+        currencyRow = `<div class="currency-row">` + currencies.map(c =>
+          `<button class="currency-btn ${c === activeCurrency ? 'active' : ''}" onclick="setCurrency('${c}')">${c}</button>`
+        ).join('') + `</div>`;
+      }
+
       h.innerHTML = `
         ${logo}
         <h1>${esc(name)}</h1>
         ${tagline ? `<p class="tagline">${esc(tagline)}</p>` : ''}
         ${contactParts.length ? `<div class="contact-row">${contactParts.join('')}</div>` : ''}
+        ${currencyRow}
       `;
-    }
-
-    function renderCurrencyBar() {
-      const bar = document.getElementById('currency-bar');
-      const currencies = shop.currencies || ['SYP'];
-      if (currencies.length <= 1 && !shop.show_currency_selector) {
-        bar.style.display = 'none';
-        return;
-      }
-      bar.style.display = 'flex';
-      bar.innerHTML = currencies.map(c =>
-        `<button class="currency-btn ${c === activeCurrency ? 'active' : ''}" onclick="setCurrency('${c}')">${c}</button>`
-      ).join('');
+      document.getElementById('shop-header').style.display = 'block';
     }
 
     function renderCategories() {
-      const tabs = document.getElementById('cat-tabs');
-      if (categories.length === 0) { tabs.style.display = 'none'; return; }
-      tabs.style.display = 'flex';
+      const wrap = document.getElementById('rail-wrap');
+      if (categories.length === 0) { wrap.style.display = 'none'; return; }
+      wrap.style.display = 'block';
       const allLabel = lang === 'ar' ? 'الكل' : 'All';
-      tabs.innerHTML = `<button class="cat-tab ${activeCategory === null ? 'active' : ''}" onclick="setCategory(null)">${allLabel}</button>` +
+      document.getElementById('cat-tabs').innerHTML =
+        `<button class="cat-tab ${activeCategory === null ? 'active' : ''}" onclick="setCategory(null)">${allLabel}</button>` +
         categories.map(c => {
           const name = lang === 'ar' ? (c.name_ar || c.name) : c.name;
           return `<button class="cat-tab ${activeCategory === c.id ? 'active' : ''}" onclick="setCategory('${c.id}')">${esc(name)}</button>`;
@@ -267,45 +417,87 @@
 
     function renderDeals() {
       const sec = document.getElementById('deals-section');
-      if (deals.length === 0) { sec.innerHTML = ''; return; }
+      if (deals.length === 0) { sec.style.display = 'none'; return; }
+      sec.style.display = 'flex';
       sec.innerHTML = deals.map(d => {
         const title = lang === 'ar' ? (d.title_ar || d.title) : d.title;
         const desc = lang === 'ar' ? (d.description_ar || d.description) : d.description;
-        const discount = d.discount_type === 'percent' ? `${d.discount_value}% OFF` : `${d.discount_value} ${d.currency} OFF`;
-        return `<div class="deals-banner"><h3>🔥 ${esc(title)} — ${discount}</h3>${desc ? `<p>${esc(desc)}</p>` : ''}</div>`;
+        const discount = d.discount_type === 'percent' ? `${d.discount_value}%` : `${d.discount_value} ${d.currency}`;
+        const ribbon = lang === 'ar' ? 'عرض خاص' : 'SPECIAL —';
+        return `
+          <div class="deal-card">
+            <span class="deal-ribbon">${ribbon} ${discount}</span>
+            <h3>${esc(title)}</h3>
+            ${desc ? `<p>${esc(desc)}</p>` : ''}
+            <span class="deal-badge">🔥 ${discount} ${lang === 'ar' ? 'خصم' : 'OFF'}</span>
+          </div>`;
       }).join('');
     }
 
     function renderItems() {
       const grid = document.getElementById('items-grid');
       const filtered = activeCategory ? items.filter(i => i.category_id === activeCategory) : items;
+      document.getElementById('section-label').style.display = filtered.length ? 'block' : 'none';
       if (filtered.length === 0) {
         grid.style.display = 'block';
-        grid.innerHTML = `<div class="empty-msg">${lang === 'ar' ? 'لا عناصر بعد' : 'No items yet'}</div>`;
+        grid.innerHTML = `<div class="empty-msg"><span class="big">🍽️</span>${lang === 'ar' ? 'لا عناصر بعد' : 'No items yet'}</div>`;
         return;
       }
-      grid.style.display = 'flex';
-      grid.innerHTML = filtered.map(item => {
+      document.querySelector('#items-grid').classList.add('items-col');
+      grid.style.display = filtered.length > 2 ? 'grid' : 'block';
+      grid.innerHTML = filtered.map((item, idx) => {
         const name = lang === 'ar' ? (item.name_ar || item.name) : item.name;
+        const name2 = lang === 'ar' ? (item.name || '') : (item.name_ar || '');
         const desc = lang === 'ar' ? (item.description_ar || item.description) : item.description;
         const priceObj = (item.item_prices || []).find(p => p.currency === activeCurrency && p.is_visible);
         const price = priceObj ? formatPrice(priceObj.price, activeCurrency) : '';
-        const img = item.image_url ? `<img class="item-img" src="${esc(item.image_url)}" alt="">` : '';
-        const badge = item.is_featured ? `<span class="item-badge">${lang === 'ar' ? 'مميز' : 'Featured'}</span>` : '';
-        const inCart = cart[item.id] || 0;
+        const img = item.image_url
+          ? `<img class="item-img" src="${esc(item.image_url)}" alt="" loading="lazy">`
+          : `<div class="item-img ph">${emojiFor(item)}</div>`;
+        const badge = item.is_featured ? `<span class="badge-feat">${lang === 'ar' ? 'مميز' : 'FEATURED'}</span>` : '';
+        const qty = cart[item.id] || 0;
+        const control = qty > 0
+          ? stepperHTML(item.id, qty)
+          : `<button class="add-btn" onclick="incCart('${item.id}')"><span>+</span> ${lang === 'ar' ? 'أضف' : 'Add'}</button>`;
         return `
-          <div class="item-card">
-            ${img}
-            <div class="item-info">
-              ${badge}
-              <div class="item-name">${esc(name)}</div>
+          <div class="item-card ${item.is_featured ? 'featured' : ''}">
+            <div class="item-media">${img}</div>
+            <div class="item-body">
+              <div class="item-top">
+                <span class="item-name">${esc(name)}${badge}</span>
+                <span class="item-dots"></span>
+                <span class="item-price">${price}</span>
+              </div>
+              ${name2 ? `<div class="item-sub"><span class="item-name-ar">${esc(name2)}</span></div>` : ''}
               ${desc ? `<div class="item-desc">${esc(desc)}</div>` : ''}
-              ${price ? `<div class="item-price">${price}</div>` : ''}
+              ${control}
             </div>
-            <button class="item-add" onclick="addToCart('${item.id}')" title="Add">+</button>
-          </div>
-        `;
+          </div>`;
       }).join('');
+    }
+
+    function stepperHTML(id, qty) {
+      return `
+        <div class="stepper">
+          <button class="minus" onclick="decCart('${id}')" aria-label="decrease">−</button>
+          <input type="number" min="1" max="99" value="${qty}" onchange="setCartQty('${id}', this.value)" inputmode="numeric" aria-label="quantity">
+          <button class="plus" onclick="incCart('${id}')" aria-label="increase">+</button>
+        </div>`;
+    }
+
+    function emojiFor(item) {
+      const n = (item.name_ar || item.name || '').toLowerCase();
+      if (/قهوة|coffee|كابتشينو|cappuccino|لاتيه|latte/.test(n)) return '☕';
+      if (/شاي|tea/.test(n)) return '🍵';
+      if (/ليمون|lemon|عصير|juice/.test(n)) return '🍋';
+      if (/مثلج|ice/.test(n)) return '🧊';
+      if (/براد|shake|سموذي|smoothie/.test(n)) return '🥤';
+      if (/كنافة|kunafa/.test(n)) return '🍮';
+      if (/بقلاوة|baklava|حلو|dessert/.test(n)) return '🍰';
+      if (/مناقيش|manakish|بيتزا|pizza/.test(n)) return '🫓';
+      if (/ساندويش|wrap|برغر|burger|شاورما|shawarma/.test(n)) return '🌯';
+      if (/مشاوي|grill/.test(n)) return '🍖';
+      return '🍽️';
     }
 
     function renderFooter() {
@@ -315,140 +507,132 @@
       f.textContent = text || `© ${new Date().getFullYear()} ${shop.name}`;
     }
 
+    // ─── THEME ──────────────────────────────────────────────
+    function toggleTheme() {
+      theme = theme === 'dark' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem('qm-theme', theme);
+      updateThemeBtn();
+    }
+    function updateThemeBtn() {
+      document.getElementById('theme-btn').textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+
     // ─── ACTIONS ────────────────────────────────────────────
     function toggleLang() {
       lang = lang === 'en' ? 'ar' : 'en';
+      localStorage.setItem('qm-lang', lang);
       window.location.hash = lang;
       render();
     }
 
-    function setCurrency(c) {
-      activeCurrency = c;
-      renderCurrencyBar();
-      renderItems();
-    }
+    function setCurrency(c) { activeCurrency = c; renderHeader(); renderItems(); updateCartBar(); }
+    function setCategory(id) { activeCategory = id; renderCategories(); renderItems(); }
 
-    function setCategory(id) {
-      activeCategory = id;
-      renderCategories();
-      renderItems();
+    // Cart
+    function incCart(id) {
+      cart[id] = Math.min((cart[id] || 0) + 1, 99);
+      renderItems(); updateCartBar();
+      if (document.getElementById('order-modal')?.classList.contains('visible')) renderOrderSheet();
     }
-
-    function addToCart(itemId) {
-      cart[itemId] = (cart[itemId] || 0) + 1;
-      updateCartBar();
+    function decCart(id) {
+      if (cart[id]) { cart[id]--; if (cart[id] <= 0) delete cart[id]; }
+      renderItems(); updateCartBar(); if (document.getElementById('order-modal')?.classList.contains('visible')) renderOrderSheet();
     }
-
-    function removeFromCart(itemId) {
-      if (cart[itemId]) {
-        cart[itemId]--;
-        if (cart[itemId] <= 0) delete cart[itemId];
-      }
-      updateCartBar();
-      renderOrderSheet();
+    function setCartQty(id, val) {
+      const q = parseInt(val, 10) || 0;
+      if (q <= 0) delete cart[id]; else cart[id] = Math.min(q, 99);
+      renderItems(); renderOrderSheet(); updateCartBar();
     }
 
     function updateCartBar() {
-      const bar = document.getElementById('cart-bar');
+      const fab = document.getElementById('cart-fab');
       const totalItems = Object.values(cart).reduce((s, q) => s + q, 0);
-      if (totalItems === 0) {
-        bar.classList.remove('visible');
-        return;
-      }
-      bar.classList.add('visible');
-      document.getElementById('cart-count').textContent = `${totalItems} ${lang === 'ar' ? 'عناصر' : 'items'}`;
+      if (totalItems === 0) { fab.classList.remove('visible'); document.getElementById('cart-count').textContent = '0'; document.getElementById('cart-total').textContent = '0'; return; }
+      document.getElementById('cart-count').textContent = totalItems;
       const total = Object.entries(cart).reduce((sum, [id, qty]) => {
         const item = items.find(i => i.id === id);
-        const priceObj = (item?.item_prices || []).find(p => p.currency === activeCurrency && p.is_visible);
-        return sum + (priceObj ? priceObj.price * qty : 0);
+        const p = (item?.item_prices || []).find(x => x.currency === activeCurrency && x.is_visible);
+        return sum + (p ? p.price * qty : 0);
       }, 0);
       document.getElementById('cart-total').textContent = formatPrice(total, activeCurrency);
+      fab.classList.add('visible');
     }
 
+    // Order sheet
     function openOrderSheet() {
       document.getElementById('order-modal').classList.add('visible');
       renderOrderSheet();
     }
-
-    function closeOrderSheet() {
-      document.getElementById('order-modal').classList.remove('visible');
-    }
+    function closeOrderSheet() { document.getElementById('order-modal').classList.remove('visible'); }
 
     function renderOrderSheet() {
       const sheet = document.getElementById('order-sheet');
       const totalItems = Object.values(cart).reduce((s, q) => s + q, 0);
+      const closeLabel = lang === 'ar' ? 'إغلاق' : 'Close';
       if (totalItems === 0) {
-        sheet.innerHTML = `<h3>${lang === 'ar' ? 'سلة فارغة' : 'Cart is empty'}</h3><p style="color:var(--text2);margin-top:8px">${lang === 'ar' ? 'أضف عناصر من القائمة' : 'Add items from the menu'}</p>`;
+        sheet.innerHTML = `
+          <div class="sheet-head"><h3>${lang === 'ar' ? 'سلة الطلب' : 'Your Order'}</h3>
+          <button class="sheet-close" onclick="closeOrderSheet()">✕</button></div>
+          <div class="empty-msg"><span class="big">🛒</span>${lang === 'ar' ? 'السلة فارغة — أضف عناصر من القائمة' : 'Cart is empty — add items from the menu'}</div>`;
         return;
       }
 
-      let rows = '';
-      let total = 0;
+      let rows = '', total = 0;
       for (const [id, qty] of Object.entries(cart)) {
         const item = items.find(i => i.id === id);
         if (!item) continue;
         const name = lang === 'ar' ? (item.name_ar || item.name) : item.name;
-        const priceObj = (item.item_prices || []).find(p => p.currency === activeCurrency && p.is_visible);
-        const unitPrice = priceObj ? priceObj.price : 0;
-        const lineTotal = unitPrice * qty;
-        total += lineTotal;
+        const sub = lang === 'ar' ? (item.name || '') : (item.name_ar || '');
+        const p = (item.item_prices || []).find(x => x.currency === activeCurrency && x.is_visible);
+        const unit = p ? p.price : 0;
+        total += unit * qty;
         rows += `
-          <div class="order-item">
-            <span>${esc(name)} × ${qty}</span>
-            <div class="qty">
-              <span>${formatPrice(lineTotal, activeCurrency)}</span>
-              <button onclick="removeFromCart('${id}')">−</button>
-            </div>
-          </div>
-        `;
+          <div class="order-line">
+            <div class="ol-name">${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ''}</div>
+            <div class="ol-price">${formatPrice(unit * qty, activeCurrency)}</div>
+            ${stepperHTML(id, qty)}
+          </div>`;
       }
 
-      const noteLabel = lang === 'ar' ? 'ملاحظات الطلب (اختياري)' : 'Order notes (optional)';
-      const waLabel = lang === 'ar' ? 'إرسال عبر واتساب' : 'Send via WhatsApp';
       const totalLabel = lang === 'ar' ? 'المجموع' : 'Total';
+      const noteLabel = lang === 'ar' ? 'ملاحظات الطلب (اختياري)' : 'Order notes (optional)';
+      const waLabel = lang === 'ar' ? 'إرسال الطلب عبر واتساب' : 'Send Order via WhatsApp';
 
       sheet.innerHTML = `
-        <h3>${lang === 'ar' ? 'مراجعة الطلب' : 'Review Order'}</h3>
+        <div class="sheet-head"><h3>${lang === 'ar' ? 'مراجعة الطلب' : 'Review Order'}</h3>
+        <button class="sheet-close" onclick="closeOrderSheet()">✕</button></div>
         ${rows}
         <div class="order-total-row"><span>${totalLabel}</span><span>${formatPrice(total, activeCurrency)}</span></div>
         <textarea class="order-note" id="order-note" placeholder="${noteLabel}"></textarea>
-        <button class="order-whatsapp" onclick="sendWhatsApp()">${waLabel}</button>
-      `;
+        <button class="order-whatsapp" onclick="sendWhatsApp()">🟢 ${waLabel}</button>`;
     }
 
+    // WhatsApp
     function sendWhatsApp() {
       const totalItems = Object.values(cart).reduce((s, q) => s + q, 0);
       if (totalItems === 0) return;
-
       const lines = [];
       lines.push(lang === 'ar' ? `*طلب جديد — ${shop.name}*` : `*New Order — ${shop.name}*`);
       lines.push('');
-
       let total = 0;
       for (const [id, qty] of Object.entries(cart)) {
         const item = items.find(i => i.id === id);
         if (!item) continue;
         const name = lang === 'ar' ? (item.name_ar || item.name) : item.name;
-        const priceObj = (item.item_prices || []).find(p => p.currency === activeCurrency && p.is_visible);
-        const unitPrice = priceObj ? priceObj.price : 0;
-        const lineTotal = unitPrice * qty;
-        total += lineTotal;
-        lines.push(`• ${name} × ${qty} — ${formatPrice(lineTotal, activeCurrency)}`);
+        const p = (item.item_prices || []).find(x => x.currency === activeCurrency && x.is_visible);
+        const unit = p ? p.price : 0;
+        total += unit * qty;
+        lines.push(`• ${name} × ${qty} — ${formatPrice(unit * qty, activeCurrency)}`);
       }
-
       lines.push('');
       lines.push(`${lang === 'ar' ? 'المجموع' : 'Total'}: *${formatPrice(total, activeCurrency)}*`);
-
       const note = document.getElementById('order-note')?.value?.trim();
-      if (note) {
-        lines.push('');
-        lines.push(`${lang === 'ar' ? 'ملاحظات' : 'Notes'}: ${note}`);
-      }
-
+      if (note) { lines.push(''); lines.push(`${lang === 'ar' ? 'ملاحظات' : 'Notes'}: ${note}`); }
       const msg = encodeURIComponent(lines.join('\n'));
       const phone = shop.whatsapp?.replace(/[^0-9]/g, '') || '';
-      const url = phone ? `https://wa.me/${phone}?text=${msg}` : `https://wa.me/?text=${msg}`;
-      window.open(url, '_blank');
+      window.open(phone ? `https://wa.me/${phone}?text=${msg}` : `https://wa.me/?text=${msg}`, '_blank');
+      toast(lang === 'ar' ? 'تم فتح واتساب' : 'WhatsApp opened');
     }
 
     // ─── HELPERS ────────────────────────────────────────────
@@ -456,6 +640,12 @@
     function formatPrice(amount, currency) {
       const formatted = new Intl.NumberFormat(lang === 'ar' ? 'ar-SY' : 'en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
       return `${formatted} ${currency}`;
+    }
+    let toastTimer;
+    function toast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.classList.add('show');
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
     }
   </script>
 </body>
