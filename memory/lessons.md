@@ -24,3 +24,9 @@
 - **Root cause**: The query string defeats the browser cache, but GitHub Pages' CDN/deployment had not yet rebuilt — the push had landed on `main` (raw.githubusercontent updated instantly) while the Pages deployment was still being generated.
 - **Fix**: Poll the Pages URL until the byte count / markers match `raw.githubusercontent.com/amworx/qr-menu/main/index.html` (~45–60s), then re-verify in-browser.
 - **Lesson**: When "live verify" fails right after a push, first diff `raw.githubusercontent.com/.../main/<file>` against the live URL — if raw matches your commit but live doesn't, it's Pages rebuild lag, not a bad deploy.
+
+## LSSN-20260907-005 — PowerShell console mangles Arabic; verify Supabase UTF-8 via file
+- **Problem**: PATCHing `name_ar`="جودي جوي" to Supabase returned `name_ar : ???? ???` in the PowerShell console — looked like mojibake got stored.
+- **Root cause**: Windows PowerShell 5.1 console can't render Arabic; the value was actually stored correctly (UTF-8). The `????` was display-only.
+- **Fix**: Write the API response to a UTF-8 (no BOM) temp file (`[System.IO.File]::WriteAllText` with `UTF8Encoding($false)`) and Read it back — showed `"name_ar":"جودي جوي"` correctly.
+- **Lesson**: Never trust Windows PS console output for non-Latin text. If a check involves Arabic/Arabic-script data, dump to a UTF-8 file and verify with the Read tool before assuming corruption.

@@ -34,3 +34,15 @@
 - **errors**: GitHub Pages served stale index.html (~21.9KB) for ~45-60s after push despite cache-buster (raw.githubusercontent updated immediately; deployment lag).
 - **lessons**: LSSN-20260907-003 (cart/UI mutators must refresh every consumer — badge, totals, order sheet); LSSN-20260907-004 (GitHub Pages redeploy lags ~1 min after push — verify via raw `main` first, then poll live with cache-buster)
 - **tags**: ui-overhaul, rtl, theme-toggle, stepper, bugfix, deploy, verify
+
+## EVT-20260907-0004
+
+- **timestamp**: 2026-09-07
+- **mode**: BUILD / DATA / UI / DEPLOY
+- **action**: Store renamed to Judy Joy; currency switcher moved to top bar as single control
+- **summary**: Per user request: (1) renamed shop in Supabase `shops` (PATCH via service-role REST) — `name`="Judy Joy", `name_ar`="جودي جوي" (verified via UTF-8 temp-file check; PowerShell console shows `????` for Arabic but DB stored correct UTF-8). (2) Moved currency selector out of the hero into the top `.controls` bar, placed directly after the theme toggle, as one compact pill (`.ctl.cur`) showing the active currency code; clicking it cycles through `shop.currencies` (SYP→USD→TRY). Added `cycleCurrency()` + `renderCurrencyBtn()` (hides if `<2` currencies or selector disabled), removed hero `currencyRow` + unused `.currency-row/.currency-btn` CSS. Verified localhost + live: title/hero show جودي جوي, controls order [theme, currency, lang], cycle updates prices, zero console errors (only favicon 404). Commit `0e8c31e` pushed; Pages lag ~50s then verified live `?cb=judy-joy-final`.
+- **result**: Success — live at https://amworx.github.io/qr-menu/
+- **files**: `index.html`, Supabase `shops` row
+- **errors**: None (favicon 404 on localhost only, cosmetic)
+- **lessons**: LSSN-20260907-005 (PowerShell console mangles Arabic — verify Supabase strings via UTF-8 file + Read)
+- **tags**: rename, currency, topbar, rtl, supabase-patch, deploy, verify
