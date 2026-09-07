@@ -42,3 +42,21 @@ Reusable patterns extracted from repeated successes. Append only.
 - **When**: A sticky bar (tabs/filters) must sit flush below a header whose height changes by breakpoint or wraps.
 - **How**: On `:root` declare `--header-h:70px`; in the ≤768px block override `--header-h:104px`; in JS, after each tab render, measure `header.getBoundingClientRect().height` when `> 0` and set `document.documentElement.style.setProperty('--header-h', (height+1)+'px')`; the sticky rule uses `top:var(--header-h,104px)`.
 - **Ref**: admin.html `showTab()`; EVT-20260907-0008; LSSN-20260907-014.
+
+## PAT-20260907-006 — Client-side list search/filter/sort/pagination toolbar
+- **When**: An admin list (items, etc.) can grow large; users need to find rows quickly.
+- **How**:
+  1. Keep the full dataset in memory (`allItems`); render only into a tbody container.
+  2. Toolbar: search input (`oninput`) matching EN+AR name/desc, category `<select>`, sort `<select>` (order/name/price low/high), live counter `t('showing') N t('of') M`, and a pagination cap (`itemShown`/`ITEM_PAGE=50`) with a "Load more" button that increments and re-renders.
+  3. `filteredItems()` = filter → sort → return; `renderItemRows()` slices to `itemShown` and fills `#tbody`; stable inline `onchange/oninput` handlers keep it dependency-free.
+  4. Call `renderItemRows()` right after `showTab` injects the tab HTML.
+- **Ref**: admin.html items tab; EVT-20260907-0009.
+
+## PAT-20260907-007 — Typed offer/deal model with one flexible admin modal
+- **When**: An app needs multiple offer styles (percent, fixed amount, BOGO, bundle/combo, spend-threshold) with one DB table + one modal + localized public labels.
+- **How**:
+  1. DB: `deal_type` enum + `applies_to(item|category|all)` + per-type nullable columns (`item_id`, `category_id`, `buy_qty`, `get_qty`, `min_total`, `reward_type`, `bundle_price`, `bundle_items jsonb[]`); idempotent ALTER migration (safe with 0 rows).
+  2. Modal: keep ALL field blocks in the DOM, toggle `display` via `dealTypeChanged()` map (`percent:['percent','scope']` etc.); every block id must be in the map for the types that need it. BOGO gets its own item picker; bundle uses checkbox chips; scope picker only for percent/fixed.
+  3. `saveDeal()` builds a base object with nulls for irrelevant fields, then fills per-type values.
+  4. Public menu: single `dealSummary(d)` switch returns localized AR/EN text per type.
+- **Ref**: admin.html deals + index.html `dealSummary`; docs/schema.sql deals; EVT-20260907-0009; LSSN-20260907-016.

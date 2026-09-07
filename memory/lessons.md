@@ -84,4 +84,18 @@
 - **Fix**: Compute `--header-h` from `header.getBoundingClientRect().height` in `showTab()` (runs after layout is stable) guarded by `height > 0`; use `top:var(--header-h,104px)` in the sticky rule.
 - **Lesson**: When a sticky element must sit flush below a variable-height header, measure the header after layout is settled (not at script parse / hidden state) and inject the value as a CSS var; always guard rect height > 0.
 
+## LSSN-20260907-015 — Reload the browser after editing an admin page before testing JS
+- **Problem**: First BOGO deal created via the UI stored `item_id: null` and the item picker was missing from the modal, even though the code looked correct.
+- **Root cause**: The test ran against an already-loaded browser page that still executed the pre-edit script — the fix was committed to the file but not reloaded into the tab.
+- **Fix**: Reload `http://localhost:8088/admin.html`, re-open the deal in edit mode, set the item via the new picker, save — item_id persisted correctly.
+- **Lesson**: `localhost` static servers serve the file fresh per navigation, but an already-open tab keeps the old script. Always reload before verifying any JS/HTML edit; stale pages produce false failures (and can write wrong test data to the real DB).
+
+## LSSN-20260907-016 — Dynamic show/hide field blocks: keep all blocks in DOM and toggle by a type map
+- **Problem**: In the redesigned deal modal the "applies to" scope block never appeared, no matter the selected offer type.
+- **Root cause**: `dealTypeChanged()` used a per-type map (`percent: ['percent']`) that omitted `scope`; the loop hid any block not listed, so scope was hidden for every type.
+- **Fix**: Map now includes the block: `percent: ['percent','scope'], fixed: ['fixed','scope'], bogo: ['bogo'], ...`.
+- **Lesson**: For type-dependent form blocks, render every block always and toggle `display` via a single map; every block id must be present in the map for the types that need it. Keeping all blocks in the DOM also preserves field values when the user switches type mid-edit.
+
+(End of file - total 77 lines)
+
 (End of file - total 75 lines)
