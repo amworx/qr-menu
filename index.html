@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR Menu — Order via WhatsApp</title>
+<meta name="description" content="Digital QR menu with WhatsApp ordering — bilingual EN/AR, mobile-first, no backend needed.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧾</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --bg: #f7f2e9;
+        --card: #fffdf7;
+        --ink: #262019;
+        --dim: #6f675b;
+        --faint: #9a9082;
+        --line: #e8dfcf;
+        --accent: #c25e2e;
+        --accent-ink: #fff;
+        --sage: #2e7d5b;
+        --chip: #efe6d5;
+        --bar: #262019;
+        --bar-ink: #f7f2e9;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+        font-family: 'Readex Pro', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+    }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    .sheet { max-width: 640px; margin: 0 auto; min-height: 100vh; background: var(--bg); }
+
+    /* header */
+    .hd {
+        background: var(--bar);
+        color: var(--bar-ink);
+        padding: 26px 20px 22px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .hd .shop-name { font-size: 1.35rem; font-weight: 700; letter-spacing: .2px; }
+    .hd .shop-tag { font-size: .7rem; color: #b9b0a1; margin-top: 4px; letter-spacing: .4px; }
+    .hd .qr-btn {
+        background: none; border: 1px solid #4a4237; color: var(--bar-ink);
+        font-size: .72rem; padding: 8px 11px; border-radius: 8px; cursor: pointer;
+        font-family: 'JetBrains Mono', monospace; white-space: nowrap;
+    }
+    .hd .qr-btn:hover { border-color: #c25e2e; color: #e2956a; }
+
+    /* lang toggle */
+    .langbar {
+        background: var(--bar);
+        padding: 0 20px 12px;
+        display: flex; justify-content: flex-end; gap: 6px;
+    }
+    .langbar button {
+        font-family: 'Readex Pro', sans-serif; font-size: .72rem; padding: 5px 12px;
+        border-radius: 20px; border: 1px solid #4a4237; background: transparent;
+        color: #b9b0a1; cursor: pointer;
+    }
+    .langbar button.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+
+    /* category tabs */
+    .cats {
+        position: sticky; top: 0; z-index: 20;
+        display: flex; gap: 8px; overflow-x: auto; padding: 14px 20px;
+        background: var(--bg); border-bottom: 1px solid var(--line);
+        scrollbar-width: none;
+    }
+    .cats::-webkit-scrollbar { display: none; }
+    .cat-pill {
+        flex: 0 0 auto; font-family: 'Readex Pro', sans-serif; font-size: .82rem; font-weight: 500;
+        padding: 8px 15px; border-radius: 20px; border: 1px solid var(--line);
+        background: var(--card); color: var(--ink); cursor: pointer; transition: all .15s ease;
+    }
+    .cat-pill.on { background: var(--ink); border-color: var(--ink); color: var(--bar-ink); }
+
+    /* items */
+    .items { padding: 8px 20px 120px; }
+    .item {
+        display: flex; align-items: center; gap: 14px;
+        background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+        padding: 14px 15px; margin-bottom: 10px;
+    }
+    .item .grow { flex: 1; min-width: 0; }
+    .item .nm { font-weight: 600; font-size: .95rem; }
+    .item .dc { font-size: .75rem; color: var(--dim); margin-top: 3px; line-height: 1.45; }
+    .item .pr { font-family: 'JetBrains Mono', monospace; font-size: .78rem; color: var(--accent); font-weight: 600; margin-top: 6px; white-space: nowrap; }
+    .addb {
+        width: 40px; height: 40px; flex: 0 0 40px; border-radius: 10px; border: 1px solid var(--line);
+        background: var(--card); color: var(--ink); font-size: 1.25rem; font-weight: 600; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; transition: all .15s ease;
+    }
+    .addb:hover { border-color: var(--accent); color: var(--accent); }
+    .addb.in { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .stepper {
+        display: flex; align-items: center; gap: 10px;
+        background: var(--accent); border-radius: 10px; padding: 4px 8px; flex: 0 0 auto;
+    }
+    .stepper button { background: none; border: none; color: #fff; font-size: 1.05rem; width: 26px; height: 26px; cursor: pointer; font-weight: 600; }
+    .stepper .q { color: #fff; font-family: 'JetBrains Mono', monospace; font-size: .85rem; min-width: 16px; text-align: center; }
+
+    /* empty state */
+    .empty { text-align: center; color: var(--faint); font-size: .85rem; padding: 60px 20px; }
+
+    /* floating order bar */
+    .obar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; justify-content: center; pointer-events: none; }
+    .obar-in {
+        pointer-events: auto; max-width: 640px; width: 100%; margin: 0 12px 14px;
+        background: var(--bar); color: var(--bar-ink); border-radius: 14px;
+        padding: 13px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        box-shadow: 0 8px 24px rgba(38,32,25,.25); cursor: pointer;
+    }
+    .obar .cnt { font-family: 'JetBrains Mono', monospace; font-size: .78rem; color: #e2956a; font-weight: 600; }
+    .obar .tot { font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 600; }
+    .obar .send {
+        background: var(--accent); color: #fff; border: none; border-radius: 9px;
+        padding: 10px 16px; font-family: 'JetBrains Mono', monospace; font-size: .78rem; font-weight: 600; cursor: pointer;
+    }
+    .obar .send:hover { background: #a84d24; }
+    .hidden { display: none !important; }
+
+    /* bottom sheet (order panel) */
+    .sheetc { position: fixed; inset: 0; z-index: 40; background: rgba(38,32,25,.45); display: flex; align-items: flex-end; justify-content: center; }
+    .sheetp {
+        max-width: 640px; width: 100%; background: var(--card); border-radius: 20px 20px 0 0;
+        padding: 20px 20px 24px; max-height: 82vh; overflow-y: auto;
+    }
+    .sheetp .tt { font-weight: 700; font-size: 1.05rem; margin-bottom: 4px; }
+    .sheetp .sub { font-size: .74rem; color: var(--dim); margin-bottom: 16px; }
+    .row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .row .nm { flex: 1; font-size: .88rem; font-weight: 500; }
+    .row .pt { font-family: 'JetBrains Mono', monospace; font-size: .78rem; color: var(--dim); }
+    .row .mmm { display: flex; align-items: center; gap: 8px; }
+    .row .mmm button { width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-size: .9rem; }
+    .row .mmm span { font-family: 'JetBrains Mono', monospace; font-size: .85rem; min-width: 14px; text-align: center; }
+    .gtotal { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .gtotal .g { font-weight: 700; }
+    .gtotal .gv { font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; font-weight: 700; color: var(--accent); }
+    .sendbg {
+        width: 100%; margin-top: 14px; background: #25d366; color: #062b16; border: none; border-radius: 12px;
+        padding: 14px; font-family: 'JetBrains Mono', monospace; font-size: .85rem; font-weight: 700; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .sendbg:hover { background: #1fb959; }
+    .closer { background: none; border: none; color: var(--dim); display: block; margin: 12px auto 0; font-size: .78rem; cursor: pointer; }
+
+    /* footer */
+    .ft { text-align: center; font-size: .7rem; color: var(--faint); padding: 26px 20px 96px; line-height: 1.7; }
+    .ft .mono { color: var(--dim); }
+
+    /* print */
+    @media print {
+        .cats, .obar, .langbar, .hd .qr-btn, .addb, .stepper { display: none !important; }
+        .hd { background: none; color: var(--ink); border-bottom: 2px solid var(--ink); }
+        .hd .shop-tag { color: var(--dim); }
+        .items { padding: 12px 6px; }
+        body { background: #fff; }
+        .sheet { max-width: 100%; }
+        .item { border: none; border-bottom: 1px dotted var(--line); border-radius: 0; padding: 8px 0; }
+        .item .np { flex: 0 0 88px; text-align: right; }
+        .item .pr { text-align: right; }
+    }
+    @media (min-width: 480px) {
+        .hd { padding: 30px 24px 24px; }
+        .items { padding-left: 24px; padding-right: 24px; }
+    }
+</style>
+</head>
+<body>
+<div class="sheet">
+    <!-- header -->
+    <header class="hd">
+        <div>
+            <div class="shop-name" id="shopName">Al‑Sahari Café</div>
+            <div class="shop-tag mono" id="shopTag">QR MENU // ORDER VIA WHATSAPP</div>
+        </div>
+        <button class="qr-btn" id="qrBtn" type="button">⌗ QR</button>
+    </header>
+    <div class="langbar">
+        <button id="btnEn" type="button">EN</button>
+        <button id="btnAr" type="button">عربي</button>
+    </div>
+
+    <!-- category tabs -->
+    <nav class="cats" id="cats"></nav>
+
+    <!-- items -->
+    <main class="items" id="items" aria-live="polite"></main>
+    <div class="empty hidden" id="empty">— empty menu —</div>
+
+    <!-- floating order bar -->
+    <div class="obar" id="obar">
+        <div class="obar-in" id="obarIn">
+            <div>
+                <div class="cnt" id="obarCnt">0</div>
+                <div class="tot" id="obarTot">—</div>
+            </div>
+            <button class="send" id="obarSend" type="button">WhatsApp →</button>
+        </div>
+    </div>
+
+    <!-- order bottom-sheet -->
+    <div class="sheetc hidden" id="sheetc">
+        <div class="sheetp">
+            <div class="tt" id="sheetTitle">Your order</div>
+            <div class="sub" id="sheetSub">Review and send it to us on WhatsApp.</div>
+            <div id="sheetRows"></div>
+            <div class="gtotal">
+                <span class="g" id="gTotalLbl">Total</span>
+                <span class="gv" id="gTotalVal">—</span>
+            </div>
+            <button class="sendbg" id="sendBtn" type="button">▼ Send order via WhatsApp</button>
+            <button class="closer" id="closeBtn" type="button">✕ close</button>
+        </div>
+    </div>
+
+    <footer class="ft" id="foot">
+        <span class="mono">QR MENU</span> · digital menu with WhatsApp ordering<br>
+        made by amworx — amworx.github.io
+    </footer>
+</div>
+
+<script>
+/* ================= EDIT ME — café data ================= */
+const CONFIG = {
+    shop: "Al-Sahari Café",
+    tag: "QR MENU // ORDER VIA WHATSAPP",
+    /* international format, digits only, no + */
+    whatsapp: "963992656853",
+    currency: "SYP"
+};
+/* bilingual menu — edit names/prices freely */
+const MENU = [
+    {
+        id: "coffee", icon: "☕",
+        name: { en: "Coffee", ar: "قهوة" },
+        items: [
+            { name: { en: "Turkish Coffee", ar: "قهوة تركية" }, desc: { en: "Served strong with cardamom", ar: "تُقدَّم مركّزة مع الهيل" }, price: 20000 },
+            { name: { en: "Arabic Coffee", ar: "قهوة عربية" }, desc: { en: "With cardamom & dates", ar: "مع الهيل والتمر" }, price: 22000 },
+            { name: { en: "Espresso", ar: "إسبريسو" }, desc: { en: "Double shot", ar: "جرعة مزدوجة" }, price: 15000 },
+            { name: { en: "Americano", ar: "أمريكانو" }, desc: { en: "Smooth & black", ar: "ناعمة وسوداء" }, price: 18000 },
+            { name: { en: "Cappuccino", ar: "كابتشينو" }, desc: { en: "Silky milk foam", ar: "رغوة حليب ناعمة" }, price: 25000 },
+            { name: { en: "Flat White", ar: "فلات وايت" }, desc: { en: "Velvety double shot", ar: "جرعة مزدوجة مخملية" }, price: 28000 }
+        ]
+    },
+    {
+        id: "cold", icon: "🧊",
+        name: { en: "Cold Drinks", ar: "مشروبات باردة" },
+        items: [
+            { name: { en: "Iced Latte", ar: "لاتيه مثلّج" }, desc: { en: "Espresso over cold milk", ar: "إسبريسو مع حليب بارد" }, price: 30000 },
+            { name: { en: "Fresh Orange Juice", ar: "عصير برتقال طازج" }, desc: { en: "Cold-pressed daily", ar: "عصير طازج يومياً" }, price: 22000 },
+            { name: { en: "Lemon Mint", ar: "ليمون بالنعناع" }, desc: { en: "Cool & refreshing", ar: "منعش وبارد" }, price: 18000 },
+            { name: { en: "Virgin Mojito", ar: "موهيتو بدون كحول" }, desc: { en: "Lime, mint & soda", ar: "ليمون ونعناع وصودا" }, price: 25000 }
+        ]
+    },
+    {
+        id: "food", icon: "🥪",
+        name: { en: "Food", ar: "مأكولات" },
+        items: [
+            { name: { en: "Cheese Croissant", ar: "كرواسون بالجبنة" }, desc: { en: "Baked fresh in-house", ar: "مخبوز طازج في المحل" }, price: 24000 },
+            { name: { en: "Chicken Panini", ar: "بانيني دجاج" }, desc: { en: "Grilled & pressed", ar: "مشوي ومضغوط" }, price: 45000 },
+            { name: { en: "Margherita Pizza", ar: "بيتزا مارغريتا" }, desc: { en: "Basil, mozzarella", ar: "ريحان وموزاريلا" }, price: 55000 },
+            { name: { en: "Club Sandwich", ar: "ساندويش كلوب" }, desc: { en: "Triple layer, fries", ar: "ثلاث طبقات مع البطاطا" }, price: 40000 }
+        ]
+    },
+    {
+        id: "dessert", icon: "🍰",
+        name: { en: "Desserts", ar: "حلويات" },
+        items: [
+            { name: { en: "Kunafa", ar: "كنافة" }, desc: { en: "Hot, with pistachio", ar: "ساخنة مع الفستق" }, price: 35000 },
+            { name: { en: "Chocolate Cake", ar: "كعكة الشوكولاتة" }, desc: { en: "Rich Belgian cocoa", ar: "كاكاو بلجيكي غني" }, price: 30000 },
+            { name: { en: "Cheesecake", ar: "تشيز كيك" }, desc: { en: "Baked, berry topping", ar: "مخبوزة مع التوت" }, price: 32000 },
+            { name: { en: "Baklava (2 pcs)", ar: "بقلاوة (قطعتان)" }, desc: { en: "Crispy, syrup", ar: "مقرمشة بالقطر" }, price: 15000 }
+        ]
+    }
+];
+/* ====================================================== */
+
+const I18N = {
+    en: {
+        title: "QR Menu — Order via WhatsApp",
+        yourOrder: "Your order",
+        review: "Review and send it to us on WhatsApp.",
+        total: "Total",
+        send: "▼ Send order via WhatsApp",
+        close: "✕ close",
+        orderBar: "items",
+        openCart: "Review order",
+        empty: "— the menu is empty —",
+        msgHeader: "New order",
+        tableNote: "Table / notes:",
+        foot: "QR MENU · digital menu with WhatsApp ordering<br>made by amworx — amworx.github.io"
+    },
+    ar: {
+        title: "قائمة QR — اطلب عبر واتساب",
+        yourOrder: "طلبك",
+        review: "راجع طلبك وأرسله إلينا عبر واتساب.",
+        total: "المجموع",
+        send: "▼ أرسل الطلب عبر واتساب",
+        close: "✕ إغلاق",
+        orderBar: "أصناف",
+        openCart: "مراجعة الطلب",
+        empty: "— القائمة فارغة —",
+        msgHeader: "طلب جديد",
+        tableNote: "الطاولة / ملاحظات:",
+        foot: "قائمة QR · منيو رقمي مع الطلب عبر واتساب<br>صُنع بواسطة amworx — amworx.github.io"
+    }
+};
+
+let lang = localStorage.getItem("qrmenu_lang") || "en";
+const order = {}; // id -> qty
+try { Object.assign(order, JSON.parse(localStorage.getItem("qrmenu_order") || "{}")); } catch (e) {}
+
+/* ---------- helpers ---------- */
+const $ = (s) => document.querySelector(s);
+const money = (n) => n.toLocaleString("en-US") + " " + CONFIG.currency;
+
+/* ---------- render ---------- */
+function renderCats() {
+    const cats = $("#cats");
+    cats.innerHTML = "";
+    MENU.forEach((c, i) => {
+        const b = document.createElement("button");
+        b.className = "cat-pill" + (i === 0 ? " on" : "");
+        b.type = "button";
+        b.textContent = c.icon + " " + (lang === "ar" ? c.name.ar : c.name.en);
+        b.onclick = () => { selectCat(i); };
+        cats.appendChild(b);
+    });
+}
+
+let activeCat = 0;
+function selectCat(i) {
+    activeCat = i;
+    document.querySelectorAll(".cat-pill").forEach((b, j) => b.classList.toggle("on", j === i));
+    renderItems();
+}
+
+function renderItems() {
+    const box = $("#items");
+    const cat = MENU[activeCat];
+    box.innerHTML = "";
+    if (!cat || !cat.items.length) { $("#empty").classList.remove("hidden"); return; }
+    $("#empty").classList.add("hidden");
+    cat.items.forEach(it => {
+        const key = cat.id + ":" + it.name.en;
+        const el = document.createElement("div");
+        el.className = "item";
+        el.innerHTML = `
+            <div class="grow">
+                <div class="nm">${lang === "ar" ? it.name.ar : it.name.en}</div>
+                <div class="dc">${lang === "ar" ? it.desc.ar : it.desc.en}</div>
+                <div class="pr">${money(it.price)}</div>
+            </div>`;
+        const ctrl = document.createElement("div");
+        ctrl.id = "ctrl-" + key.replace(/[^a-z0-9]/gi, "");
+        el.appendChild(ctrl);
+        box.appendChild(el);
+        renderCtrl(ctrl, key, it);
+    });
+    refreshBar();
+}
+
+function renderCtrl(ctrl, key, it) {
+    const q = order[key] || 0;
+    if (!q) {
+        const b = document.createElement("button");
+        b.className = "addb";
+        b.type = "button";
+        b.textContent = "+";
+        b.setAttribute("aria-label", "Add " + it.name.en);
+        b.onclick = () => { order[key] = 1; persistOrder(); renderCtrl(ctrl, key, it); refreshBar(); };
+        ctrl.innerHTML = "";
+        ctrl.appendChild(b);
+    } else {
+        ctrl.innerHTML = `<div class="stepper">
+            <button type="button" aria-label="decrease">−</button>
+            <span class="q">${q}</span>
+            <button type="button" aria-label="increase">+</button>
+        </div>`;
+        const [dec, inc] = ctrl.querySelectorAll("button");
+        dec.onclick = () => { order[key]--; if (order[key] <= 0) delete order[key]; persistOrder(); renderCtrl(ctrl, key, it); refreshBar(); };
+        inc.onclick = () => { order[key]++; persistOrder(); renderCtrl(ctrl, key, it); refreshBar(); };
+    }
+}
+
+/* ---------- order state ---------- */
+function persistOrder() {
+    try { localStorage.setItem("qrmenu_order", JSON.stringify(order)); } catch (e) {}
+}
+function orderLines() {
+    const lines = [];
+    MENU.forEach(cat => cat.items.forEach(it => {
+        const key = cat.id + ":" + it.name.en;
+        if (order[key]) lines.push({ cat, it, qty: order[key], key });
+    }));
+    return lines;
+}
+function totalAmount() {
+    return orderLines().reduce((s, l) => s + l.it.price * l.qty, 0);
+}
+function refreshBar() {
+    const lines = orderLines();
+    const n = lines.reduce((s, l) => s + l.qty, 0);
+    const bar = $("#obarIn");
+    if (n === 0) { bar.classList.add("hidden"); return; }
+    bar.classList.remove("hidden");
+    $("#obarCnt").textContent = n + " " + I18N[lang].orderBar;
+    $("#obarTot").textContent = money(totalAmount());
+}
+
+/* ---------- bottom sheet ---------- */
+function openSheet() {
+    const lines = orderLines();
+    if (!lines.length) return;
+    const rows = $("#sheetRows");
+    rows.innerHTML = "";
+    lines.forEach(l => {
+        const r = document.createElement("div");
+        r.className = "row";
+        r.innerHTML = `<span class="nm">${lang === "ar" ? l.it.name.ar : l.it.name.en}</span>
+            <span class="pt">${money(l.it.price)}</span>
+            <div class="mmm">
+                <button type="button" aria-label="decrease">−</button>
+                <span>${l.qty}</span>
+                <button type="button" aria-label="increase">+</button>
+            </div>`;
+        const [dec, inc] = r.querySelectorAll("button");
+        dec.onclick = () => {
+            order[l.key]--;
+            if (order[l.key] <= 0) delete order[l.key];
+            persistOrder(); openSheet(); refreshBar();
+        };
+        inc.onclick = () => { order[l.key]++; persistOrder(); openSheet(); refreshBar(); };
+        rows.appendChild(r);
+    });
+    $("#gTotalVal").textContent = money(totalAmount());
+    $("#sheetc").classList.remove("hidden");
+}
+
+function sendWhatsApp() {
+    const lines = orderLines();
+    if (!lines.length) return;
+    const q = (n) => encodeURIComponent(n) + " ";
+    const body = lines.map(l => q(l.qty) + q("×") + q(lang === "ar" ? l.it.name.ar : l.it.name.en) + q("-") + q(money(l.it.price * l.qty))).join("\n");
+    const total = q("*" + I18N[lang].total + ": " + money(totalAmount()) + "*");
+    const note = q("_" + I18N[lang].tableNote + " ");
+    const msg = "*" + I18N[lang].msgHeader + " — " + CONFIG.shop + "*\n\n" + body + "\n\n" + total + "\n" + note;
+    window.open("https://wa.me/" + CONFIG.whatsapp + "?text=" + encodeURIComponent(msg.replace(/  /g, " ").trim()), "_blank");
+}
+
+/* ---------- language ---------- */
+function setLang(l) {
+    lang = l;
+    localStorage.setItem("qrmenu_lang", l);
+    document.documentElement.lang = l;
+    document.documentElement.dir = l === "ar" ? "rtl" : "ltr";
+    $("#btnEn").classList.toggle("on", l === "en");
+    $("#btnAr").classList.toggle("on", l === "ar");
+    document.title = I18N[l].title;
+    $("#shopName").textContent = CONFIG.shop;
+    $("#shopTag").textContent = CONFIG.tag;
+    $("#sheetTitle").textContent = I18N[l].yourOrder;
+    $("#sheetSub").textContent = I18N[l].review;
+    $("#gTotalLbl").textContent = I18N[l].total;
+    $("#sendBtn").textContent = I18N[l].send;
+    $("#closeBtn").textContent = I18N[l].close;
+    $("#foot").innerHTML = I18N[l].foot;
+    renderCats();
+    renderItems();
+}
+
+/* ---------- QR (free public API, no key) ---------- */
+$("#qrBtn").onclick = () => {
+    const url = location.href.split("?")[0];
+    window.open("https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data=" + encodeURIComponent(url), "_blank", "width=360,height=360");
+};
+
+/* ---------- wiring ---------- */
+$("#btnEn").onclick = () => setLang("en");
+$("#btnAr").onclick = () => setLang("ar");
+$("#obarIn").onclick = (e) => { if (e.target.id !== "obarSend") openSheet(); };
+$("#obarSend").onclick = (e) => { e.stopPropagation(); openSheet(); };
+$("#sendBtn").onclick = () => sendWhatsApp();
+$("#closeBtn").onclick = () => $("#sheetc").classList.add("hidden");
+$("#sheetc").onclick = (e) => { if (e.target.id === "sheetc") $("#sheetc").classList.add("hidden"); };
+
+setLang(lang);
+</script>
+</body>
+</html>
