@@ -115,11 +115,16 @@
       background:linear-gradient(135deg,var(--primary),var(--primary-2));
       color:#fff;position:relative;overflow:hidden;
       box-shadow:0 8px 24px var(--primary-glow);
+      cursor:pointer;transition:transform .12s ease, box-shadow .12s ease;-webkit-tap-highlight-color:transparent;
     }
+    .deal-card:active{transform:scale(.97)}
+    .deal-card.added{outline:2px solid #fff;outline-offset:2px;box-shadow:0 0 0 4px var(--primary-glow), 0 8px 24px var(--primary-glow)}
     .deal-ribbon{position:absolute;top:0;inset-inline-start:12px;background:rgba(0,0,0,.22);color:#fff;font-size:10px;font-weight:800;padding:5px 10px;border-radius:0 0 10px 10px;letter-spacing:.5px}
     .deal-card h3{font-size:15px;font-weight:800;margin:12px 0 4px}
     .deal-card p{font-size:12px;opacity:.95;line-height:1.5}
     .deal-badge{display:inline-block;font-size:11px;font-weight:800;background:rgba(255,255,255,.2);padding:3px 10px;border-radius:12px;margin-top:8px}
+    .deal-add{display:inline-flex;align-items:center;gap:5px;margin-top:10px;font-size:12px;font-weight:800;background:rgba(255,255,255,.28);padding:7px 16px;border-radius:20px;letter-spacing:.3px;transition:.15s ease}
+    .deal-card.added .deal-add{background:rgba(255,255,255,.95);color:var(--primary)}
 
     /* ═══ MENU (editorial tickets) ═══ */
     .menu-wrap{max-width:640px;margin:0 auto;padding:8px 14px}
@@ -175,6 +180,19 @@
     .add-btn:active{transform:scale(.95)}
     .add-btn span{font-size:16px;line-height:1}
 
+    /* ═══ VIEW TOGGLE (grid view) ═══ */
+    .items-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .items-col .item-card{flex-direction:column;align-items:stretch;gap:10px;padding:12px}
+    .items-col .item-media{width:100%}
+    .items-col .item-img,.items-col .item-img.ph{width:100%;height:auto;aspect-ratio:4/3;border-radius:14px}
+    .items-col .item-top{flex-wrap:wrap}
+    .items-col .item-desc{-webkit-line-clamp:1}
+    .items-col .add-btn{width:100%;justify-content:center}
+    .items-col .stepper{width:100%;justify-content:center}
+    .items-col .badge-feat{display:none}
+    .items-col .item-card.featured::before{display:none}
+    .ctl.view{font-size:15px}
+
     /* ═══ FLOATING CART ═══ */
     .cart-fab{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:55;display:none;filter:drop-shadow(var(--shadow));animation:pop .25s ease}
     .cart-fab.visible{display:block}
@@ -207,6 +225,10 @@
     .ol-name{flex:1;font-size:13.5px;font-weight:600;min-width:0}
     .ol-name small{display:block;color:var(--text3);font-weight:400;font-size:11px}
     .ol-price{font-size:13.5px;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums;white-space:nowrap}
+    .order-line.offer-line{background:var(--card2);border-radius:14px;padding:10px 12px;margin:8px 0;border-bottom:none}
+    .order-line.offer-line .ol-name small{color:var(--primary);font-weight:600}
+    .ol-remove{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:var(--card);color:var(--text2);display:flex;align-items:center;justify-content:center;font-size:13px;transition:.15s}
+    .ol-remove:hover{color:var(--danger)}
     .order-total-row{display:flex;justify-content:space-between;padding:14px 0 4px;font-size:17px;font-weight:800;border-top:2px solid var(--border2);margin-top:6px;font-variant-numeric:tabular-nums}
     .order-note{width:100%;margin-top:12px;padding:12px 14px;border:1px solid var(--border2);border-radius:14px;background:var(--card2);font-size:13px;resize:none;min-height:64px;color:var(--text)}
     .order-note::placeholder{color:var(--text3)}
@@ -234,9 +256,7 @@
     }
     @media (min-width:760px){
       .menu-wrap{max-width:760px}
-      .items-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
       .item-card{margin-bottom:0}
-      .items-col .item-card.featured::before{display:none}
     }
   </style>
 </head>
@@ -249,6 +269,7 @@
 
   <!-- Controls -->
   <div class="controls">
+    <button class="ctl view" id="view-btn" onclick="toggleView()" title="View" aria-label="Toggle view mode" aria-pressed="false">☰</button>
     <button class="ctl" id="theme-btn" onclick="toggleTheme()" title="Theme" aria-label="Toggle theme">☀️</button>
     <button class="ctl cur" id="currency-btn" onclick="cycleCurrency()" title="Currency" aria-label="Currency" style="display:none">SYP</button>
     <button class="ctl lang" id="lang-btn" onclick="toggleLang()">EN</button>
@@ -301,6 +322,8 @@
     let activeCurrency = 'SYP';
     let activeCategory = null;
     let cart = {}; // { itemId: qty }
+    let cartOffers = {}; // { dealId: 1 } — offers added to the order
+    let viewMode = localStorage.getItem('qm-view') || 'grid'; // 'grid' | 'list'
 
     // ─── INIT ───────────────────────────────────────────────
     (async () => {
@@ -352,6 +375,7 @@
       renderCategories();
       renderDeals();
       renderItems();
+      renderViewBtn();
       renderFooter();
       updateCartBar();
     }
@@ -424,12 +448,19 @@
         const title = lang === 'ar' ? (d.title_ar || d.title) : d.title;
         const desc = lang === 'ar' ? (d.description_ar || d.description) : d.description;
         const ribbon = lang === 'ar' ? 'عرض خاص' : 'SPECIAL —';
+        const added = !!cartOffers[d.id];
+        const addLabel = added
+          ? (lang === 'ar' ? '✓ أُضيف إلى الطلب' : '✓ Added to order')
+          : (lang === 'ar' ? 'أضف +' : '+ Add');
         return `
-          <div class="deal-card">
+          <div class="deal-card ${added ? 'added' : ''}" role="button" tabindex="0"
+               onclick="toggleOffer('${d.id}')"
+               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleOffer('${d.id}')}">
             <span class="deal-ribbon">${ribbon}</span>
             <h3>${esc(title)}</h3>
             ${desc ? `<p>${esc(desc)}</p>` : ''}
             <span class="deal-badge">🔥 ${esc(dealSummary(d))}</span>
+            <span class="deal-add">${addLabel}</span>
           </div>`;
       }).join('');
     }
@@ -443,8 +474,8 @@
         grid.innerHTML = `<div class="empty-msg"><span class="big">🍽️</span>${lang === 'ar' ? 'لا عناصر بعد' : 'No items yet'}</div>`;
         return;
       }
-      document.querySelector('#items-grid').classList.add('items-col');
-      grid.style.display = filtered.length > 2 ? 'grid' : 'block';
+      document.querySelector('#items-grid').classList.toggle('items-col', viewMode === 'grid');
+      grid.style.display = viewMode === 'grid' ? 'grid' : 'block';
       grid.innerHTML = filtered.map((item, idx) => {
         const name = lang === 'ar' ? (item.name_ar || item.name) : item.name;
         const name2 = lang === 'ar' ? (item.name || '') : (item.name_ar || '');
@@ -508,6 +539,19 @@
     }
 
     // ─── THEME ──────────────────────────────────────────────
+    function toggleView() {
+      viewMode = viewMode === 'grid' ? 'list' : 'grid';
+      localStorage.setItem('qm-view', viewMode);
+      renderViewBtn(); renderItems();
+      if (document.getElementById('order-modal')?.classList.contains('visible')) renderOrderSheet();
+    }
+    function renderViewBtn() {
+      const b = document.getElementById('view-btn');
+      const listMode = viewMode === 'list';
+      b.textContent = listMode ? '▦' : '☰';
+      b.setAttribute('aria-pressed', viewMode === 'grid');
+      b.title = lang === 'ar' ? (listMode ? 'عرض شبكة' : 'عرض قائمة') : (listMode ? 'Grid view' : 'List view');
+    }
     function toggleTheme() {
       theme = theme === 'dark' ? 'light' : 'dark';
       document.documentElement.dataset.theme = theme;
@@ -564,11 +608,26 @@
       renderItems(); renderOrderSheet(); updateCartBar();
     }
 
+    function toggleOffer(id) {
+      if (cartOffers[id]) { delete cartOffers[id]; }
+      else {
+        cartOffers[id] = 1;
+        toast(lang === 'ar' ? 'أُضيف العرض إلى طلبك' : 'Offer added to your order');
+      }
+      renderDeals(); updateCartBar();
+      if (document.getElementById('order-modal')?.classList.contains('visible')) renderOrderSheet();
+    }
+    function removeOffer(id) {
+      delete cartOffers[id];
+      renderDeals(); renderOrderSheet(); updateCartBar();
+    }
+
     function updateCartBar() {
       const fab = document.getElementById('cart-fab');
       const totalItems = Object.values(cart).reduce((s, q) => s + q, 0);
-      if (totalItems === 0) { fab.classList.remove('visible'); document.getElementById('cart-count').textContent = '0'; document.getElementById('cart-total').textContent = '0'; return; }
-      document.getElementById('cart-count').textContent = totalItems;
+      const offerCount = Object.values(cartOffers).length;
+      if (totalItems === 0 && offerCount === 0) { fab.classList.remove('visible'); document.getElementById('cart-count').textContent = '0'; document.getElementById('cart-total').textContent = '0'; return; }
+      document.getElementById('cart-count').textContent = totalItems + offerCount;
       const total = Object.entries(cart).reduce((sum, [id, qty]) => {
         const item = items.find(i => i.id === id);
         const p = (item?.item_prices || []).find(x => x.currency === activeCurrency && x.is_visible);
@@ -588,8 +647,9 @@
     function renderOrderSheet() {
       const sheet = document.getElementById('order-sheet');
       const totalItems = Object.values(cart).reduce((s, q) => s + q, 0);
+      const offerCount = Object.values(cartOffers).length;
       const closeLabel = lang === 'ar' ? 'إغلاق' : 'Close';
-      if (totalItems === 0) {
+      if (totalItems === 0 && offerCount === 0) {
         sheet.innerHTML = `
           <div class="sheet-head"><h3>${lang === 'ar' ? 'سلة الطلب' : 'Your Order'}</h3>
           <button class="sheet-close" onclick="closeOrderSheet()">✕</button></div>
@@ -618,10 +678,23 @@
       const noteLabel = lang === 'ar' ? 'ملاحظات الطلب (اختياري)' : 'Order notes (optional)';
       const waLabel = lang === 'ar' ? 'إرسال الطلب عبر واتساب' : 'Send Order via WhatsApp';
 
+      let offerRows = '';
+      for (const [id] of Object.entries(cartOffers)) {
+        const d = deals.find(x => x.id === id);
+        if (!d) continue;
+        const title = lang === 'ar' ? (d.title_ar || d.title) : d.title;
+        offerRows += `
+          <div class="order-line offer-line">
+            <div class="ol-name">🎁 ${esc(title)}<small>${esc(dealSummary(d))}</small></div>
+            <button class="ol-remove" onclick="removeOffer('${id}')" aria-label="Remove offer">✕</button>
+          </div>`;
+      }
+
       sheet.innerHTML = `
         <div class="sheet-head"><h3>${lang === 'ar' ? 'مراجعة الطلب' : 'Review Order'}</h3>
         <button class="sheet-close" onclick="closeOrderSheet()">✕</button></div>
         ${rows}
+        ${offerRows}
         <div class="order-total-row"><span>${totalLabel}</span><span>${formatPrice(total, activeCurrency)}</span></div>
         <textarea class="order-note" id="order-note" placeholder="${noteLabel}"></textarea>
         <button class="order-whatsapp" onclick="sendWhatsApp()">🟢 ${waLabel}</button>`;
@@ -630,7 +703,8 @@
     // WhatsApp
     function sendWhatsApp() {
       const totalItems = Object.values(cart).reduce((s, q) => s + q, 0);
-      if (totalItems === 0) return;
+      const offerCount = Object.values(cartOffers).length;
+      if (totalItems === 0 && offerCount === 0) return;
       const lines = [];
       lines.push(lang === 'ar' ? `*طلب جديد — ${shop.name}*` : `*New Order — ${shop.name}*`);
       lines.push('');
@@ -643,6 +717,12 @@
         const unit = p ? p.price : 0;
         total += unit * qty;
         lines.push(`• ${name} × ${qty} — ${formatPrice(unit * qty, activeCurrency)}`);
+      }
+      for (const [id] of Object.entries(cartOffers)) {
+        const d = deals.find(x => x.id === id);
+        if (!d) continue;
+        const title = lang === 'ar' ? (d.title_ar || d.title) : d.title;
+        lines.push(`🎁 ${title} — ${dealSummary(d)}`);
       }
       lines.push('');
       lines.push(`${lang === 'ar' ? 'المجموع' : 'Total'}: *${formatPrice(total, activeCurrency)}*`);
