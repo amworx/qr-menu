@@ -66,6 +66,11 @@
     .btn-sm{padding:5px 10px;font-size:12px}
     .btn-group{display:flex;gap:8px;margin-top:16px}
 
+    /* Language toggle */
+    .auth-lang-row{display:flex;justify-content:flex-end;margin-bottom:8px}
+    .lang-btn{padding:4px 12px;border:1px solid var(--line);border-radius:16px;background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer}
+    .lang-btn:hover{color:var(--text);border-color:var(--accent)}
+
     /* Toggle */
     .toggle{position:relative;width:40px;height:22px;display:inline-block}
     .toggle input{opacity:0;width:0;height:0}
@@ -98,9 +103,16 @@
     @keyframes spin{to{transform:rotate(360deg)}}
     .loading-overlay{position:absolute;inset:0;background:rgba(15,23,42,.8);display:flex;align-items:center;justify-content:center;z-index:50;border-radius:var(--radius)}
 
+    /* Mobile tab bar */
+    .mobile-tabs{display:none;background:var(--bg2);border-bottom:1px solid var(--line);padding:8px;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+    .mobile-tabs::-webkit-scrollbar{display:none}
+    .mobile-tabs button{flex:0 0 auto;padding:8px 16px;border:1px solid var(--line);border-radius:20px;background:transparent;color:var(--text2);font-size:13px;font-weight:600;white-space:nowrap}
+    .mobile-tabs button.active{background:var(--accent);color:#000;border-color:var(--accent)}
+
     /* Responsive */
     @media(max-width:768px){
       .sidebar{display:none}
+      .mobile-tabs{display:flex}
       .dash-body{flex-direction:column}
       .main-content{padding:16px}
       .card-row,.card-row-3{grid-template-columns:1fr}
@@ -112,13 +124,14 @@
 <!-- ═══════════════ AUTH SCREEN ═══════════════ -->
 <div id="auth-screen">
   <div class="auth-card">
-    <h1>QR Menu Admin</h1>
-    <p>Login with the admin email — no code needed.</p>
+    <div class="auth-lang-row"><button class="lang-btn" id="auth-lang-btn" onclick="toggleAdminLang()">EN</button></div>
+    <h1 id="auth-title">لوحة تحكم QR Menu</h1>
+    <p id="auth-sub">سجّل الدخول بالبريد الإلكتروني للمشرف — بدون رمز.</p>
     <div class="field">
-      <label>Email</label>
+      <label id="auth-email-label">البريد الإلكتروني</label>
       <input type="email" id="auth-email" placeholder="you@email.com" value="amworxx@gmail.com">
     </div>
-    <button class="login-btn" id="login-btn" onclick="loginWithEmail()">Login</button>
+    <button class="login-btn" id="login-btn" onclick="loginWithEmail()">دخول</button>
     <div class="error" id="auth-error"></div>
   </div>
 </div>
@@ -126,20 +139,28 @@
 <!-- ═══════════════ DASHBOARD ═══════════════ -->
 <div id="dashboard">
   <div class="dash-header">
-    <h2>QR Menu Admin</h2>
+    <h2 id="dash-title">لوحة تحكم QR Menu</h2>
     <div class="user-info">
       <span id="user-email"></span>
-      <button class="logout-btn" onclick="logout()">Logout</button>
+      <button class="lang-btn" id="dash-lang-btn" onclick="toggleAdminLang()">EN</button>
+      <button class="logout-btn" id="logout-btn" onclick="logout()">تسجيل الخروج</button>
     </div>
   </div>
   <div class="dash-body">
     <nav class="sidebar">
-      <button class="active" onclick="showTab('shop')" data-tab="shop">Shop Settings</button>
-      <button onclick="showTab('categories')" data-tab="categories">Categories</button>
-      <button onclick="showTab('items')" data-tab="items">Menu Items</button>
-      <button onclick="showTab('deals')" data-tab="deals">Deals &amp; Offers</button>
-      <button onclick="showTab('currencies')" data-tab="currencies">Currencies</button>
+      <button class="active" onclick="showTab('shop')" data-tab="shop" data-i18n="tab_shop">Shop Settings</button>
+      <button onclick="showTab('categories')" data-tab="categories" data-i18n="tab_categories">Categories</button>
+      <button onclick="showTab('items')" data-tab="items" data-i18n="tab_items">Menu Items</button>
+      <button onclick="showTab('deals')" data-tab="deals" data-i18n="tab_deals">Deals &amp; Offers</button>
+      <button onclick="showTab('currencies')" data-tab="currencies" data-i18n="tab_currencies">Currencies</button>
     </nav>
+    <div class="mobile-tabs" id="mobile-tabs">
+      <button onclick="showTab('shop')" data-tab="shop" data-i18n="tab_shop">Shop Settings</button>
+      <button onclick="showTab('categories')" data-tab="categories" data-i18n="tab_categories">Categories</button>
+      <button onclick="showTab('items')" data-tab="items" data-i18n="tab_items">Menu Items</button>
+      <button onclick="showTab('deals')" data-tab="deals" data-i18n="tab_deals">Deals &amp; Offers</button>
+      <button onclick="showTab('currencies')" data-tab="currencies" data-i18n="tab_currencies">Currencies</button>
+    </div>
     <div class="main-content" id="main-content">
       <!-- Dynamic content injected here -->
     </div>
@@ -163,6 +184,142 @@ let currentUser = null;
 let currentShop = null;
 let allCategories = [];
 let allItems = [];
+let currentTab = 'shop';
+
+// ─── I18N (Arabic default) ─────────────────────────────────
+let lang = localStorage.getItem('qm-admin-lang') || 'ar';
+const I18N = {
+  app_title:        { en: 'QR Menu — Admin', ar: 'لوحة تحكم QR Menu' },
+  auth_sub:         { en: 'Login with the admin email — no code needed.', ar: 'سجّل الدخول بالبريد الإلكتروني للمشرف — بدون رمز.' },
+  email:            { en: 'Email', ar: 'البريد الإلكتروني' },
+  login:            { en: 'Login', ar: 'دخول' },
+  signing_in:       { en: 'Signing in...', ar: 'جارٍ تسجيل الدخول...' },
+  logout:           { en: 'Logout', ar: 'تسجيل الخروج' },
+  enter_admin_email:{ en: 'Enter the admin email', ar: 'أدخل البريد الإلكتروني للمشرف' },
+  login_failed:     { en: 'Login failed', ar: 'فشل تسجيل الدخول' },
+  session_not_created:{ en: 'Session was not created', ar: 'لم يتم إنشاء الجلسة' },
+  error:            { en: 'Error', ar: 'خطأ' },
+
+  tab_shop:         { en: 'Shop Settings', ar: 'إعدادات المتجر' },
+  tab_categories:   { en: 'Categories', ar: 'التصنيفات' },
+  tab_items:        { en: 'Menu Items', ar: 'عناصر القائمة' },
+  tab_deals:        { en: 'Deals & Offers', ar: 'العروض والخصومات' },
+  tab_currencies:   { en: 'Currencies', ar: 'العملات' },
+
+  new_category:     { en: '+ New Category', ar: '+ تصنيف جديد' },
+  new_item:         { en: '+ New Item', ar: '+ عنصر جديد' },
+  new_deal:         { en: '+ New Deal', ar: '+ عرض جديد' },
+  edit:             { en: 'Edit', ar: 'تعديل' },
+  delete:           { en: 'Delete', ar: 'حذف' },
+  save:             { en: 'Save', ar: 'حفظ' },
+  cancel:           { en: 'Cancel', ar: 'إلغاء' },
+  order:            { en: 'Order', ar: 'الترتيب' },
+  name_en:          { en: 'Name (EN)', ar: 'الاسم (إنجليزي)' },
+  name_ar:          { en: 'Name (AR)', ar: 'الاسم (عربي)' },
+  active:           { en: 'Active', ar: 'مفعّل' },
+  available:        { en: 'Available', ar: 'متاح' },
+  featured:         { en: 'Featured', ar: 'مميّز' },
+  prices:           { en: 'Prices', ar: 'الأسعار' },
+  name:             { en: 'Name', ar: 'الاسم' },
+  title_en:         { en: 'Title (EN)', ar: 'العنوان (إنجليزي)' },
+  title_ar:         { en: 'Title (AR)', ar: 'العنوان (عربي)' },
+  category:         { en: 'Category', ar: 'التصنيف' },
+  none:             { en: '— None —', ar: '— بدون —' },
+  title:            { en: 'Title', ar: 'العنوان' },
+  discount:         { en: 'Discount', ar: 'الخصم' },
+  valid:            { en: 'Valid', ar: 'الصلاحية' },
+
+  general:          { en: 'General', ar: 'عام' },
+  contact:          { en: 'Contact', ar: 'التواصل' },
+  branding:         { en: 'Branding', ar: 'الهوية البصرية' },
+  currency:         { en: 'Currency', ar: 'العملة' },
+  tagline_en:       { en: 'Tagline (EN)', ar: 'الشعار (إنجليزي)' },
+  tagline_ar:       { en: 'Tagline (AR)', ar: 'الشعار (عربي)' },
+  logo_url:         { en: 'Logo URL', ar: 'رابط الشعار' },
+  whatsapp:         { en: 'WhatsApp (with country code)', ar: 'واتساب (مع رمز الدولة)' },
+  phone:            { en: 'Phone', ar: 'الهاتف' },
+  address_en:       { en: 'Address (EN)', ar: 'العنوان (إنجليزي)' },
+  address_ar:       { en: 'Address (AR)', ar: 'العنوان (عربي)' },
+  primary_color:    { en: 'Primary Color', ar: 'اللون الأساسي' },
+  accent_color:     { en: 'Accent Color', ar: 'اللون الثانوي' },
+  footer_text:      { en: 'Footer Text', ar: 'نص التذييل' },
+  default_currency: { en: 'Default Currency', ar: 'العملة الافتراضية' },
+  show_currency_selector: { en: 'Show Currency Selector', ar: 'إظهار محوّل العملات' },
+  save_changes:     { en: 'Save Changes', ar: 'حفظ التغييرات' },
+  shop_settings_saved: { en: 'Shop settings saved', ar: 'تم حفظ إعدادات المتجر' },
+
+  no_categories:    { en: 'No categories yet. Create one to get started.', ar: 'لا توجد تصنيفات بعد. أنشئ تصنيفًا للبدء.' },
+  new_category_short:{ en: 'New Category', ar: 'تصنيف جديد' },
+  edit_category:    { en: 'Edit Category', ar: 'تعديل التصنيف' },
+  sort_order:       { en: 'Sort Order', ar: 'الترتيب' },
+  category_updated: { en: 'Category updated', ar: 'تم تحديث التصنيف' },
+  category_created: { en: 'Category created', ar: 'تم إنشاء التصنيف' },
+  category_deleted: { en: 'Category deleted', ar: 'تم حذف التصنيف' },
+  delete_category_q:{ en: 'Delete this category? Items in it will become uncategorized.', ar: 'حذف هذا التصنيف؟ ستصبح العناصر بدونه بدون تصنيف.' },
+
+  no_items:         { en: 'No items yet. Add your first menu item.', ar: 'لا توجد عناصر بعد. أضف أول عنصر.' },
+  new_item_short:   { en: 'New Item', ar: 'عنصر جديد' },
+  edit_item:        { en: 'Edit Item', ar: 'تعديل العنصر' },
+  desc_en:          { en: 'Description (EN)', ar: 'الوصف (إنجليزي)' },
+  desc_ar:          { en: 'Description (AR)', ar: 'الوصف (عربي)' },
+  image_url:        { en: 'Image URL', ar: 'رابط الصورة' },
+  toggle_visible:   { en: 'Show/Hide on menu', ar: 'إظهار/إخفاء في القائمة' },
+  item_updated:     { en: 'Item updated', ar: 'تم تحديث العنصر' },
+  item_created:     { en: 'Item created', ar: 'تم إنشاء العنصر' },
+  item_deleted:     { en: 'Item deleted', ar: 'تم حذف العنصر' },
+  delete_item_q:    { en: 'Delete this item?', ar: 'حذف هذا العنصر؟' },
+
+  no_deals:         { en: 'No deals yet.', ar: 'لا توجد عروض بعد.' },
+  new_deal_short:   { en: 'New Deal', ar: 'عرض جديد' },
+  edit_deal:        { en: 'Edit Deal', ar: 'تعديل العرض' },
+  discount_type:    { en: 'Discount Type', ar: 'نوع الخصم' },
+  percent:          { en: 'Percent (%)', ar: 'نسبة مئوية (%)' },
+  fixed:            { en: 'Fixed Amount', ar: 'مبلغ ثابت' },
+  value:            { en: 'Value', ar: 'القيمة' },
+  currency_for_fixed:{ en: 'Currency (for fixed)', ar: 'العملة (للمبلغ الثابت)' },
+  starts_at:        { en: 'Starts At', ar: 'يبدأ في' },
+  ends_at:          { en: 'Ends At', ar: 'ينتهي في' },
+  loading_deals:    { en: 'Loading deals…', ar: 'جارٍ تحميل العروض…' },
+  deal_updated:     { en: 'Deal updated', ar: 'تم تحديث العرض' },
+  deal_created:     { en: 'Deal created', ar: 'تم إنشاء العرض' },
+  deal_deleted:     { en: 'Deal deleted', ar: 'تم حذف العرض' },
+  delete_deal_q:    { en: 'Delete this deal?', ar: 'حذف هذا العرض؟' },
+
+  currency_settings:{ en: 'Currency Settings', ar: 'إعدادات العملات' },
+  enabled_currencies:{ en: 'Enabled Currencies', ar: 'العملات المفعلة' },
+  enabled_currencies_desc:{ en: 'Toggle which currencies are available in your shop. Disabled currencies will be hidden from the menu and admin.', ar: 'فعّل العملات المتاحة في متجرك. ستُخفى العملات المعطلة من القائمة ولوحة التحكم.' },
+  default_display_currency:{ en: 'Default Display Currency', ar: 'العملة الافتراضية للعرض' },
+  default_display_currency_desc:{ en: 'This is the primary currency shown on the menu.', ar: 'هذه هي العملة الأساسية الظاهرة في القائمة.' },
+  currency_selector:{ en: 'Currency Selector', ar: 'محوّل العملات' },
+  currency_selector_desc:{ en: 'Allow customers to switch between currencies on the menu.', ar: 'اسمح للعملاء بالتبديل بين العملات في القائمة.' },
+  visible:          { en: 'Visible', ar: 'ظاهر' },
+  hidden:           { en: 'Hidden', ar: 'مخفي' },
+  currencies_updated:{ en: 'Currencies updated', ar: 'تم تحديث العملات' },
+  default_currency_updated:{ en: 'Default currency updated', ar: 'تم تحديث العملة الافتراضية' }
+};
+function t(key) { return (I18N[key] && I18N[key][lang]) || (I18N[key] && I18N[key].en) || key; }
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  document.title = t('app_title');
+  const langBtns = ['auth-lang-btn', 'dash-lang-btn'];
+  langBtns.forEach(id => { const b = document.getElementById(id); if (b) b.textContent = lang === 'ar' ? 'EN' : 'AR'; });
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  const t1 = document.getElementById('auth-title');   if (t1) t1.textContent = t('app_title');
+  const t2 = document.getElementById('auth-sub');     if (t2) t2.textContent = t('auth_sub');
+  const t3 = document.getElementById('auth-email-label'); if (t3) t3.textContent = t('email');
+  const t4 = document.getElementById('dash-title');   if (t4) t4.textContent = t('app_title');
+  const t5 = document.getElementById('login-btn');    if (t5) t5.innerHTML = t('login');
+  const t6 = document.getElementById('logout-btn');   if (t6) t6.textContent = t('logout');
+  if (document.getElementById('dashboard').style.display === 'block' && currentTab && currentShop) showTab(currentTab);
+}
+function toggleAdminLang() {
+  lang = lang === 'ar' ? 'en' : 'ar';
+  localStorage.setItem('qm-admin-lang', lang);
+  applyLang();
+}
+applyLang();
 
 // ─── AUTH ───────────────────────────────────────────────────
 // Interim email-only login: the edge function verifies the email server-side
@@ -171,9 +328,9 @@ let allItems = [];
 // This creates a real Supabase session (auth.email() = typed email) so RLS works.
 async function loginWithEmail() {
   const email = document.getElementById('auth-email').value.trim();
-  if (!email) return showAuthError('Enter the admin email');
+  if (!email) return showAuthError(t('enter_admin_email'));
   const btn = document.getElementById('login-btn');
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Signing in...';
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> ' + t('signing_in');
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-login-gate`, {
       method: 'POST',
@@ -181,7 +338,7 @@ async function loginWithEmail() {
       body: JSON.stringify({ email })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Login failed');
+    if (!res.ok) throw new Error(data.error || t('login_failed'));
     const { error } = await sb.auth.setSession({
       access_token: data.access_token,
       refresh_token: data.refresh_token,
@@ -189,17 +346,21 @@ async function loginWithEmail() {
     });
     if (error) throw new Error(error.message);
     currentUser = (await sb.auth.getSession()).data.session?.user;
-    if (!currentUser) throw new Error('Session was not created');
+    if (!currentUser) throw new Error(t('session_not_created'));
     showDashboard();
     return;
   } catch (e) {
-    showAuthError(e.message || 'Login failed');
+    showAuthError(e.message || t('login_failed'));
   }
-  btn.disabled = false; btn.textContent = 'Login';
+  btn.disabled = false; btn.innerHTML = t('login');
 }
 
 function showAuthError(msg) {
-  document.getElementById('auth-error').textContent = msg;
+  const map = {
+    'This email is not the admin': { en: 'This email is not the admin', ar: 'هذا البريد الإلكتروني ليس بريد المشرف' },
+    'Email address is required':   { en: 'Email address is required', ar: 'البريد الإلكتروني مطلوب' }
+  };
+  document.getElementById('auth-error').textContent = (map[msg] && map[msg][lang]) || msg;
 }
 
 // Enter key support
@@ -246,10 +407,12 @@ async function logout() {
   currentUser = null; currentShop = null;
   document.getElementById('dashboard').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
+  applyLang();
 }
 
 // ─── DASHBOARD ──────────────────────────────────────────────
 async function showDashboard() {
+  applyLang();
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
   document.getElementById('user-email').textContent = currentUser.email;
@@ -284,13 +447,14 @@ async function showDashboard() {
 
 // ─── TABS ───────────────────────────────────────────────────
 function showTab(tab) {
-  document.querySelectorAll('.sidebar button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  currentTab = tab;
+  document.querySelectorAll('.sidebar button, .mobile-tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   const c = document.getElementById('main-content');
   switch(tab) {
     case 'shop': c.innerHTML = renderShopTab(); break;
     case 'categories': c.innerHTML = renderCategoriesTab(); break;
     case 'items': c.innerHTML = renderItemsTab(); break;
-    case 'deals': c.innerHTML = renderDealsTab(); break;
+    case 'deals': c.innerHTML = `<div class="empty">${t('loading_deals')}</div>`; renderDealsTab().then(html => { c.innerHTML = html; }); break;
     case 'currencies': c.innerHTML = renderCurrenciesTab(); break;
   }
 }
@@ -299,50 +463,50 @@ function showTab(tab) {
 function renderShopTab() {
   const s = currentShop;
   return `
-    <h3>Shop Settings</h3>
+    <h3>${t('tab_shop')}</h3>
     <div class="card">
-      <h4>General</h4>
+      <h4>${t('general')}</h4>
       <div class="card-row">
-        <div class="field"><label>Shop Name (EN)</label><input id="s-name" value="${esc(s.name)}"></div>
-        <div class="field"><label>Shop Name (AR)</label><input id="s-name-ar" value="${esc(s.name_ar)}" dir="rtl"></div>
+        <div class="field"><label>${t('name_en')}</label><input id="s-name" value="${esc(s.name)}"></div>
+        <div class="field"><label>${t('name_ar')}</label><input id="s-name-ar" value="${esc(s.name_ar)}" dir="rtl"></div>
       </div>
       <div class="card-row">
-        <div class="field"><label>Tagline (EN)</label><input id="s-tagline" value="${esc(s.tagline)}"></div>
-        <div class="field"><label>Tagline (AR)</label><input id="s-tagline-ar" value="${esc(s.tagline_ar)}" dir="rtl"></div>
+        <div class="field"><label>${t('tagline_en')}</label><input id="s-tagline" value="${esc(s.tagline)}"></div>
+        <div class="field"><label>${t('tagline_ar')}</label><input id="s-tagline-ar" value="${esc(s.tagline_ar)}" dir="rtl"></div>
       </div>
-      <div class="field"><label>Logo URL</label><input id="s-logo" value="${esc(s.logo_url)}" placeholder="https://..."></div>
+      <div class="field"><label>${t('logo_url')}</label><input id="s-logo" value="${esc(s.logo_url)}" placeholder="https://..."></div>
     </div>
     <div class="card">
-      <h4>Contact</h4>
+      <h4>${t('contact')}</h4>
       <div class="card-row-3">
-        <div class="field"><label>WhatsApp (with country code)</label><input id="s-whatsapp" value="${esc(s.whatsapp)}" placeholder="963992656853"></div>
-        <div class="field"><label>Phone</label><input id="s-phone" value="${esc(s.phone)}"></div>
-        <div class="field"><label>Email</label><input id="s-email" value="${esc(s.email)}"></div>
+        <div class="field"><label>${t('whatsapp')}</label><input id="s-whatsapp" value="${esc(s.whatsapp)}" placeholder="963992656853"></div>
+        <div class="field"><label>${t('phone')}</label><input id="s-phone" value="${esc(s.phone)}"></div>
+        <div class="field"><label>${t('email')}</label><input id="s-email" value="${esc(s.email)}"></div>
       </div>
       <div class="card-row">
-        <div class="field"><label>Address (EN)</label><input id="s-address" value="${esc(s.address)}"></div>
-        <div class="field"><label>Address (AR)</label><input id="s-address-ar" value="${esc(s.address_ar)}" dir="rtl"></div>
+        <div class="field"><label>${t('address_en')}</label><input id="s-address" value="${esc(s.address)}"></div>
+        <div class="field"><label>${t('address_ar')}</label><input id="s-address-ar" value="${esc(s.address_ar)}" dir="rtl"></div>
       </div>
     </div>
     <div class="card">
-      <h4>Branding</h4>
+      <h4>${t('branding')}</h4>
       <div class="card-row-3">
-        <div class="field"><label>Primary Color</label><input type="color" id="s-color" value="${s.primary_color || '#D97706'}" style="height:36px;padding:2px"></div>
-        <div class="field"><label>Accent Color</label><input type="color" id="s-accent" value="${s.accent_color || '#92400E'}" style="height:36px;padding:2px"></div>
-        <div class="field"><label>Footer Text</label><input id="s-footer" value="${esc(s.footer_text)}"></div>
+        <div class="field"><label>${t('primary_color')}</label><input type="color" id="s-color" value="${s.primary_color || '#D97706'}" style="height:36px;padding:2px"></div>
+        <div class="field"><label>${t('accent_color')}</label><input type="color" id="s-accent" value="${s.accent_color || '#92400E'}" style="height:36px;padding:2px"></div>
+        <div class="field"><label>${t('footer_text')}</label><input id="s-footer" value="${esc(s.footer_text)}"></div>
       </div>
     </div>
     <div class="card">
-      <h4>Currency</h4>
+      <h4>${t('currency')}</h4>
       <div class="card-row">
         <div class="field">
-          <label>Default Currency</label>
+          <label>${t('default_currency')}</label>
           <select id="s-default-currency">
             ${['SYP','USD','TRY'].map(c => `<option value="${c}" ${s.currency_default===c?'selected':''}>${c}</option>`).join('')}
           </select>
         </div>
         <div class="field">
-          <label>Show Currency Selector</label>
+          <label>${t('show_currency_selector')}</label>
           <label class="toggle" style="margin-top:4px">
             <input type="checkbox" id="s-show-currency" ${s.show_currency_selector ? 'checked' : ''}>
             <span class="slider"></span>
@@ -351,7 +515,7 @@ function renderShopTab() {
       </div>
     </div>
     <div class="btn-group">
-      <button class="btn btn-primary" onclick="saveShop()">Save Changes</button>
+      <button class="btn btn-primary" onclick="saveShop()">${t('save_changes')}</button>
     </div>
   `;
 }
@@ -369,20 +533,20 @@ async function saveShop() {
     show_currency_selector: document.getElementById('s-show-currency').checked
   };
   const { error } = await sb.from('shops').update(updates).eq('id', currentShop.id);
-  if (error) return toast('Error: ' + error.message, true);
+  if (error) return toast(t('error') + ': ' + error.message, true);
   Object.assign(currentShop, updates);
-  toast('Shop settings saved');
+  toast(t('shop_settings_saved'));
 }
 
 // ─── CATEGORIES ─────────────────────────────────────────────
 function renderCategoriesTab() {
   return `
-    <h3>Categories</h3>
+    <h3>${t('tab_categories')}</h3>
     <div class="btn-group" style="margin-top:0;margin-bottom:16px">
-      <button class="btn btn-primary" onclick="openCategoryModal()">+ New Category</button>
+      <button class="btn btn-primary" onclick="openCategoryModal()">${t('new_category')}</button>
     </div>
     <table>
-      <thead><tr><th>Order</th><th>Name (EN)</th><th>Name (AR)</th><th>Active</th><th></th></tr></thead>
+      <thead><tr><th>${t('order')}</th><th>${t('name_en')}</th><th>${t('name_ar')}</th><th>${t('active')}</th><th></th></tr></thead>
       <tbody>
         ${allCategories.map(c => `
           <tr>
@@ -391,12 +555,12 @@ function renderCategoriesTab() {
             <td dir="rtl">${esc(c.name_ar)}</td>
             <td><label class="toggle"><input type="checkbox" ${c.is_active?'checked':''} onchange="toggleCategory('${c.id}','is_active',this.checked)"><span class="slider"></span></label></td>
             <td>
-              <button class="btn btn-ghost btn-sm" onclick="openCategoryModal('${c.id}')">Edit</button>
-              <button class="btn btn-danger btn-sm" onclick="deleteCategory('${c.id}')">Delete</button>
+              <button class="btn btn-ghost btn-sm" onclick="openCategoryModal('${c.id}')">${t('edit')}</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteCategory('${c.id}')">${t('delete')}</button>
             </td>
           </tr>
         `).join('')}
-        ${allCategories.length===0 ? '<tr><td colspan="5" class="empty">No categories yet. Create one to get started.</td></tr>' : ''}
+        ${allCategories.length===0 ? '<tr><td colspan="5" class="empty">' + t('no_categories') + '</td></tr>' : ''}
       </tbody>
     </table>
   `;
@@ -405,13 +569,13 @@ function renderCategoriesTab() {
 function openCategoryModal(id) {
   const cat = id ? allCategories.find(c => c.id === id) : null;
   document.getElementById('modal-content').innerHTML = `
-    <h3>${cat ? 'Edit Category' : 'New Category'}</h3>
-    <div class="field"><label>Name (EN)</label><input id="m-cat-name" value="${cat ? esc(cat.name) : ''}"></div>
-    <div class="field"><label>Name (AR)</label><input id="m-cat-name-ar" value="${cat ? esc(cat.name_ar) : ''}" dir="rtl"></div>
-    <div class="field"><label>Sort Order</label><input type="number" id="m-cat-sort" value="${cat ? cat.sort_order : (allCategories.length + 1) * 10}"></div>
+    <h3>${cat ? t('edit_category') : t('new_category_short')}</h3>
+    <div class="field"><label>${t('name_en')}</label><input id="m-cat-name" value="${cat ? esc(cat.name) : ''}"></div>
+    <div class="field"><label>${t('name_ar')}</label><input id="m-cat-name-ar" value="${cat ? esc(cat.name_ar) : ''}" dir="rtl"></div>
+    <div class="field"><label>${t('sort_order')}</label><input type="number" id="m-cat-sort" value="${cat ? cat.sort_order : (allCategories.length + 1) * 10}"></div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveCategory('${id || ''}')">Save</button>
+      <button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button>
+      <button class="btn btn-primary" onclick="saveCategory('${id || ''}')">${t('save')}</button>
     </div>
   `;
   document.getElementById('modal-overlay').style.display = 'flex';
@@ -425,12 +589,12 @@ async function saveCategory(id) {
   } else {
     ({ error } = await sb.from('categories').insert(data));
   }
-  if (error) return toast('Error: ' + error.message, true);
+  if (error) return toast(t('error') + ': ' + error.message, true);
   closeModal();
   const { data: cats } = await sb.from('categories').select('*').eq('shop_id', currentShop.id).order('sort_order');
   allCategories = cats || [];
   showTab('categories');
-  toast(id ? 'Category updated' : 'Category created');
+  toast(id ? t('category_updated') : t('category_created'));
 }
 
 async function toggleCategory(id, field, val) {
@@ -440,22 +604,22 @@ async function toggleCategory(id, field, val) {
 }
 
 async function deleteCategory(id) {
-  if (!confirm('Delete this category? Items in it will become uncategorized.')) return;
+  if (!confirm(t('delete_category_q'))) return;
   await sb.from('categories').delete().eq('id', id);
   allCategories = allCategories.filter(c => c.id !== id);
   showTab('categories');
-  toast('Category deleted');
+  toast(t('category_deleted'));
 }
 
 // ─── MENU ITEMS ─────────────────────────────────────────────
 function renderItemsTab() {
   return `
-    <h3>Menu Items</h3>
+    <h3>${t('tab_items')}</h3>
     <div class="btn-group" style="margin-top:0;margin-bottom:16px">
-      <button class="btn btn-primary" onclick="openItemModal()">+ New Item</button>
+      <button class="btn btn-primary" onclick="openItemModal()">${t('new_item')}</button>
     </div>
     <table>
-      <thead><tr><th>Order</th><th>Name</th><th>Category</th><th>Available</th><th>Featured</th><th>Prices</th><th></th></tr></thead>
+      <thead><tr><th>${t('order')}</th><th>${t('name')}</th><th>${t('category')}</th><th>${t('available')}</th><th>${t('featured')}</th><th>${t('prices')}</th><th></th></tr></thead>
       <tbody>
         ${allItems.map(item => {
           const cat = allCategories.find(c => c.id === item.category_id);
@@ -469,12 +633,12 @@ function renderItemsTab() {
             <td><label class="toggle"><input type="checkbox" ${item.is_featured?'checked':''} onchange="toggleItem('${item.id}','is_featured',this.checked)"><span class="slider"></span></label></td>
             <td style="font-size:12px">${prices || '<span style="color:var(--text3)">—</span>'}</td>
             <td>
-              <button class="btn btn-ghost btn-sm" onclick="openItemModal('${item.id}')">Edit</button>
-              <button class="btn btn-danger btn-sm" onclick="deleteItem('${item.id}')">Delete</button>
+              <button class="btn btn-ghost btn-sm" onclick="openItemModal('${item.id}')">${t('edit')}</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteItem('${item.id}')">${t('delete')}</button>
             </td>
           </tr>`;
         }).join('')}
-        ${allItems.length===0 ? '<tr><td colspan="7" class="empty">No items yet. Add your first menu item.</td></tr>' : ''}
+        ${allItems.length===0 ? '<tr><td colspan="7" class="empty">' + t('no_items') + '</td></tr>' : ''}
       </tbody>
     </table>
   `;
@@ -487,33 +651,33 @@ function openItemModal(id) {
   const currencies = currentShop.currencies || ['SYP'];
 
   document.getElementById('modal-content').innerHTML = `
-    <h3>${item ? 'Edit Item' : 'New Item'}</h3>
+    <h3>${item ? t('edit_item') : t('new_item_short')}</h3>
     <div class="card-row">
-      <div class="field"><label>Name (EN)</label><input id="m-item-name" value="${item ? esc(item.name) : ''}"></div>
-      <div class="field"><label>Name (AR)</label><input id="m-item-name-ar" value="${item ? esc(item.name_ar) : ''}" dir="rtl"></div>
+      <div class="field"><label>${t('name_en')}</label><input id="m-item-name" value="${item ? esc(item.name) : ''}"></div>
+      <div class="field"><label>${t('name_ar')}</label><input id="m-item-name-ar" value="${item ? esc(item.name_ar) : ''}" dir="rtl"></div>
     </div>
     <div class="card-row">
-      <div class="field"><label>Description (EN)</label><textarea id="m-item-desc">${item ? esc(item.description) : ''}</textarea></div>
-      <div class="field"><label>Description (AR)</label><textarea id="m-item-desc-ar" dir="rtl">${item ? esc(item.description_ar) : ''}</textarea></div>
+      <div class="field"><label>${t('desc_en')}</label><textarea id="m-item-desc">${item ? esc(item.description) : ''}</textarea></div>
+      <div class="field"><label>${t('desc_ar')}</label><textarea id="m-item-desc-ar" dir="rtl">${item ? esc(item.description_ar) : ''}</textarea></div>
     </div>
     <div class="card-row">
       <div class="field">
-        <label>Category</label>
+        <label>${t('category')}</label>
         <select id="m-item-cat">
-          <option value="">— None —</option>
+          <option value="">${t('none')}</option>
           ${allCategories.map(c => `<option value="${c.id}" ${item?.category_id===c.id?'selected':''}>${c.name}</option>`).join('')}
         </select>
       </div>
-      <div class="field"><label>Sort Order</label><input type="number" id="m-item-sort" value="${item ? item.sort_order : (allItems.length + 1) * 10}"></div>
+      <div class="field"><label>${t('sort_order')}</label><input type="number" id="m-item-sort" value="${item ? item.sort_order : (allItems.length + 1) * 10}"></div>
     </div>
-    <div class="field"><label>Image URL</label><input id="m-item-img" value="${item ? esc(item.image_url) : ''}" placeholder="https://..."></div>
+    <div class="field"><label>${t('image_url')}</label><input id="m-item-img" value="${item ? esc(item.image_url) : ''}" placeholder="https://..."></div>
     <div class="field">
-      <label style="margin-bottom:8px">Prices</label>
+      <label style="margin-bottom:8px">${t('prices')}</label>
       ${currencies.map(c => `
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
           <span style="font-size:13px;font-weight:600;width:40px">${c}</span>
           <input type="number" step="0.01" id="m-price-${c}" value="${existingPrices[c] || ''}" placeholder="0" style="flex:1">
-          <label class="toggle" title="Show/Hide ${c} on menu">
+          <label class="toggle" title="${t('toggle_visible')} ${c}">
             <input type="checkbox" id="m-price-vis-${c}" ${visiblePrices[c] !== false ? 'checked' : ''}>
             <span class="slider"></span>
           </label>
@@ -521,8 +685,8 @@ function openItemModal(id) {
       `).join('')}
     </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveItem('${id || ''}')">Save</button>
+      <button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button>
+      <button class="btn btn-primary" onclick="saveItem('${id || ''}')">${t('save')}</button>
     </div>
   `;
   document.getElementById('modal-overlay').style.display = 'flex';
@@ -541,10 +705,10 @@ async function saveItem(id) {
   let itemId = id;
   if (id) {
     const { error } = await sb.from('items').update(itemData).eq('id', id);
-    if (error) return toast('Error: ' + error.message, true);
+    if (error) return toast(t('error') + ': ' + error.message, true);
   } else {
     const { data, error } = await sb.from('items').insert(itemData).select().single();
-    if (error) return toast('Error: ' + error.message, true);
+    if (error) return toast(t('error') + ': ' + error.message, true);
     itemId = data.id;
   }
 
@@ -568,7 +732,7 @@ async function saveItem(id) {
   const { data: items } = await sb.from('items').select('*, item_prices(*)').eq('shop_id', currentShop.id).order('sort_order');
   allItems = items || [];
   showTab('items');
-  toast(id ? 'Item updated' : 'Item created');
+  toast(id ? t('item_updated') : t('item_created'));
 }
 
 async function toggleItem(id, field, val) {
@@ -578,23 +742,23 @@ async function toggleItem(id, field, val) {
 }
 
 async function deleteItem(id) {
-  if (!confirm('Delete this item?')) return;
+  if (!confirm(t('delete_item_q'))) return;
   await sb.from('items').delete().eq('id', id);
   allItems = allItems.filter(i => i.id !== id);
   showTab('items');
-  toast('Item deleted');
+  toast(t('item_deleted'));
 }
 
 // ─── DEALS ──────────────────────────────────────────────────
 async function renderDealsTab() {
   const { data: deals } = await sb.from('deals').select('*').eq('shop_id', currentShop.id).order('sort_order');
   return `
-    <h3>Deals &amp; Offers</h3>
+    <h3>${t('tab_deals')}</h3>
     <div class="btn-group" style="margin-top:0;margin-bottom:16px">
-      <button class="btn btn-primary" onclick="openDealModal()">+ New Deal</button>
+      <button class="btn btn-primary" onclick="openDealModal()">${t('new_deal')}</button>
     </div>
     <table>
-      <thead><tr><th>Title</th><th>Discount</th><th>Valid</th><th>Active</th><th></th></tr></thead>
+      <thead><tr><th>${t('title')}</th><th>${t('discount')}</th><th>${t('valid')}</th><th>${t('active')}</th><th></th></tr></thead>
       <tbody>
         ${(deals||[]).map(d => `
           <tr>
@@ -603,12 +767,12 @@ async function renderDealsTab() {
             <td><small>${d.starts_at ? new Date(d.starts_at).toLocaleDateString() : '—'} → ${d.ends_at ? new Date(d.ends_at).toLocaleDateString() : '∞'}</small></td>
             <td><label class="toggle"><input type="checkbox" ${d.is_active?'checked':''} onchange="toggleDeal('${d.id}',this.checked)"><span class="slider"></span></label></td>
             <td>
-              <button class="btn btn-ghost btn-sm" onclick="openDealModal('${d.id}')">Edit</button>
-              <button class="btn btn-danger btn-sm" onclick="deleteDeal('${d.id}')">Delete</button>
+              <button class="btn btn-ghost btn-sm" onclick="openDealModal('${d.id}')">${t('edit')}</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteDeal('${d.id}')">${t('delete')}</button>
             </td>
           </tr>
         `).join('')}
-        ${(!deals||deals.length===0) ? '<tr><td colspan="5" class="empty">No deals yet.</td></tr>' : ''}
+        ${(!deals||deals.length===0) ? '<tr><td colspan="5" class="empty">' + t('no_deals') + '</td></tr>' : ''}
       </tbody>
     </table>
   `;
@@ -621,38 +785,38 @@ async function openDealModal(id) {
     deal = data;
   }
   document.getElementById('modal-content').innerHTML = `
-    <h3>${deal ? 'Edit Deal' : 'New Deal'}</h3>
+    <h3>${deal ? t('edit_deal') : t('new_deal_short')}</h3>
     <div class="card-row">
-      <div class="field"><label>Title (EN)</label><input id="m-deal-title" value="${deal ? esc(deal.title) : ''}"></div>
-      <div class="field"><label>Title (AR)</label><input id="m-deal-title-ar" value="${deal ? esc(deal.title_ar) : ''}" dir="rtl"></div>
+      <div class="field"><label>${t('title_en')}</label><input id="m-deal-title" value="${deal ? esc(deal.title) : ''}"></div>
+      <div class="field"><label>${t('title_ar')}</label><input id="m-deal-title-ar" value="${deal ? esc(deal.title_ar) : ''}" dir="rtl"></div>
     </div>
     <div class="card-row">
-      <div class="field"><label>Description (EN)</label><textarea id="m-deal-desc">${deal ? esc(deal.description) : ''}</textarea></div>
-      <div class="field"><label>Description (AR)</label><textarea id="m-deal-desc-ar" dir="rtl">${deal ? esc(deal.description_ar) : ''}</textarea></div>
+      <div class="field"><label>${t('desc_en')}</label><textarea id="m-deal-desc">${deal ? esc(deal.description) : ''}</textarea></div>
+      <div class="field"><label>${t('desc_ar')}</label><textarea id="m-deal-desc-ar" dir="rtl">${deal ? esc(deal.description_ar) : ''}</textarea></div>
     </div>
     <div class="card-row-3">
       <div class="field">
-        <label>Discount Type</label>
+        <label>${t('discount_type')}</label>
         <select id="m-deal-type">
-          <option value="percent" ${deal?.discount_type==='percent'?'selected':''}>Percent (%)</option>
-          <option value="fixed" ${deal?.discount_type==='fixed'?'selected':''}>Fixed Amount</option>
+          <option value="percent" ${deal?.discount_type==='percent'?'selected':''}>${t('percent')}</option>
+          <option value="fixed" ${deal?.discount_type==='fixed'?'selected':''}>${t('fixed')}</option>
         </select>
       </div>
-      <div class="field"><label>Value</label><input type="number" step="0.01" id="m-deal-value" value="${deal ? deal.discount_value : ''}"></div>
+      <div class="field"><label>${t('value')}</label><input type="number" step="0.01" id="m-deal-value" value="${deal ? deal.discount_value : ''}"></div>
       <div class="field">
-        <label>Currency (for fixed)</label>
+        <label>${t('currency_for_fixed')}</label>
         <select id="m-deal-currency">
           ${(currentShop.currencies||['SYP']).map(c => `<option value="${c}" ${deal?.currency===c?'selected':''}>${c}</option>`).join('')}
         </select>
       </div>
     </div>
     <div class="card-row">
-      <div class="field"><label>Starts At</label><input type="date" id="m-deal-start" value="${deal?.starts_at ? deal.starts_at.split('T')[0] : ''}"></div>
-      <div class="field"><label>Ends At</label><input type="date" id="m-deal-end" value="${deal?.ends_at ? deal.ends_at.split('T')[0] : ''}"></div>
+      <div class="field"><label>${t('starts_at')}</label><input type="date" id="m-deal-start" value="${deal?.starts_at ? deal.starts_at.split('T')[0] : ''}"></div>
+      <div class="field"><label>${t('ends_at')}</label><input type="date" id="m-deal-end" value="${deal?.ends_at ? deal.ends_at.split('T')[0] : ''}"></div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveDeal('${id || ''}')">Save</button>
+      <button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button>
+      <button class="btn btn-primary" onclick="saveDeal('${id || ''}')">${t('save')}</button>
     </div>
   `;
   document.getElementById('modal-overlay').style.display = 'flex';
@@ -673,10 +837,10 @@ async function saveDeal(id) {
   } else {
     ({ error } = await sb.from('deals').insert(data));
   }
-  if (error) return toast('Error: ' + error.message, true);
+  if (error) return toast(t('error') + ': ' + error.message, true);
   closeModal();
   showTab('deals');
-  toast(id ? 'Deal updated' : 'Deal created');
+  toast(id ? t('deal_updated') : t('deal_created'));
 }
 
 async function toggleDeal(id, val) {
@@ -684,20 +848,20 @@ async function toggleDeal(id, val) {
 }
 
 async function deleteDeal(id) {
-  if (!confirm('Delete this deal?')) return;
+  if (!confirm(t('delete_deal_q'))) return;
   await sb.from('deals').delete().eq('id', id);
   showTab('deals');
-  toast('Deal deleted');
+  toast(t('deal_deleted'));
 }
 
 // ─── CURRENCIES ─────────────────────────────────────────────
 function renderCurrenciesTab() {
   const currencies = currentShop.currencies || ['SYP'];
   return `
-    <h3>Currency Settings</h3>
+    <h3>${t('currency_settings')}</h3>
     <div class="card">
-      <h4>Enabled Currencies</h4>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Toggle which currencies are available in your shop. Disabled currencies will be hidden from the menu and admin.</p>
+      <h4>${t('enabled_currencies')}</h4>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">${t('enabled_currencies_desc')}</p>
       <div style="display:flex;gap:12px;flex-wrap:wrap">
         ${['SYP','USD','TRY'].map(c => `
           <label class="currency-chip ${currencies.includes(c)?'on':''}" onclick="toggleCurrency('${c}')" style="cursor:pointer;padding:8px 16px;font-size:13px">
@@ -707,20 +871,20 @@ function renderCurrenciesTab() {
       </div>
     </div>
     <div class="card">
-      <h4>Default Display Currency</h4>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">This is the primary currency shown on the menu.</p>
+      <h4>${t('default_display_currency')}</h4>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">${t('default_display_currency_desc')}</p>
       <select id="s-default-cur" style="max-width:200px" onchange="updateDefaultCurrency()">
         ${currencies.map(c => `<option value="${c}" ${currentShop.currency_default===c?'selected':''}>${c}</option>`).join('')}
       </select>
     </div>
     <div class="card">
-      <h4>Currency Selector</h4>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Allow customers to switch between currencies on the menu.</p>
+      <h4>${t('currency_selector')}</h4>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">${t('currency_selector_desc')}</p>
       <label class="toggle">
         <input type="checkbox" id="s-show-cur-sel" ${currentShop.show_currency_selector ? 'checked' : ''} onchange="toggleCurrencySelector()">
         <span class="slider"></span>
       </label>
-      <span style="font-size:13px;margin-left:8px">${currentShop.show_currency_selector ? 'Visible' : 'Hidden'}</span>
+      <span style="font-size:13px;margin-left:8px">${currentShop.show_currency_selector ? t('visible') : t('hidden')}</span>
     </div>
   `;
 }
@@ -740,14 +904,14 @@ async function toggleCurrency(c) {
     currentShop.currency_default = currencies[0];
   }
   showTab('currencies');
-  toast('Currencies updated');
+  toast(t('currencies_updated'));
 }
 
 async function updateDefaultCurrency() {
   const val = gv('s-default-cur');
   await sb.from('shops').update({ currency_default: val }).eq('id', currentShop.id);
   currentShop.currency_default = val;
-  toast('Default currency updated');
+  toast(t('default_currency_updated'));
 }
 
 async function toggleCurrencySelector() {
