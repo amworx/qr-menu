@@ -228,8 +228,8 @@
     .ol-price{font-size:13.5px;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums;white-space:nowrap}
     .order-line.offer-line{background:var(--card2);border-radius:14px;padding:10px 12px;margin:8px 0;border-bottom:none}
     .order-line.offer-line .ol-name small{color:var(--primary);font-weight:600}
-    .ol-remove{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:var(--card);color:var(--text2);display:flex;align-items:center;justify-content:center;font-size:13px;transition:.15s}
-    .ol-remove:hover{color:var(--danger)}
+    .ol-remove{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:var(--card2);border:1px solid var(--border2);color:var(--text2);display:flex;align-items:center;justify-content:center;font-size:13px;transition:.15s;cursor:pointer}
+    .ol-remove:hover{border-color:var(--danger);color:var(--danger)}
     .order-total-row{display:flex;justify-content:space-between;padding:14px 0 4px;font-size:17px;font-weight:800;border-top:2px solid var(--border2);margin-top:6px;font-variant-numeric:tabular-nums}
     .order-note{width:100%;margin-top:12px;padding:12px 14px;border:1px solid var(--border2);border-radius:14px;background:var(--card2);font-size:13px;resize:none;min-height:64px;color:var(--text)}
     .order-note::placeholder{color:var(--text3)}
@@ -608,6 +608,10 @@
       if (q <= 0) delete cart[id]; else cart[id] = Math.min(q, 99);
       renderItems(); renderOrderSheet(); updateCartBar();
     }
+    function removeItem(id) {
+      delete cart[id];
+      renderItems(); renderOrderSheet(); updateCartBar();
+    }
 
     function toggleOffer(id) {
       if (cartOffers[id]) { delete cartOffers[id]; }
@@ -672,6 +676,7 @@
             <div class="ol-name">${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ''}</div>
             <div class="ol-price">${formatPrice(unit * qty, activeCurrency)}</div>
             ${stepperHTML(id, qty)}
+            <button class="ol-remove" onclick="removeItem('${id}')" aria-label="${lang === 'ar' ? 'إزالة العنصر' : 'Remove item'}">✕</button>
           </div>`;
       }
 
