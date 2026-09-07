@@ -107,6 +107,24 @@ create table if not exists deals (
   constraint deals_reward_type_check check (reward_type is null or reward_type in ('percent','fixed'))
 );
 
+-- ─── ORDERS (placed from the public menu) ──────────────────
+-- Each order gets a sequential id (bigserial) shown to the customer as
+-- "Order #<id>" and recorded here so the owner can review history.
+-- Public (anon) may insert; only the shop owner may select/manage.
+create table if not exists orders (
+  id bigserial primary key,
+  shop_id uuid references shops(id) on delete cascade,
+  currency text not null default 'SYP',
+  subtotal numeric(12,2) not null default 0,     -- before discounts
+  discount numeric(12,2) not null default 0,     -- total applied discount
+  total numeric(12,2) not null default 0,        -- subtotal - discount
+  items jsonb not null default '[]',             -- [{id,name,name_ar,qty,unit_price}]
+  offers jsonb not null default '[]',            -- [{id,title,title_ar,summary,savings}]
+  discount_lines jsonb not null default '[]',    -- [{id,title,title_ar,amount}]
+  note text default '',                          -- customer order note
+  created_at timestamptz not null default now()
+);
+
 -- ─── MIGRATION (2026-09-07) — existing DBs that had the old deals table ──
 -- The original table used `discount_type` ('percent'|'fixed'). This adds the
 -- extended deal model and backfills deal_type. Idempotent; safe on 0 rows.
@@ -138,6 +156,7 @@ create index if not exists idx_items_shop on items(shop_id);
 create index if not exists idx_items_category on items(category_id);
 create index if not exists idx_item_prices_item on item_prices(item_id);
 create index if not exists idx_deals_shop on deals(shop_id);
+create index if not exists idx_orders_shop on orders(shop_id);
 
 -- ─── UPDATED_AT TRIGGER ────────────────────────────────────
 create or replace function update_updated_at()
@@ -160,6 +179,7 @@ alter table categories enable row level security;
 alter table items enable row level security;
 alter table item_prices enable row level security;
 alter table deals enable row level security;
+alter table orders enable row level security;
 
 -- Public can read active shops and their data
 create policy "Public can view active shops"
@@ -202,6 +222,15 @@ create policy "Owner can manage item prices"
 
 create policy "Owner can manage deals"
   on deals for all using (
+    shop_id in (select id from shops where owner_email = auth.email())
+  );
+
+-- Anyone can place an order (public form); the owner manages all their orders
+create policy "Public can place orders"
+  on orders for insert with check (true);
+
+create policy "Owner can manage orders"
+  on orders for all using (
     shop_id in (select id from shops where owner_email = auth.email())
   );
 

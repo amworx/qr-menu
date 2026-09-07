@@ -231,6 +231,11 @@
     .ol-remove{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:var(--card2);border:1px solid var(--border2);color:var(--text2);display:flex;align-items:center;justify-content:center;font-size:13px;transition:.15s;cursor:pointer}
     .ol-remove:hover{border-color:var(--danger);color:var(--danger)}
     .order-total-row{display:flex;justify-content:space-between;padding:14px 0 4px;font-size:17px;font-weight:800;border-top:2px solid var(--border2);margin-top:6px;font-variant-numeric:tabular-nums}
+    .order-sub-row{display:flex;justify-content:space-between;padding:10px 0 2px;font-size:13px;color:var(--text2);font-variant-numeric:tabular-nums}
+    .order-disc-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:13px;font-weight:700;color:#10b981;font-variant-numeric:tabular-nums;gap:10px}
+    .order-disc-row .disc-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .order-disc-row .disc-amt{white-space:nowrap}
+    .ol-save{color:#10b981}
     .order-note{width:100%;margin-top:12px;padding:12px 14px;border:1px solid var(--border2);border-radius:14px;background:var(--card2);font-size:13px;resize:none;min-height:64px;color:var(--text)}
     .order-note::placeholder{color:var(--text3)}
     .order-whatsapp{width:100%;margin-top:12px;padding:15px;border:none;border-radius:16px;background:var(--wa);color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:9px;transition:.15s ease;box-shadow:0 6px 20px rgba(37,211,102,.3)}
@@ -627,18 +632,91 @@
       renderDeals(); renderOrderSheet(); updateCartBar();
     }
 
+    // ─── PRICING ENGINE ─────────────────────────────────────
+    function itemUnitPrice(id) {
+      const item = items.find(i => i.id === id);
+      const p = (item?.item_prices || []).find(x => x.currency === activeCurrency && x.is_visible);
+      return p ? Number(p.price) || 0 : 0;
+    }
+    function cartSubtotal() {
+      return Object.entries(cart).reduce((s, [id, qty]) => s + itemUnitPrice(id) * qty, 0);
+    }
+    // Subtotal of the scope a deal applies to (item / category / all)
+    function scopeSubtotalValue(d) {
+      if (d.applies_to === 'item') return (cart[d.item_id] || 0) * itemUnitPrice(d.item_id);
+      if (d.applies_to === 'category') {
+        return Object.entries(cart).reduce((s, [id, qty]) => {
+          const item = items.find(i => i.id === id);
+          if (!item || item.category_id !== d.category_id) return s;
+          return s + itemUnitPrice(id) * qty;
+        }, 0);
+      }
+      return cartSubtotal();
+    }
+    // Discount amount (in activeCurrency) a single deal produces for the current cart
+    function dealSavings(d) {
+      if (!d) return 0;
+      const subtotal = cartSubtotal();
+      const dt = d.deal_type || d.discount_type || 'percent';
+      const val = Number(d.discount_value) || 0;
+      if (dt === 'percent') return subtotal > 0 ? scopeSubtotalValue(d) * val / 100 : 0;
+      if (dt === 'fixed') {
+        if (d.currency && d.currency !== activeCurrency) return 0;
+        return Math.min(val, scopeSubtotalValue(d));
+      }
+      if (dt === 'bogo') {
+        const qty = cart[d.item_id] || 0;
+        const buy = Number(d.buy_qty) || 1, get = Number(d.get_qty) || 1;
+        if (qty < buy + get) return 0;
+        return Math.floor(qty / (buy + get)) * get * itemUnitPrice(d.item_id);
+      }
+      if (dt === 'bundle') {
+        const ids = (d.bundle_items || []).map(x => (typeof x === 'string' ? x : (x.id || x)));
+        if (!ids.length || !ids.every(id => (cart[id] || 0) >= 1)) return 0;
+        if (d.currency && d.currency !== activeCurrency) return 0;
+        const itemsSum = ids.reduce((s, id) => s + itemUnitPrice(id), 0);
+        return Math.max(itemsSum - (Number(d.bundle_price) || 0), 0);
+      }
+      if (dt === 'min_order') {
+        if (subtotal < (Number(d.min_total) || 0)) return 0;
+        if ((d.reward_type || 'percent') === 'fixed') {
+          if (d.currency && d.currency !== activeCurrency) return 0;
+          return Math.min(val, subtotal);
+        }
+        return subtotal * val / 100;
+      }
+      return 0;
+    }
+    // Full order snapshot used by the FAB, the sheet and the WhatsApp message
+    function computeOrder() {
+      const itemsList = [], offers = [];
+      for (const [id, qty] of Object.entries(cart)) {
+        const item = items.find(i => i.id === id);
+        if (!item) continue;
+        const unit = itemUnitPrice(id);
+        itemsList.push({ id, name: item.name || '', name_ar: item.name_ar || '', qty, unit_price: unit });
+      }
+      for (const id of Object.keys(cartOffers)) {
+        const d = deals.find(x => x.id === id);
+        if (!d) continue;
+        offers.push({ id, title: d.title || '', title_ar: d.title_ar || '', summary: dealSummary(d), savings: Math.round(dealSavings(d) * 100) / 100 });
+      }
+      const subtotal = cartSubtotal();
+      const discountLines = offers.filter(o => o.savings > 0)
+        .map(o => ({ id: o.id, title: o.title, title_ar: o.title_ar, amount: o.savings }));
+      const discount = Math.min(discountLines.reduce((s, x) => s + x.amount, 0), subtotal);
+      const total = Math.max(subtotal - discount, 0);
+      return { itemsList, offers, subtotal, discountLines, discount, total };
+    }
+
     function updateCartBar() {
       const fab = document.getElementById('cart-fab');
+      const o = computeOrder();
       const totalItems = Object.values(cart).reduce((s, q) => s + q, 0);
       const offerCount = Object.values(cartOffers).length;
       if (totalItems === 0 && offerCount === 0) { fab.classList.remove('visible'); document.getElementById('cart-count').textContent = '0'; document.getElementById('cart-total').textContent = '0'; return; }
       document.getElementById('cart-count').textContent = totalItems + offerCount;
-      const total = Object.entries(cart).reduce((sum, [id, qty]) => {
-        const item = items.find(i => i.id === id);
-        const p = (item?.item_prices || []).find(x => x.currency === activeCurrency && x.is_visible);
-        return sum + (p ? p.price * qty : 0);
-      }, 0);
-      document.getElementById('cart-total').textContent = formatPrice(total, activeCurrency);
+      document.getElementById('cart-total').textContent = formatPrice(o.total, activeCurrency);
       fab.classList.add('visible');
     }
 
@@ -661,16 +739,15 @@
           <div class="empty-msg"><span class="big">🛒</span>${lang === 'ar' ? 'السلة فارغة — أضف عناصر من القائمة' : 'Cart is empty — add items from the menu'}</div>`;
         return;
       }
+      const o = computeOrder();
 
-      let rows = '', total = 0;
+      let rows = '';
       for (const [id, qty] of Object.entries(cart)) {
         const item = items.find(i => i.id === id);
         if (!item) continue;
         const name = lang === 'ar' ? (item.name_ar || item.name) : item.name;
         const sub = lang === 'ar' ? (item.name || '') : (item.name_ar || '');
-        const p = (item.item_prices || []).find(x => x.currency === activeCurrency && x.is_visible);
-        const unit = p ? p.price : 0;
-        total += unit * qty;
+        const unit = itemUnitPrice(id);
         rows += `
           <div class="order-line">
             <div class="ol-name">${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ''}</div>
@@ -680,6 +757,7 @@
           </div>`;
       }
 
+      const subtotalLabel = lang === 'ar' ? 'المجموع الفرعي' : 'Subtotal';
       const totalLabel = lang === 'ar' ? 'المجموع' : 'Total';
       const noteLabel = lang === 'ar' ? 'ملاحظات الطلب (اختياري)' : 'Order notes (optional)';
       const waLabel = lang === 'ar' ? 'إرسال الطلب عبر واتساب' : 'Send Order via WhatsApp';
@@ -689,55 +767,109 @@
         const d = deals.find(x => x.id === id);
         if (!d) continue;
         const title = lang === 'ar' ? (d.title_ar || d.title) : d.title;
+        const off = o.offers.find(x => x.id === id);
+        const savingsHtml = off && off.savings > 0
+          ? `<div class="ol-price ol-save">−${formatPrice(off.savings, activeCurrency)}</div>`
+          : '';
         offerRows += `
           <div class="order-line offer-line">
             <div class="ol-name">🎁 ${esc(title)}<small>${esc(dealSummary(d))}</small></div>
-            <button class="ol-remove" onclick="removeOffer('${id}')" aria-label="Remove offer">✕</button>
+            ${savingsHtml}
+            <button class="ol-remove" onclick="removeOffer('${id}')" aria-label="${lang === 'ar' ? 'إزالة العرض' : 'Remove offer'}">✕</button>
           </div>`;
       }
+
+      const discRows = o.discountLines.map(l => {
+        const t = lang === 'ar' ? (l.title_ar || l.title) : l.title;
+        return `<div class="order-disc-row"><span class="disc-name">🎁 ${esc(t)}</span><span class="disc-amt">−${formatPrice(l.amount, activeCurrency)}</span></div>`;
+      }).join('');
+
+      const totalHtml = o.discount > 0
+        ? `<div class="order-sub-row"><span>${subtotalLabel}</span><span>${formatPrice(o.subtotal, activeCurrency)}</span></div>
+          ${discRows}
+          <div class="order-total-row"><span>${totalLabel}</span><span>${formatPrice(o.total, activeCurrency)}</span></div>`
+        : `<div class="order-total-row"><span>${totalLabel}</span><span>${formatPrice(o.subtotal, activeCurrency)}</span></div>`;
 
       sheet.innerHTML = `
         <div class="sheet-head"><h3>${lang === 'ar' ? 'مراجعة الطلب' : 'Review Order'}</h3>
         <button class="sheet-close" onclick="closeOrderSheet()">✕</button></div>
         ${rows}
         ${offerRows}
-        <div class="order-total-row"><span>${totalLabel}</span><span>${formatPrice(total, activeCurrency)}</span></div>
+        ${totalHtml}
         <textarea class="order-note" id="order-note" placeholder="${noteLabel}"></textarea>
         <button class="order-whatsapp" onclick="sendWhatsApp()">🟢 ${waLabel}</button>`;
     }
 
-    // WhatsApp
-    function sendWhatsApp() {
+    // WhatsApp + order record
+    async function sendWhatsApp() {
+      const o = computeOrder();
       const totalItems = Object.values(cart).reduce((s, q) => s + q, 0);
       const offerCount = Object.values(cartOffers).length;
       if (totalItems === 0 && offerCount === 0) return;
+      const btn = document.querySelector('.order-whatsapp');
+      const waLabel = lang === 'ar' ? 'إرسال الطلب عبر واتساب' : 'Send Order via WhatsApp';
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ ' + (lang === 'ar' ? 'جارٍ تجهيز الطلب...' : 'Preparing order...'); }
+
+      let orderNo = null;
+      const note = document.getElementById('order-note')?.value?.trim() || '';
+      try {
+        const { data, error } = await sb.from('orders').insert({
+          shop_id: shop.id,
+          currency: activeCurrency,
+          subtotal: Math.round(o.subtotal * 100) / 100,
+          discount: Math.round(o.discount * 100) / 100,
+          total: Math.round(o.total * 100) / 100,
+          items: o.itemsList,
+          offers: o.offers,
+          discount_lines: o.discountLines,
+          note
+        }).select('id').single();
+        if (!error && data && data.id) orderNo = data.id;
+      } catch (e) { /* keep client-only fallback below */ }
+      if (btn) { btn.disabled = false; btn.textContent = '🟢 ' + waLabel; }
+
+      const displayNo = orderNo || ('T' + String(Date.now()).slice(-6));
       const lines = [];
-      lines.push(lang === 'ar' ? `*طلب جديد — ${shop.name}*` : `*New Order — ${shop.name}*`);
+      lines.push(lang === 'ar' ? `*طلب جديد #${displayNo} — ${shop.name}*` : `*New Order #${displayNo} — ${shop.name}*`);
       lines.push('');
-      let total = 0;
       for (const [id, qty] of Object.entries(cart)) {
         const item = items.find(i => i.id === id);
         if (!item) continue;
         const name = lang === 'ar' ? (item.name_ar || item.name) : item.name;
-        const p = (item.item_prices || []).find(x => x.currency === activeCurrency && x.is_visible);
-        const unit = p ? p.price : 0;
-        total += unit * qty;
+        const unit = itemUnitPrice(id);
         lines.push(`• ${name} × ${qty} — ${formatPrice(unit * qty, activeCurrency)}`);
       }
-      for (const [id] of Object.entries(cartOffers)) {
+      for (const id of Object.keys(cartOffers)) {
         const d = deals.find(x => x.id === id);
         if (!d) continue;
         const title = lang === 'ar' ? (d.title_ar || d.title) : d.title;
-        lines.push(`🎁 ${title} — ${dealSummary(d)}`);
+        const off = o.offers.find(x => x.id === id);
+        const tag = off && off.savings > 0 ? ` (−${formatPrice(off.savings, activeCurrency)})` : '';
+        lines.push(`★ ${title} — ${dealSummary(d)}${tag}`);
       }
       lines.push('');
-      lines.push(`${lang === 'ar' ? 'المجموع' : 'Total'}: *${formatPrice(total, activeCurrency)}*`);
-      const note = document.getElementById('order-note')?.value?.trim();
+      const subtotalLabel = lang === 'ar' ? 'المجموع الفرعي' : 'Subtotal';
+      let totalLabel;
+      if (o.discount > 0) {
+        lines.push(`${subtotalLabel}: ${formatPrice(o.subtotal, activeCurrency)}`);
+        for (const l of o.discountLines) {
+          const t = lang === 'ar' ? (l.title_ar || l.title) : l.title;
+          lines.push(`★ ${t}: −${formatPrice(l.amount, activeCurrency)}`);
+        }
+        totalLabel = lang === 'ar' ? 'الإجمالي بعد الخصم' : 'Total after discount';
+      } else {
+        totalLabel = lang === 'ar' ? 'المجموع' : 'Total';
+      }
+      lines.push(`${totalLabel}: *${formatPrice(o.total, activeCurrency)}*`);
       if (note) { lines.push(''); lines.push(`${lang === 'ar' ? 'ملاحظات' : 'Notes'}: ${note}`); }
-      const msg = encodeURIComponent(lines.join('\n'));
+      // WhatsApp's wa.me redirect drops non-BMP (emoji) characters, so strip
+      // surrogate pairs from titles/notes but keep a BMP-safe star marker.
+      const msg = encodeURIComponent(lines.join('\n').replace(/[\uD800-\uDFFF]/g, ''));
       const phone = shop.whatsapp?.replace(/[^0-9]/g, '') || '';
       window.open(phone ? `https://wa.me/${phone}?text=${msg}` : `https://wa.me/?text=${msg}`, '_blank');
-      toast(lang === 'ar' ? 'تم فتح واتساب' : 'WhatsApp opened');
+      toast(orderNo
+        ? (lang === 'ar' ? `تم إنشاء الطلب رقم #${orderNo}` : `Order #${orderNo} placed`)
+        : (lang === 'ar' ? 'تم فتح واتساب' : 'WhatsApp opened'));
     }
 
     // ─── HELPERS ────────────────────────────────────────────
