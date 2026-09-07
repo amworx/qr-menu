@@ -53,3 +53,21 @@
 - **Root cause**: The repo had no `.nojekyll`. Jekyll's build (which processes the project for Pages) choked or mishandled the TypeScript file, causing an errored build.
 - **Fix**: Add an empty `.nojekyll` at repo root so Pages serves the raw static files without running Jekyll. Build succeeded in ~21s afterwards.
 - **Lesson**: Any GitHub Pages repo that serves non-Jekyll-friendly artifacts (source `*.ts`, `supabase/` folders, etc.) should include `.nojekyll` to bypass Jekyll processing. Verify via `gh api repos/<owner>/<repo>/pages/builds --jq '.[0].status'`.
+
+## LSSN-20260907-010 — An async renderer assigned to `innerHTML` shows `[object Promise]`
+- **Problem**: Clicking "Deals & Offers" in the admin showed literal `[object Promise]` in the main content area (verified via a11y snapshot).
+- **Root cause**: `renderDealsTab()` is `async`, so `c.innerHTML = renderDealsTab()` assigned the returned Promise, not the HTML string. The sync tabs worked because their renderers return strings.
+- **Fix**: `showTab('deals')` now sets a loading placeholder then `renderDealsTab().then(html => c.innerHTML = html)`.
+- **Lesson**: Any `async` render function must be awaited (`a().then(html => el.innerHTML = html)`) — never assign the async call directly to `innerHTML`. Check all tab/render functions' `async` signature when wiring `innerHTML`.
+
+## LSSN-20260907-011 — Guard re-render-after-login on loaded data; beware double showDashboard
+- **Problem**: On page load with a persisted Supabase session, the admin threw `Cannot read properties of null (reading 'name')` inside `renderShopTab` during `applyLang()`.
+- **Root cause**: With a stored session, `showDashboard()` runs twice — once from the INIT IIFE (`sb.auth.getSession()`), once from `onAuthStateChange` with `SIGNED_IN`. The second call's `applyLang()` re-rendered the current tab while `currentShop` was still null (the first call had set `#dashboard` display to block synchronously but had not finished loading the shop).
+- **Fix**: `applyLang()` only re-renders when `currentShop` is loaded: `if (display==='block' && currentTab && currentShop) showTab(currentTab)`.
+- **Lesson**: Auth events (`onAuthStateChange` SIGNED_IN on init with stored session) can duplicate explicit init code. Re-renders triggered by language/theme toggles must check that the data they render actually exists.
+
+## LSSN-20260907-012 — Startup `refresh_token_not_found` 400 is benign stale-token noise
+- **Problem**: Live admin console showed `POST /auth/v1/token?grant_type=refresh_token` → 400 `refresh_token_not_found`.
+- **Root cause**: The browser still held a refresh token from an earlier manual-test session that had been invalidated/rotated. On load, supabase-js tries to refresh it, gets 400, clears the session, and shows the auth screen.
+- **Fix**: None needed — this is normal auth hygiene. Each successful login mints a fresh valid pair, so after login the app works normally.
+- **Lesson**: When auditing console errors after auth changes, distinguish startup refresh failures from functional failures. If the auth screen renders and login succeeds immediately after, a single refresh_token_not_found is stale-storage noise, not a bug.

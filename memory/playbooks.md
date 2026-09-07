@@ -15,3 +15,12 @@ Reusable step-by-step workflows. Append only. Reuse existing playbooks before cr
 - Edge function does the server-side email check + creates/confirms the auth user + mints/exchanges a magic-link token (no email sent).
 - Wrong email → 403 "This email is not the admin". Admin email → full dashboard with RLS.
 - When SMTP is configured later, restore true OTP-code emails (or keep email-only). See EVT-20260907-0006.
+
+## PB-20260907-003 — Add Arabic-first i18n to a single-file admin or menu
+1. Add `let lang = localStorage.getItem('<key>') || 'ar';` and a dictionary `I18N = { key: { en, ar } }`.
+2. Add `t(key)` (returns `I18N[key][lang]` or fallback) and `applyLang()` (sets lang/dir/title, static nodes by ID + `[data-i18n]`, conditionally re-renders active tab only if data loaded).
+3. Add `toggleAdminLang()` — flip, persist, `applyLang()`.
+4. Place EN/AR toggle button in auth screen (`.auth-lang-row`) and dash header (`.user-info`) using same `toggleAdminLang()`.
+5. Replace all hardcoded English strings in render functions/modals/toasts/confirms with `t('key')`.
+6. Map known server error messages in `showAuthError()` (e.g. 403 message).
+7. Verify: Arabic RTL, EN→AR toggle, logout→login, mobile viewport, console clean. Append new keys if any feature is added later. See EVT-20260907-0007.

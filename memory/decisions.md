@@ -12,3 +12,8 @@ Architectural / product decisions. Append only.
 - **Context**: Adding a TypeScript edge function file to the repo caused GitHub Pages build errors.
 - **Decision**: Added empty `.nojekyll` at repo root to serve raw static files without Jekyll.
 - **Impact**: Future commits deploy reliably; source artifacts (`.ts`, `supabase/`) don't break the build.
+
+## DEC-20260907-003 — Admin dashboard default language Arabic with EN/AR toggle
+- **Context**: Public menu already defaults to Arabic (`lang='ar'`), RTL first; admin was English-only with no language control.
+- **Decision**: Admin now defaults to Arabic (`localStorage 'qm-admin-lang'`, default `'ar'`), identical to the menu. A compact EN/AR toggle pill is shown on both the auth screen and the dash header. Language choice is persisted and survives reload.
+- **Impact**: Admin is consistent with the public menu UX for Arabic-speaking shop owners. English is one tap away. All dynamic UI (render functions, modals, toasts, confirms, server error messages) is translated via a single `I18N` dictionary.
