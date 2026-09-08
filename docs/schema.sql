@@ -143,6 +143,7 @@ create table if not exists orders (
   offers jsonb not null default '[]',            -- [{id,title,title_ar,summary,savings}]
   discount_lines jsonb not null default '[]',    -- [{id,title,title_ar,amount}]
   note text default '',                          -- customer order note
+  order_mode text default 'dinein',              -- P2.6: dinein | takeaway (toggle in order sheet)
   created_at timestamptz not null default now()
 );
 
@@ -339,3 +340,8 @@ end $$;
 --   button; edited from the admin Shop Settings WiFi card (saveShop persists).
 --   alter table shops add column if not exists wifi_name text default '',
 --     add column if not exists wifi_pass text default '';
+
+-- P2.6 (2026-09-08): order mode — orders.order_mode ('dinein'|'takeaway'), picked
+--   from the order sheet toggle (🍽️ في المكان / 🥡 سفري) and sent at the top of
+--   the WhatsApp message; persisted per device via localStorage 'qm-order-mode'.
+--   alter table orders add column if not exists order_mode text default 'dinein';

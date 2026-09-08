@@ -381,3 +381,15 @@
 - **errors**: None.
 - **lessons**: the copy pattern (secureContext clipboard first, execCommand fallback) is now reusable — consider a shared helper for copyWifiPass vs copyProductLink.
 - **tags**: p2.5, wifi-info, copy-password, info-modal, db-migration, admin-editor, i18n, rtl, mobile-375, local-verify, pending-commit
+
+## EVT-20260908-0033
+
+- **timestamp**: 2026-09-08
+- **mode**: BUILD / DB-MIGRATION / I18N / LOCAL-VERIFY
+- **action**: P2.6 — Takeaway / dine-in order mode toggle (affects WhatsApp message)
+- **summary**: Added an order-type choice to the review sheet: (1) `orderMode` ('dinein'|'takeaway') persisted per device via localStorage `qm-order-mode`; (2) `.om-row` with two pill buttons `🍽️ في المكان / 🥡 سفري` (EN: Dine-in/Takeaway) rendered at the bottom of `renderOrderSheet()` above the note, `setOrderMode(m)` re-renders and saves; (3) `orders.order_mode` column (migration `alter table orders add column if not exists order_mode text default 'dinein'`) and `sendWhatsApp()` inserts it; (4) WhatsApp message gains a BMP-safe mode line right after the title — «طلب سفري (TAKEAWAY)» / «في المكان (DINE-IN)» (no emoji in the wa text because the redirect strips non-BMP); (5) schema.sql updated.
+- **result**: Success — AR 375px: «نوع الطلب», tap 🥡 سفري → active/pressed transitions + localStorage saved; full `sendWhatsApp()` with stubbed window.open produced «*طلب جديد #1 — Judy Joy*\nطلب سفري (TAKEAWAY)\n• كابتشينو × 1 — ٢٠٬٠٠٠ SYP / المجموع» and the inserted orders row carried `order_mode=takeaway` (verified via API, then deleted test row id=1). EN 375px: «Order type», 🍽️ Dine-in / 🥡 Takeaway, active state + storage verified, no overflow. Also fixed a DevTools form-field a11y issue (stepper qty inputs now `name="qty"`).
+- **files**: `docs/schema.sql` (order_mode column + note), `index.html` (state, setOrderMode, .om-* CSS, renderOrderSheet mode row, insert order_mode, WA line, stepper name attr), memory/events.md. DB: orders.order_mode.
+- **errors**: None (test order cleaned up after verification).
+- **lessons**: reuse the localStorage-on-toggle pattern for per-device preferences; keep wa.me lines BMP-safe with plain-text mode tags instead of emoji.
+- **tags**: p2.6, order-mode, dinein, takeaway, wa-message, db-migration, i18n, rtl, mobile-375, local-verify, pending-commit

@@ -329,6 +329,11 @@
     .order-whatsapp{width:100%;margin-top:12px;padding:15px;border:none;border-radius:16px;background:var(--wa);color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:9px;transition:.15s ease;box-shadow:0 6px 20px rgba(37,211,102,.3)}
     .order-whatsapp:hover{background:var(--wa-dark)}
     .order-whatsapp:disabled{opacity:.5;pointer-events:none}
+    .om-row{display:flex;align-items:center;gap:12px;margin-top:14px}
+    .om-label{font-size:11.5px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;flex:0 0 auto}
+    .om-toggle{display:flex;gap:8px;flex:1}
+    .om-btn{flex:1;padding:10px 8px;border-radius:12px;border:1px solid var(--border2);background:var(--card2);color:var(--text2);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s ease;font-family:inherit;white-space:nowrap}
+    .om-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
 
     /* ═══ PRODUCT DETAIL SHEET (P1.2) ═══ */
     .product-sheet{background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;height:92vh;display:flex;flex-direction:column;overflow:hidden;animation:slideUp .3s ease}
@@ -948,7 +953,7 @@
       return `
         <div class="stepper">
           <button class="minus" onclick="decCart('${id}')" aria-label="decrease">−</button>
-          <input type="number" min="1" max="99" value="${qty}" onchange="setCartQty('${id}', this.value)" inputmode="numeric" aria-label="quantity">
+          <input type="number" name="qty" min="1" max="99" value="${qty}" onchange="setCartQty('${id}', this.value)" inputmode="numeric" aria-label="quantity">
           <button class="plus" onclick="incCart('${id}')" aria-label="increase">+</button>
         </div>`;
     }
@@ -1688,6 +1693,9 @@
     }
 
     // Order sheet
+    let orderMode = localStorage.getItem('qm-order-mode') || 'dinein';
+    function setOrderMode(m) { orderMode = m; try { localStorage.setItem('qm-order-mode', m); } catch (e) {} renderOrderSheet(); }
+
     function openOrderSheet() {
       document.getElementById('order-modal').classList.add('visible');
       renderOrderSheet();
@@ -1707,6 +1715,16 @@
         return;
       }
       const o = computeOrder();
+
+      // Order mode toggle (P2.6)
+      const modeLabel = lang === 'ar' ? 'نوع الطلب' : 'Order type';
+      const modeHtml = `<div class="om-row">
+        <span class="om-label">${modeLabel}</span>
+        <div class="om-toggle" role="group" aria-label="${modeLabel}">
+          <button class="om-btn ${orderMode === 'dinein' ? 'active' : ''}" onclick="setOrderMode('dinein')" aria-pressed="${orderMode === 'dinein'}">🍽️ ${lang === 'ar' ? 'في المكان' : 'Dine-in'}</button>
+          <button class="om-btn ${orderMode === 'takeaway' ? 'active' : ''}" onclick="setOrderMode('takeaway')" aria-pressed="${orderMode === 'takeaway'}">🥡 ${lang === 'ar' ? 'سفري' : 'Takeaway'}</button>
+        </div>
+      </div>`;
 
       let rows = '';
       for (const [id, qty] of Object.entries(cart)) {
@@ -1765,6 +1783,7 @@
         ${rows}
         ${offerRows}
         ${totalHtml}
+        <div class="om-foot">${modeHtml}</div>
         <textarea class="order-note" id="order-note" placeholder="${noteLabel}"></textarea>
         <button class="order-whatsapp" onclick="sendWhatsApp()">🟢 ${waLabel}</button>`;
     }
@@ -1791,7 +1810,8 @@
           items: o.itemsList,
           offers: o.offers,
           discount_lines: o.discountLines,
-          note
+          note,
+          order_mode: orderMode
         }).select('id').single();
         if (!error && data && data.id) orderNo = data.id;
       } catch (e) { /* keep client-only fallback below */ }
@@ -1800,6 +1820,9 @@
       const displayNo = orderNo || ('T' + String(Date.now()).slice(-6));
       const lines = [];
       lines.push(lang === 'ar' ? `*طلب جديد #${displayNo} — ${shop.name}*` : `*New Order #${displayNo} — ${shop.name}*`);
+      lines.push(orderMode === 'takeaway'
+        ? (lang === 'ar' ? 'طلب سفري (TAKEAWAY)' : 'Takeaway (TAKEAWAY)')
+        : (lang === 'ar' ? 'في المكان (DINE-IN)' : 'Dine-in (DINE-IN)'));
       lines.push('');
       for (const [id, qty] of Object.entries(cart)) {
         const item = items.find(i => i.id === id);
