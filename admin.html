@@ -54,6 +54,8 @@
     .table-wrap table{margin-bottom:0}
     .card-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     .card-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+    .checkbox{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;user-select:none}
+    .checkbox input{accent-color:var(--accent);width:16px;height:16px}
     .field{margin-bottom:12px}
     table{width:100%;border-collapse:collapse;font-size:13px}
     th{text-align:left;padding:8px 12px;color:var(--text2);font-weight:500;border-bottom:1px solid var(--line)}
@@ -294,7 +296,11 @@ const I18N = {
   active:           { en: 'Active', ar: 'مفعّل' },
   available:        { en: 'Available', ar: 'متاح' },
   featured:         { en: 'Featured', ar: 'مميّز' },
+  popular:          { en: 'Popular', ar: 'الأكثر طلباً' },
+  chef_choice:      { en: "Chef's Choice", ar: 'اختيار الشيف' },
+  new_badge:        { en: 'New', ar: 'جديد' },
   prices:           { en: 'Prices', ar: 'الأسعار' },
+  badges:           { en: 'Badges', ar: 'الشارات' },
   name:             { en: 'Name', ar: 'الاسم' },
   title_en:         { en: 'Title (EN)', ar: 'العنوان (إنجليزي)' },
   title_ar:         { en: 'Title (AR)', ar: 'العنوان (عربي)' },
@@ -773,7 +779,7 @@ function renderItemsTab() {
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>${t('order')}</th><th>${t('name')}</th><th>${t('category')}</th><th>${t('available')}</th><th>${t('featured')}</th><th>${t('prices')}</th><th></th></tr></thead>
+        <thead><tr><th>${t('order')}</th><th>${t('name')}</th><th>${t('category')}</th><th>${t('available')}</th><th>${t('featured')}</th><th>${t('badges')}</th><th>${t('prices')}</th><th></th></tr></thead>
         <tbody id="items-tbody"></tbody>
       </table>
     </div>
@@ -805,7 +811,7 @@ function renderItemRows() {
   if (count) count.textContent = `${t('showing')} ${slice.length} ${t('of')} ${list.length}`;
   const more = document.getElementById('item-more-wrap');
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty">${t('no_match')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="empty">${t('no_match')}</td></tr>`;
     if (more) more.innerHTML = '';
     return;
   }
@@ -819,6 +825,13 @@ function renderItemRows() {
         <td data-label="${t('category')}">${cat ? esc(cat.name) : '<span style="color:var(--text3)">—</span>'}</td>
         <td data-label="${t('available')}"><label class="toggle"><input type="checkbox" ${item.is_available?'checked':''} onchange="toggleItem('${item.id}','is_available',this.checked)"><span class="slider"></span></label></td>
         <td data-label="${t('featured')}"><label class="toggle"><input type="checkbox" ${item.is_featured?'checked':''} onchange="toggleItem('${item.id}','is_featured',this.checked)"><span class="slider"></span></label></td>
+        <td data-label="${t('badges')}">
+          ${[
+            item.is_new ? `<span style="display:inline-block;background:var(--success);color:#000;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;margin:1px">${t('new_badge')}</span>` : '',
+            item.popular ? `<span style="display:inline-block;background:var(--accent);color:#000;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;margin:1px">${t('popular')}</span>` : '',
+            item.chef_choice ? `<span style="display:inline-block;background:#c026d3;color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;margin:1px">${t('chef_choice')}</span>` : ''
+          ].join('') || '<span style="color:var(--text3)">—</span>'}
+        </td>
         <td data-label="${t('prices')}" style="font-size:12px">${prices || '<span style="color:var(--text3)">—</span>'}</td>
         <td data-label="${t('actions')}">
           <button class="btn btn-ghost btn-sm" onclick="openItemModal('${item.id}')">${t('edit')}</button>
@@ -871,6 +884,14 @@ function openItemModal(id) {
         </div>
       `).join('')}
     </div>
+    <div class="field" style="margin-top:6px">
+      <label style="margin-bottom:8px">${t('badges')}</label>
+      <div class="card-row">
+        <label class="checkbox"><input type="checkbox" id="m-item-popular" ${item?.popular?'checked':''}> ${t('popular')}</label>
+        <label class="checkbox"><input type="checkbox" id="m-item-chef" ${item?.chef_choice?'checked':''}> ${t('chef_choice')}</label>
+        <label class="checkbox"><input type="checkbox" id="m-item-new" ${item?.is_new?'checked':''}> ${t('new_badge')}</label>
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button>
       <button class="btn btn-primary" onclick="saveItem('${id || ''}')">${t('save')}</button>
@@ -886,6 +907,9 @@ async function saveItem(id) {
     category_id: gv('m-item-cat') || null,
     sort_order: parseInt(gv('m-item-sort')) || 0,
     image_url: gv('m-item-img'),
+    popular: document.getElementById('m-item-popular')?.checked ?? false,
+    chef_choice: document.getElementById('m-item-chef')?.checked ?? false,
+    is_new: document.getElementById('m-item-new')?.checked ?? false,
     shop_id: currentShop.id
   };
 

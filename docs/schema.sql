@@ -58,6 +58,9 @@ create table if not exists items (
   image_url text default '',
   is_available boolean default true,
   is_featured boolean default false,
+  popular boolean default false,                 -- badge "Popular" (P1.3)
+  chef_choice boolean default false,             -- badge "Chef's Choice" (P1.3)
+  is_new boolean default false,                  -- badge "New" (P1.3)
   sort_order int default 0,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
@@ -157,6 +160,11 @@ create table if not exists orders (
 -- alter table categories add column if not exists image_url text default '';
 -- alter table categories add column if not exists description text default '';
 -- alter table categories add column if not exists description_ar text default '';
+
+-- ─── MIGRATION (2026-09-08) — item badges (P1.3) ─────────
+-- alter table items add column if not exists popular boolean default false;
+-- alter table items add column if not exists chef_choice boolean default false;
+-- alter table items add column if not exists is_new boolean default false;
 
 -- ─── INDEXES ────────────────────────────────────────────────
 create index if not exists idx_categories_shop on categories(shop_id);

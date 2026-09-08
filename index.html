@@ -193,6 +193,13 @@
 
     .badge-feat{display:inline-block;font-size:9.5px;font-weight:800;background:var(--primary);color:#fff;padding:2px 8px;border-radius:10px;margin-inline-start:8px;letter-spacing:.3px;transform:translateY(-1px)}
 
+    /* Item badges (P1.3) — New / Popular / Chef's Choice */
+    .badge-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+    .badge-chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;letter-spacing:.4px;padding:3px 9px;border-radius:999px;color:#fff}
+    .badge-chip.b-new{background:#16a34a}
+    .badge-chip.b-popular{background:var(--primary)}
+    .badge-chip.b-chef{background:#c026d3}
+
     /* Stepper */
     .stepper{
       display:inline-flex;align-items:center;gap:4px;margin-top:8px;
@@ -616,6 +623,7 @@
           ? `<img class="item-img" src="${esc(item.image_url)}" alt="" loading="lazy">`
           : `<div class="item-img ph">${emojiFor(item)}</div>`;
         const badge = item.is_featured ? `<span class="badge-feat">${lang === 'ar' ? 'مميز' : 'FEATURED'}</span>` : '';
+        const chips = badgeChipsHTML(item);
         const qty = cart[item.id] || 0;
         const control = qty > 0
           ? stepperHTML(item.id, qty)
@@ -630,6 +638,7 @@
                 <span class="item-price">${price}</span>
               </div>
               ${name2 ? `<div class="item-sub"><span class="item-name-ar">${esc(name2)}</span></div>` : ''}
+              ${chips}
               ${desc ? `<div class="item-desc">${esc(desc)}</div>` : ''}
               ${control}
             </div>
@@ -644,6 +653,16 @@
           <input type="number" min="1" max="99" value="${qty}" onchange="setCartQty('${id}', this.value)" inputmode="numeric" aria-label="quantity">
           <button class="plus" onclick="incCart('${id}')" aria-label="increase">+</button>
         </div>`;
+    }
+
+    // Item promotional badges (P1.3) — New / Popular / Chef's Choice; '' when none
+    function badgeChipsHTML(item) {
+      if (!item) return '';
+      const chips = [];
+      if (item.is_new) chips.push(`<span class="badge-chip b-new">${lang === 'ar' ? 'جديد' : 'NEW'}</span>`);
+      if (item.popular) chips.push(`<span class="badge-chip b-popular">${lang === 'ar' ? 'الأكثر طلباً' : 'POPULAR'}</span>`);
+      if (item.chef_choice) chips.push(`<span class="badge-chip b-chef">${lang === 'ar' ? 'اختيار الشيف' : "CHEF'S CHOICE"}</span>`);
+      return chips.length ? `<div class="badge-row">${chips.join('')}</div>` : '';
     }
 
     function emojiFor(item) {
