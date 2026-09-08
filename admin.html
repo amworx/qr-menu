@@ -381,6 +381,9 @@ const I18N = {
   day_fri:          { en: 'Friday', ar: 'الجمعة' },
   day_sat:          { en: 'Saturday', ar: 'السبت' },
   day_sun:          { en: 'Sunday', ar: 'الأحد' },
+  wifi_block:       { en: 'WiFi', ar: 'واي فاي' },
+  wifi_name:        { en: 'Network name', ar: 'اسم الشبكة' },
+  wifi_pass:        { en: 'Password', ar: 'كلمة المرور' },
   default_currency: { en: 'Default Currency', ar: 'العملة الافتراضية' },
   show_currency_selector: { en: 'Show Currency Selector', ar: 'إظهار محوّل العملات' },
   save_changes:     { en: 'Save Changes', ar: 'حفظ التغييرات' },
@@ -709,6 +712,13 @@ function renderShopTab() {
       </div>
     </div>
     <div class="card">
+      <h4>${t('wifi_block')}</h4>
+      <div class="card-row">
+        <div class="field"><label>${t('wifi_name')}</label><input id="s-wifi-name" value="${esc(s.wifi_name || '')}" dir="ltr"></div>
+        <div class="field"><label>${t('wifi_pass')}</label><input id="s-wifi-pass" value="${esc(s.wifi_pass || '')}" dir="ltr"></div>
+      </div>
+    </div>
+    <div class="card">
       <h4>${t('hours')}</h4>
       <p style="font-size:12px;color:var(--text2);margin-bottom:10px">${t('hours_hint')}</p>
       <div class="hours-list" id="s-hours">
@@ -757,6 +767,7 @@ async function saveShop() {
     about: gv('s-about'), about_ar: gv('s-about-ar'),
     instagram: gv('s-instagram'), facebook: gv('s-facebook'), tripadvisor: gv('s-tripadvisor'),
     legal_note: gv('s-legal-note'), legal_note_ar: gv('s-legal-note-ar'),
+    wifi_name: gv('s-wifi-name'), wifi_pass: gv('s-wifi-pass'),
     hours: collectHours(),
     primary_color: gv('s-color'), accent_color: gv('s-accent'),
     footer_text: gv('s-footer'),

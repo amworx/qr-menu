@@ -369,3 +369,15 @@
 - **errors**: (1) PowerShell `$size-8` mangled by the parser as object-array subtraction → icons initially saved as flat colors; fixed by `[int]` casts + explicit param types. (2) SW never registered because `setupPWA()` attached a `window.load` listener but the init IIFE (which calls setupPWA) only runs after the remote data fetch resolves — `load` had already fired; fixed by registering immediately (script is at end of body).
 - **lessons**: when registering a service worker from an async init path, register directly, never rely on `window.load` — the load event may precede data-driven init; always confirm with `navigator.serviceWorker.ready` (scope/active/controller) rather than assuming registration happened.
 - **tags**: p2.4, pwa, manifest, service-worker, install-prompt, beforeinstallprompt, icons, offline, i18n, rtl, mobile-375, local-verify, pending-commit
+
+## EVT-20260908-0032
+
+- **timestamp**: 2026-09-08
+- **mode**: BUILD / DB-MIGRATION / I18N / LOCAL-VERIFY
+- **action**: P2.5 — WiFi info block (network/password/copy)
+- **summary**: Added a "واي فاي / WiFi" section to the public Info modal with zero deps: migration `alter table shops add column if not exists wifi_name text default '', add column if not exists wifi_pass text default '';` (seeded JudyJoy_WiFi / jj2026); public `renderInfo()` renders `shop.wifi_name` (dir=ltr) + optional password row with a 📋 copy button → `copyWifiPass()` (clipboard when secure context, textarea + execCommand fallback, toast «✓ تم نسخ كلمة المرور / ✓ Password copied»); admin Shop Settings gains a WiFi card (`#s-wifi-name`/`#s-wifi-pass`) persisted by `saveShop`; CSS `.wifi-block/.wifi-row/.wifi-cap/.wifi-val/.wifi-act`; schema.sql updated (columns + P2.5 migration note).
+- **result**: Success — AR 375px: Info shows «واي فاي» with الشبكة JudyJoy_WiFi + كلمة المرور jj2026 + copy button; copy toast «✓ تم نسخ كلمة المرور»; EN 375px: «WiFi», Network/Password rows, labels ltr; no overflow. Admin save path proven: change pass to test123 in UI → API select shows test123 → restored to jj2026. Console only pre-existing favicon 404.
+- **files**: `docs/schema.sql`, `admin.html` (i18n wifi_block/wifi_name/wifi_pass, WiFi card, saveShop), `index.html` (wifiSection in renderInfo, copyWifiPass, .wifi-* CSS), memory/events.md. DB: shops.wifi_name/wifi_pass seeded.
+- **errors**: None.
+- **lessons**: the copy pattern (secureContext clipboard first, execCommand fallback) is now reusable — consider a shared helper for copyWifiPass vs copyProductLink.
+- **tags**: p2.5, wifi-info, copy-password, info-modal, db-migration, admin-editor, i18n, rtl, mobile-375, local-verify, pending-commit

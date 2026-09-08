@@ -36,6 +36,8 @@ create table if not exists shops (
   tripadvisor text default '',
   legal_note text default '',               -- legal note (EN), e.g. "All prices include VAT"
   legal_note_ar text default '',            -- legal note (AR)
+  wifi_name text default '',                -- P2.5 WiFi network name shown in Info modal
+  wifi_pass text default '',                -- P2.5 WiFi password (copy button)
   hours jsonb,                              -- P1.11: 7 entries Mon..Sun [{open:'08:00',close:'23:00'}, ...] or null = closed
   created_at timestamptz default now(),
   updated_at timestamptz default now()
@@ -331,3 +333,9 @@ end $$;
 --   (isNowOpen()/infoHoursHTML()) and the admin Shop Settings hours editor
 --   (s.hours persisted by saveShop → hoursEditorRows()/collectHours()).
 --   alter table shops add column if not exists hours jsonb;
+
+-- P2.5 (2026-09-08): WiFi info block — shops.wifi_name (SSID) + shops.wifi_pass,
+--   rendered as a "واي فاي / WiFi" section in the public Info modal with a copy
+--   button; edited from the admin Shop Settings WiFi card (saveShop persists).
+--   alter table shops add column if not exists wifi_name text default '',
+--     add column if not exists wifi_pass text default '';
