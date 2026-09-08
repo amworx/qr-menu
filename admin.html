@@ -301,6 +301,8 @@ const I18N = {
   new_badge:        { en: 'New', ar: 'جديد' },
   prices:           { en: 'Prices', ar: 'الأسعار' },
   badges:           { en: 'Badges', ar: 'الشارات' },
+  kcal:             { en: 'Calories (kcal)', ar: 'السعرات (سعرة)' },
+  prep_time:        { en: 'Prep time (min)', ar: 'وقت التحضير (دقيقة)' },
   name:             { en: 'Name', ar: 'الاسم' },
   title_en:         { en: 'Title (EN)', ar: 'العنوان (إنجليزي)' },
   title_ar:         { en: 'Title (AR)', ar: 'العنوان (عربي)' },
@@ -871,6 +873,10 @@ function openItemModal(id) {
       <div class="field"><label>${t('sort_order')}</label><input type="number" id="m-item-sort" value="${item ? item.sort_order : (allItems.length + 1) * 10}"></div>
     </div>
     <div class="field"><label>${t('image_url')}</label><input id="m-item-img" value="${item ? esc(item.image_url) : ''}" placeholder="https://..."></div>
+    <div class="card-row">
+      <div class="field"><label>${t('kcal')}</label><input type="number" min="0" id="m-item-kcal" value="${item && item.kcal != null ? item.kcal : ''}" placeholder="—"></div>
+      <div class="field"><label>${t('prep_time')}</label><input type="number" min="0" id="m-item-prep" value="${item && item.prep_time_min != null ? item.prep_time_min : ''}" placeholder="—"></div>
+    </div>
     <div class="field">
       <label style="margin-bottom:8px">${t('prices')}</label>
       ${currencies.map(c => `
@@ -907,6 +913,8 @@ async function saveItem(id) {
     category_id: gv('m-item-cat') || null,
     sort_order: parseInt(gv('m-item-sort')) || 0,
     image_url: gv('m-item-img'),
+    kcal: gv('m-item-kcal') === '' ? null : parseInt(gv('m-item-kcal')),
+    prep_time_min: gv('m-item-prep') === '' ? null : parseInt(gv('m-item-prep')),
     popular: document.getElementById('m-item-popular')?.checked ?? false,
     chef_choice: document.getElementById('m-item-chef')?.checked ?? false,
     is_new: document.getElementById('m-item-new')?.checked ?? false,

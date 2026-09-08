@@ -225,3 +225,15 @@
 - **errors**: None (save-path test required a check-then-restore cycle; no regressions observed)
 - **lessons**: (none new — reused LSSN-027 payload technique)
 - **tags**: p1.3, badges, popular, chef-choice, new, item-badges, db-migration, admin-crud, chips, rtl, mobile-375, local-verify, pending-commit
+
+## EVT-20260908-0020
+
+- **timestamp**: 2026-09-08
+- **mode**: BUILD / DB-MIGRATION / I18N / LOCAL-VERIFY
+- **action**: P1.4 — kcal + prep time on item cards + admin CRUD
+- **summary**: Continued queue after P1.3 shipped (commit af5d3a3). Implemented kcal + preparation time: (1) **DB migration** via Management API — added `kcal integer null`, `prep_time_min integer null` to `items`; documented in `docs/schema.sql` (columns + P1.4 migration note); (2) **admin.html** — i18n keys (`kcal` السعرات (سعرة), `prep_time` وقت التحضير (دقيقة)); item modal gained a two-field card-row (numeric kcal + prep-time inputs); `saveItem()` persists them as `null` when empty, integer otherwise; (3) **index.html** — `.item-meta` pill CSS + `itemMetaHTML(item)` helper emitting `🔥 N kcal` and `⏱ ~N min`/`~N دقيقة` chips (localized), rendered under the description/control in `renderItems()`. Seeded realistic values on 5 items (Arabic Coffee 12kcal/3min, Cappuccino 95/7, Fresh Lemonade 25/5, Cheese Manakish 420/25, Kunafa 320/15).
+- **result**: Success — verified locally at strict 375px (docScrollW==docClientW==375): AR shows `🔥 12 kcal ⏱ ~3 دقيقة` style chips with Arabic prep label; EN shows `~3 min`; items without values show no meta row; admin modal inputs populate/persist correctly (saved via `saveItem()`); console clean apart from the two pre-existing issues (favicon 404, label-association a11y).
+- **files**: `docs/schema.sql` (items kcal/prep columns + migration note), `admin.html` (i18n + modal fields + saveItem), `index.html` (CSS + `itemMetaHTML()` + renderItems), memory/events.md
+- **errors**: None
+- **lessons**: (none new — kcal/prep follow the same schema→admin→render pattern as P1.3/P1.7)
+- **tags**: p1.4, kcal, prep-time, calories, db-migration, admin-crud, item-meta, rtl, mobile-375, local-verify, pending-commit

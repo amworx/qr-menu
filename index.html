@@ -191,6 +191,10 @@
     .item-name-ar{font-size:12.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
     .item-desc{font-size:12px;color:var(--text2);line-height:1.55;margin-top:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 
+    /* kcal + prep meta (P1.4) */
+    .item-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+    .item-meta span{font-size:10.5px;font-weight:700;color:var(--text3);background:var(--card2);border:1px solid var(--border);border-radius:999px;padding:3px 9px;font-variant-numeric:tabular-nums}
+
     .badge-feat{display:inline-block;font-size:9.5px;font-weight:800;background:var(--primary);color:#fff;padding:2px 8px;border-radius:10px;margin-inline-start:8px;letter-spacing:.3px;transform:translateY(-1px)}
 
     /* Item badges (P1.3) — New / Popular / Chef's Choice */
@@ -640,6 +644,7 @@
               ${name2 ? `<div class="item-sub"><span class="item-name-ar">${esc(name2)}</span></div>` : ''}
               ${chips}
               ${desc ? `<div class="item-desc">${esc(desc)}</div>` : ''}
+              ${itemMetaHTML(item)}
               ${control}
             </div>
           </div>`;
@@ -663,6 +668,15 @@
       if (item.popular) chips.push(`<span class="badge-chip b-popular">${lang === 'ar' ? 'الأكثر طلباً' : 'POPULAR'}</span>`);
       if (item.chef_choice) chips.push(`<span class="badge-chip b-chef">${lang === 'ar' ? 'اختيار الشيف' : "CHEF'S CHOICE"}</span>`);
       return chips.length ? `<div class="badge-row">${chips.join('')}</div>` : '';
+    }
+
+    // kcal + prep-time meta line (P1.4); '' when neither present
+    function itemMetaHTML(item) {
+      if (!item || (item.kcal == null && item.prep_time_min == null)) return '';
+      const parts = [];
+      if (item.kcal != null) parts.push(`<span class="meta-kcal">🔥 ${item.kcal} kcal</span>`);
+      if (item.prep_time_min != null) parts.push(`<span class="meta-prep">⏱ ${lang === 'ar' ? `~${item.prep_time_min} دقيقة` : `~${item.prep_time_min} min`}</span>`);
+      return `<div class="item-meta">${parts.join('')}</div>`;
     }
 
     function emojiFor(item) {

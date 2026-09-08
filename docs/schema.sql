@@ -61,6 +61,8 @@ create table if not exists items (
   popular boolean default false,                 -- badge "Popular" (P1.3)
   chef_choice boolean default false,             -- badge "Chef's Choice" (P1.3)
   is_new boolean default false,                  -- badge "New" (P1.3)
+  kcal integer,                                  -- calories per portion (P1.4)
+  prep_time_min integer,                         -- preparation time in minutes (P1.4)
   sort_order int default 0,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
@@ -165,6 +167,10 @@ create table if not exists orders (
 -- alter table items add column if not exists popular boolean default false;
 -- alter table items add column if not exists chef_choice boolean default false;
 -- alter table items add column if not exists is_new boolean default false;
+
+-- ─── MIGRATION (2026-09-08) — kcal + prep time (P1.4) ────
+-- alter table items add column if not exists kcal integer;
+-- alter table items add column if not exists prep_time_min integer;
 
 -- ─── INDEXES ────────────────────────────────────────────────
 create index if not exists idx_categories_shop on categories(shop_id);
