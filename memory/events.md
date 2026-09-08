@@ -393,3 +393,15 @@
 - **errors**: None (test order cleaned up after verification).
 - **lessons**: reuse the localStorage-on-toggle pattern for per-device preferences; keep wa.me lines BMP-safe with plain-text mode tags instead of emoji.
 - **tags**: p2.6, order-mode, dinein, takeaway, wa-message, db-migration, i18n, rtl, mobile-375, local-verify, pending-commit
+
+## EVT-20260908-0034
+
+- **timestamp**: 2026-09-08
+- **mode**: BUILD / DB-MIGRATION / I18N / LOCAL-VERIFY
+- **action**: P2.7 — Table/QR per-table attribution (?table= → order sheet, WhatsApp, orders)
+- **summary**: Public page now reads `?table=<id>` (clean label, e.g. "5", "A12", "balcony"): parsed in the init IIFE after the deep-item block into module `tableLabel`; the review sheet shows a dashed chip row «🪑 5 / Table 5» above the order-mode toggle (`tableRow` in `.om-foot`, `.table-chip`); `sendWhatsApp()` inserts a BMP-safe line right after the mode line — «الطاولة: 5 / Table: 5» — and persists `orders.table_label` (migration `alter table orders add column if not exists table_label text default '';`). No table → chip and WA line omitted entirely. Share links (`cleanUrl`) already carry `window.location.search`, so ?table= + ?item= coexist in deep links.
+- **result**: Success — AR 375px `?table=5#ar`: «الطاولة» chip 🪑 5, full stubbed sendWhatsApp produced «*طلب جديد #2 — Judy Joy*\nفي المكان (DINE-IN)\nالطاولة: 5\n• كابتشينو × 1 — ٢٠٬٠٠٠ SYP»; orders row id=2 carried `table_label=5` (verified via API, then deleted). EN `?table=5#en`: «Table» + 🪑 5 chip, no overflow. Console clean (only favicon 404) — previous form-field a11y issue resolved by `name="qty"`.
+- **files**: `docs/schema.sql` (table_label column + note), `index.html` (tableLabel state, init parse, tableRow chip, .table-chip CSS, WA line, insert), memory/events.md. DB: orders.table_label.
+- **errors**: None (test order cleaned up).
+- **lessons**: the `?table=` param pattern makes any QR a per-table QR with zero admin work — post-GA QR generator just encodes `https://amworx.github.io/qr-menu/?table=<id>` (+ optional `&item=`).
+- **tags**: p2.7, table-attribution, qr-param, wa-message, db-migration, i18n, rtl, mobile-375, local-verify, pending-commit

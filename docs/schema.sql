@@ -144,6 +144,7 @@ create table if not exists orders (
   discount_lines jsonb not null default '[]',    -- [{id,title,title_ar,amount}]
   note text default '',                          -- customer order note
   order_mode text default 'dinein',              -- P2.6: dinein | takeaway (toggle in order sheet)
+  table_label text default '',                    -- P2.7: table/QR attribution from ?table=<id>
   created_at timestamptz not null default now()
 );
 
@@ -345,3 +346,10 @@ end $$;
 --   from the order sheet toggle (🍽️ في المكان / 🥡 سفري) and sent at the top of
 --   the WhatsApp message; persisted per device via localStorage 'qm-order-mode'.
 --   alter table orders add column if not exists order_mode text default 'dinein';
+
+-- P2.7 (2026-09-08): table/QR attribution — orders.table_label. The public page
+--   reads ?table=<id> (any label: "5", "A12", "balcony") and prints it in the
+--   order sheet ("الطاولة / Table" chip), in the WhatsApp message right after
+--   the mode line, and into orders.table_label. Post-GA, per-table QR codes are
+--   simply menu URLs with ?table=<id>.
+--   alter table orders add column if not exists table_label text default '';

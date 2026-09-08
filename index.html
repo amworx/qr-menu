@@ -334,6 +334,7 @@
     .om-toggle{display:flex;gap:8px;flex:1}
     .om-btn{flex:1;padding:10px 8px;border-radius:12px;border:1px solid var(--border2);background:var(--card2);color:var(--text2);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s ease;font-family:inherit;white-space:nowrap}
     .om-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
+    .table-chip{flex:1;padding:10px 14px;border-radius:12px;border:1px dashed var(--border2);background:var(--card2);color:var(--text1);font-size:13px;font-weight:800}
 
     /* ═══ PRODUCT DETAIL SHEET (P1.2) ═══ */
     .product-sheet{background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;height:92vh;display:flex;flex-direction:column;overflow:hidden;animation:slideUp .3s ease}
@@ -620,6 +621,10 @@
       if (deepItem && items.some(i => i.id === deepItem)) {
         setTimeout(() => openProductSheet(deepItem), 400);
       }
+      // Table attribution (P2.7): ?table=<id> (rendered in order sheet + WhatsApp)
+      const tabParam = new URLSearchParams(window.location.search).get('table');
+      const tabVal = tabParam ? String(tabParam).trim() : '';
+      if (tabVal) tableLabel = tabVal;
       initVoice();
       setupPWA();
     })();
@@ -1694,6 +1699,7 @@
 
     // Order sheet
     let orderMode = localStorage.getItem('qm-order-mode') || 'dinein';
+    let tableLabel = ''; // P2.7: from ?table=<id>
     function setOrderMode(m) { orderMode = m; try { localStorage.setItem('qm-order-mode', m); } catch (e) {} renderOrderSheet(); }
 
     function openOrderSheet() {
@@ -1718,6 +1724,9 @@
 
       // Order mode toggle (P2.6)
       const modeLabel = lang === 'ar' ? 'نوع الطلب' : 'Order type';
+      const tableRow = tableLabel
+        ? `<div class="om-row"><span class="om-label">${lang === 'ar' ? 'الطاولة' : 'Table'}</span><span class="table-chip">🪑 ${esc(tableLabel)}</span></div>`
+        : '';
       const modeHtml = `<div class="om-row">
         <span class="om-label">${modeLabel}</span>
         <div class="om-toggle" role="group" aria-label="${modeLabel}">
@@ -1783,7 +1792,7 @@
         ${rows}
         ${offerRows}
         ${totalHtml}
-        <div class="om-foot">${modeHtml}</div>
+        <div class="om-foot">${tableRow}${modeHtml}</div>
         <textarea class="order-note" id="order-note" placeholder="${noteLabel}"></textarea>
         <button class="order-whatsapp" onclick="sendWhatsApp()">🟢 ${waLabel}</button>`;
     }
@@ -1811,7 +1820,8 @@
           offers: o.offers,
           discount_lines: o.discountLines,
           note,
-          order_mode: orderMode
+          order_mode: orderMode,
+          table_label: tableLabel
         }).select('id').single();
         if (!error && data && data.id) orderNo = data.id;
       } catch (e) { /* keep client-only fallback below */ }
@@ -1823,6 +1833,7 @@
       lines.push(orderMode === 'takeaway'
         ? (lang === 'ar' ? 'طلب سفري (TAKEAWAY)' : 'Takeaway (TAKEAWAY)')
         : (lang === 'ar' ? 'في المكان (DINE-IN)' : 'Dine-in (DINE-IN)'));
+      if (tableLabel) lines.push(`${lang === 'ar' ? 'الطاولة' : 'Table'}: ${tableLabel}`);
       lines.push('');
       for (const [id, qty] of Object.entries(cart)) {
         const item = items.find(i => i.id === id);
