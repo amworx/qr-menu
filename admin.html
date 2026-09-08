@@ -75,6 +75,15 @@
     .item-toolbar select{min-width:120px;flex:0 1 auto}
     .item-count{font-size:12px;color:var(--text2);margin-inline-start:auto;white-space:nowrap}
 
+    /* Orders tab */
+    .order-lines{display:flex;flex-direction:column;gap:2px;font-size:12px;line-height:1.55;color:var(--text2);min-width:160px}
+    .order-lines .ln{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+    .order-lines .lname{flex:1;min-width:0}
+    .order-lines .off .lname{color:var(--success)}
+    .order-lines .neg{color:var(--success);white-space:nowrap;font-weight:600}
+    .order-id{font-weight:700;color:var(--accent);font-size:13px;white-space:nowrap}
+    .order-note-inline{font-style:italic;color:var(--text3);margin-top:4px;max-width:220px;overflow-wrap:break-word}
+
     /* Deal modal dynamic fields */
     .deal-fields{display:none}
     .bundle-pick{display:flex;flex-wrap:wrap;gap:8px}
@@ -207,6 +216,7 @@
       <button onclick="showTab('categories')" data-tab="categories" data-i18n="tab_categories">Categories</button>
       <button onclick="showTab('items')" data-tab="items" data-i18n="tab_items">Menu Items</button>
       <button onclick="showTab('deals')" data-tab="deals" data-i18n="tab_deals">Deals &amp; Offers</button>
+      <button onclick="showTab('orders')" data-tab="orders" data-i18n="tab_orders">Orders</button>
       <button onclick="showTab('currencies')" data-tab="currencies" data-i18n="tab_currencies">Currencies</button>
     </nav>
     <div class="mobile-tabs" id="mobile-tabs">
@@ -214,6 +224,7 @@
       <button onclick="showTab('categories')" data-tab="categories" data-i18n="tab_categories">Categories</button>
       <button onclick="showTab('items')" data-tab="items" data-i18n="tab_items">Menu Items</button>
       <button onclick="showTab('deals')" data-tab="deals" data-i18n="tab_deals">Deals &amp; Offers</button>
+      <button onclick="showTab('orders')" data-tab="orders" data-i18n="tab_orders">Orders</button>
       <button onclick="showTab('currencies')" data-tab="currencies" data-i18n="tab_currencies">Currencies</button>
     </div>
     <div class="main-content" id="main-content">
@@ -243,6 +254,11 @@ let currentTab = 'shop';
 // Items list UX state (search / filter / sort / pagination)
 let itemQuery = '', itemCat = '', itemSort = 'order', itemShown = 50;
 const ITEM_PAGE = 50;
+// Orders tab state (loaded set + filters + range pagination)
+let ordersAll = [];
+let orderHasMore = true;
+let orderQuery = '', orderFilter = 'all';
+const ORDER_PAGE = 200;
 
 // ─── I18N (Arabic default) ─────────────────────────────────
 let lang = localStorage.getItem('qm-admin-lang') || 'ar';
@@ -262,6 +278,7 @@ const I18N = {
   tab_categories:   { en: 'Categories', ar: 'التصنيفات' },
   tab_items:        { en: 'Menu Items', ar: 'عناصر القائمة' },
   tab_deals:        { en: 'Deals & Offers', ar: 'العروض والخصومات' },
+  tab_orders:       { en: 'Orders', ar: 'الطلبات' },
   tab_currencies:   { en: 'Currencies', ar: 'العملات' },
 
   new_category:     { en: '+ New Category', ar: '+ تصنيف جديد' },
@@ -287,6 +304,22 @@ const I18N = {
   discount:         { en: 'Discount', ar: 'الخصم' },
   valid:            { en: 'Valid', ar: 'الصلاحية' },
   actions:          { en: 'Actions', ar: 'إجراءات' },
+
+  // Orders tab
+  loading_orders:   { en: 'Loading orders…', ar: 'جارٍ تحميل الطلبات…' },
+  no_orders:        { en: 'No orders yet. When a customer places an order it will appear here.', ar: 'لا توجد طلبات بعد. عندما يضع العميل طلباً سيظهر هنا.' },
+  no_orders_match:  { en: 'No orders match your search.', ar: 'لا توجد طلبات تطابق البحث.' },
+  orders_search:    { en: 'Search order number…', ar: 'ابحث عن رقم الطلب…' },
+  orders_all:       { en: 'All orders', ar: 'كل الطلبات' },
+  orders_today:     { en: 'Today', ar: 'اليوم' },
+  refresh:          { en: 'Refresh', ar: 'تحديث' },
+  order_no:         { en: 'Order', ar: 'الطلب' },
+  date:             { en: 'Date', ar: 'التاريخ' },
+  items_label:      { en: 'Items', ar: 'العناصر' },
+  offers:           { en: 'Offers', ar: 'العروض' },
+  subtotal:         { en: 'Subtotal', ar: 'المجموع الفرعي' },
+  total:            { en: 'Total', ar: 'الإجمالي' },
+  note:             { en: 'Note', ar: 'ملاحظة' },
 
   general:          { en: 'General', ar: 'عام' },
   contact:          { en: 'Contact', ar: 'التواصل' },
@@ -554,6 +587,7 @@ function showTab(tab) {
     case 'categories': c.innerHTML = renderCategoriesTab(); break;
     case 'items': c.innerHTML = renderItemsTab(); renderItemRows(); break;
     case 'deals': c.innerHTML = `<div class="empty">${t('loading_deals')}</div>`; renderDealsTab().then(html => { c.innerHTML = html; }); break;
+    case 'orders': c.innerHTML = `<div class="empty">${t('loading_orders')}</div>`; renderOrdersTab().then(html => { c.innerHTML = html; }); break;
     case 'currencies': c.innerHTML = renderCurrenciesTab(); break;
   }
 }
@@ -1192,6 +1226,103 @@ async function toggleCurrencySelector() {
   const val = document.getElementById('s-show-cur-sel').checked;
   await sb.from('shops').update({ show_currency_selector: val }).eq('id', currentShop.id);
   currentShop.show_currency_selector = val;
+}
+
+// ─── ORDERS ─────────────────────────────────────────────────
+// RLS: owner can SELECT orders for their shop (bigserial id desc = newest first).
+// Paginated via .range() so the list can grow without unbounded memory.
+async function loadOrders(reset) {
+  if (reset) { ordersAll = []; orderHasMore = true; }
+  if (!orderHasMore) { renderOrderRows(); return; }
+  const from = ordersAll.length;
+  const to = from + ORDER_PAGE - 1;
+  const { data, error } = await sb.from('orders')
+    .select('*')
+    .eq('shop_id', currentShop.id)
+    .order('id', { ascending: false })
+    .range(from, to);
+  if (error) return toast(t('error') + ': ' + error.message, true);
+  const rows = data || [];
+  ordersAll = ordersAll.concat(rows);
+  orderHasMore = rows.length === ORDER_PAGE;
+  renderOrderRows();
+}
+
+function filterOrders() {
+  let list = ordersAll;
+  const q = orderQuery.trim().toLowerCase();
+  if (q) list = list.filter(o => String(o.id).includes(q));
+  if (orderFilter === 'today') {
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    list = list.filter(o => new Date(o.created_at) >= start);
+  }
+  return list;
+}
+
+function orderRowHTML(o) {
+  const loc = lang === 'ar' ? 'ar-SY' : 'en-GB';
+  const dt = new Date(o.created_at).toLocaleString(loc, { dateStyle: 'short', timeStyle: 'short' });
+  const cur = o.currency || 'SYP';
+  const items = (o.items || []).map(it => {
+    const nm = lang === 'ar' ? (it.name_ar || it.name) : it.name;
+    return `<div class="ln"><span class="lname">${esc(nm)} × ${it.qty}</span><span>${esc(it.unit_price)} ${cur}</span></div>`;
+  }).join('');
+  const offers = (o.offers || []).map(off => {
+    const nm = lang === 'ar' ? (off.summary || off.title_ar || off.title) : (off.title || off.summary);
+    return `<div class="ln off"><span class="lname">${esc(nm)}</span><span class="neg">−${esc(off.savings)} ${cur}</span></div>`;
+  }).join('');
+  const noteHtml = o.note ? `<div class="order-note-inline">${t('note')}: ${esc(o.note)}</div>` : '';
+  return `
+    <tr>
+      <td data-label="${t('order_no')}"><span class="order-id">#${o.id}</span></td>
+      <td data-label="${t('date')}"><small>${esc(dt)}</small></td>
+      <td data-label="${t('items_label')}"><div class="order-lines">${items}${noteHtml}</div></td>
+      <td data-label="${t('offers')}">${offers ? `<div class="order-lines">${offers}</div>` : '<span style="color:var(--text3)">—</span>'}</td>
+      <td data-label="${t('subtotal')}">${esc(o.subtotal)} ${cur}</td>
+      <td data-label="${t('discount')}"><span class="neg">−${esc(o.discount)} ${cur}</span></td>
+      <td data-label="${t('total')}"><strong>${esc(o.total)} ${cur}</strong></td>
+    </tr>`;
+}
+
+function renderOrderRows() {
+  const tbody = document.getElementById('orders-tbody');
+  if (!tbody) return;
+  const list = filterOrders();
+  const count = document.getElementById('order-count');
+  if (count) count.textContent = `${t('showing')} ${list.length} ${t('of')} ${ordersAll.length}${orderHasMore ? '+' : ''}`;
+  const more = document.getElementById('order-more-wrap');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">${ordersAll.length ? t('no_orders_match') : t('no_orders')}</td></tr>`;
+    if (more) more.innerHTML = '';
+    return;
+  }
+  tbody.innerHTML = list.map(orderRowHTML).join('');
+  if (more) more.innerHTML = orderHasMore
+    ? `<button class="btn btn-ghost" onclick="loadOrders(false)">${t('load_more')}</button>`
+    : '';
+}
+
+async function renderOrdersTab() {
+  loadOrders(true);
+  return `
+    <h3>${t('tab_orders')}</h3>
+    <div class="item-toolbar">
+      <input class="item-search" id="order-search" placeholder="${t('orders_search')}" value="${esc(orderQuery)}" oninput="orderQuery=this.value; renderOrderRows();">
+      <select id="order-filter" onchange="orderFilter=this.value; renderOrderRows();">
+        <option value="all" ${orderFilter==='all'?'selected':''}>${t('orders_all')}</option>
+        <option value="today" ${orderFilter==='today'?'selected':''}>${t('orders_today')}</option>
+      </select>
+      <button class="btn btn-ghost" onclick="loadOrders(true)">⟳ ${t('refresh')}</button>
+      <span class="item-count" id="order-count"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>${t('order_no')}</th><th>${t('date')}</th><th>${t('items_label')}</th><th>${t('offers')}</th><th>${t('subtotal')}</th><th>${t('discount')}</th><th>${t('total')}</th></tr></thead>
+        <tbody id="orders-tbody"></tbody>
+      </table>
+    </div>
+    <div id="order-more-wrap" style="text-align:center"></div>
+  `;
 }
 
 // ─── HELPERS ────────────────────────────────────────────────
