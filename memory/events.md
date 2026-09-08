@@ -345,3 +345,15 @@
 - **errors**: ReferenceError before initialization (TDZ) — root cause: top-level `const SR` declaration appears later in source than the `initVoice()` call site; fix moved the call after the module. Lesson: any top-level `const` used by a hoisted function must be initialized before the function is *invoked*, not merely declared.
 - **lessons**: voice UI must hide gracefully when there is no SpeechRecognition; bind recognition language to the active UI language and re-run search through the existing normalized pipeline so Arabic diacritics still match.
 - **tags**: p2.2, voice-search, web-speech-api, speechrecognition, aria, toast, rtl, mobile-375, local-verify, pending-commit
+
+## EVT-20260908-0030
+
+- **timestamp**: 2026-09-08
+- **mode**: BUILD / I18N / LOCAL-VERIFY
+- **action**: P2.3 — Similar products rail (same category)
+- **summary**: Added a horizontal "مشابهة / Similar" rail inside the product sheet for same-category items: `similarHTML(item)` filters `items` by `category_id === item.category_id && id !== item.id` (limit 10), renders mini cards reusing the P2.1 fav-card visual language (`.fav-thumb`/`.fav-name`/`.fav-price`, so variant-aware "From" prices carry over for free), each card's tap re-opens `openProductSheet(otherId)`; section hidden when the category has only the current item; injected into `pd-body` between the allergen section and the order-note. CSS `.similar-sec/.similar-head/.similar-track` (horizontal scroll, hidden scrollbar).
+- **result**: Success — AR 375px: Cappuccino sheet shows «مشابهة» with قهوة عربية (١٥٬٠٠٠ SYP) + قهوة تركية (١٢٬٠٠٠ SYP); tapping a card switched the sheet to «قهوة عربية» (still 2 similar cards, no overflow). EN 375px: deep link `?item=<Cappuccino>#en` auto-opened the sheet, heading «Similar», cards "Arabic Coffee"/"Turkish Coffee", no overflow. Console clean.
+- **files**: `index.html` (SIMILAR PRODUCTS module before VOICE SEARCH, .similar-* CSS, `${similarHTML(item)}` in sheet), memory/events.md
+- **errors**: Test-only — visited `#en?item=…` (query inside the hash) which breaks lang detection + deep link; correct ordering is `?item=…#en` (P1.10 pattern).
+- **lessons**: reuse the fav-card mini-card styles for any horizontal "related" rail — consistent and free variant pricing; keep URL query params before the `#lang` hash.
+- **tags**: p2.3, similar-products, related-rail, product-sheet, i18n, rtl, mobile-375, local-verify, pending-commit

@@ -202,6 +202,12 @@
     .fav-price{font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
     .fav-del{position:absolute;top:4px;inset-inline-end:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;border:none;font-size:10px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
 
+    /* Similar products rail (P2.3) */
+    .similar-sec{margin-top:6px;padding-bottom:6px}
+    .similar-head{font-size:11.5px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+    .similar-track{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+    .similar-track::-webkit-scrollbar{display:none}
+
     .item-body{flex:1;min-width:0}
     .item-name-btn{background:none;border:none;padding:0;margin:0;color:inherit;font:inherit;cursor:pointer;text-align:start;min-width:0}
     .item-name-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:6px}
@@ -1074,6 +1080,26 @@
       </button>`;
     }
 
+    // ─── SIMILAR PRODUCTS (P2.3) ──────────────────────────
+    // Horizontal rail inside the product sheet: other items in the same category.
+    function similarHTML(item) {
+      const others = items.filter(i => i.category_id === item.category_id && i.id !== item.id).slice(0, 10);
+      if (!others.length) return '';
+      const heading = lang === 'ar' ? 'مشابهة' : 'Similar';
+      const cards = others.map(it => {
+        const name = lang === 'ar' ? (it.name_ar || it.name) : it.name;
+        const thumb = it.image_url
+          ? `<img class="fav-thumb" src="${esc(it.image_url)}" alt="" loading="lazy">`
+          : `<div class="fav-thumb">${emojiFor(it)}</div>`;
+        return `<button class="fav-card" onclick="openProductSheet('${it.id}')">
+          ${thumb}
+          <span class="fav-name">${esc(name)}</span>
+          <span class="fav-price">${cardPriceHTML(it)}</span>
+        </button>`;
+      }).join('');
+      return `<div class="similar-sec"><div class="similar-head">${heading}</div><div class="similar-track">${cards}</div></div>`;
+    }
+
     // ─── VOICE SEARCH (P2.2) ─────────────────────────────
     // Thin Web Speech API wrapper on the P1.8 search overlay; mic hidden when
     // the browser has no SpeechRecognition. Results land in the normal search box.
@@ -1365,6 +1391,7 @@
           ${meta ? `<div class="pd-item-meta">${meta}</div>` : ''}
           ${varHtml}
           ${allergenSectionHTML(item)}
+          ${similarHTML(item)}
           <div class="pd-note-wrap">
             <label class="pd-label" for="pd-note">${noteLabel}</label>
             <textarea class="order-note" id="pd-note" placeholder="${notePh}">${esc(cartNotes[item.id] || '')}</textarea>
