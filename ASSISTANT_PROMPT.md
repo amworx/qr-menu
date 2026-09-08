@@ -94,10 +94,35 @@ email-only (no password, no OTP — SMTP not configured).
 5. Append to `memory/events.md` (`EVT-YYYYMMDD-XXXX`); add lessons/patterns when valuable.
    Full workflow: `memory/playbooks.md` PB-001.
 
-## Current status (2026-09-07)
-Shipped: bilingual menu; admin CRUD + search/filter/sort/pagination; 5-type offers (UI + DB);
-clickable offers added to order; list/grid toggle; consistent offer CTA (14px min gap);
-one-tap remove; **order numbers** (`orders` table); **pricing engine** (offers discount the
-order total); WhatsApp message with #id + discount breakdown; email-only admin login.
-HEAD: `e20fb8e`. Likely next steps (confirm with the owner first): admin **Orders** view
-(the table already exists), bundle/bogo live data, real OTP via SMTP.
+## Session handoff (2026-09-07) — what was just built
+
+Full file: `HANDOFF.md` at repo root. Summary:
+
+1. **Admin items UX** — search/filter/sort/pagination toolbar on the items tab.
+2. **Offers system** — 5 deal types in one `deals` table + one flexible admin modal + localized
+   public summary (`dealSummary()`). Types: `percent | fixed | bogo | bundle | min_order`.
+3. **Clickable offers** — tapping an offer card adds it to the order (`cartOffers`), count in the
+   FAB badge, 🎁 line in the order sheet + WhatsApp, remove ✕.
+4. **List/grid view toggle** — CSS-class toggle persisted in `localStorage 'qm-view'`.
+5. **Consistent offer CTA + overlap fix** — flex-column deal cards, `margin-top:auto` add button,
+   guaranteed 14px min gap above it (was 0px on the tallest card).
+6. **One-tap remove** — per-line ✕ in the order sheet.
+7. **Order numbers** — `orders` table, bigserial `id` = "Order #N"; anon can INSERT only, owner
+   manages via RLS; `sendWhatsApp()` inserts first, falls back to `T<epoch-tail>` if it fails.
+8. **Pricing engine** — one `computeOrder()` snapshot feeds FAB / order sheet / WhatsApp; discounts
+   additive, capped at subtotal; per-type math in `dealSavings()`; money-valued deals apply only in
+   their own currency.
+9. **WhatsApp message upgrade** — numbered header, per-offer savings, subtotal/discount/total; strips
+   non-BMP emoji and uses `★` markers (wa.me redirect mangles 🎁).
+10. **Onboarding docs** — `HANDOFF.md`, `AGENTS.md`, `ASSISTANT_PROMPT.md`, refreshed `README.md`.
+
+**Live state**: HEAD `bb1063f` pushed & Pages `built`. Production data: 9 items, 3 offers (BOGO
+Cheese Manakish buy 2 get 1 · 10% off all · 100 SYP off all). `orders` table empty on purpose
+(test rows truncated with `restart identity` → next real order is **#1**). Verified math:
+105,000 − (25,000 + 10,500 + 100) = **69,400 SYP**.
+
+**Likely next steps (confirm with the owner first)**: admin **Orders** view (table already exists
+and is being populated), bundle/BOGO live data, true OTP login once SMTP is configured.
+
+**Memory index**: events → EVT-…-0015 · lessons → LSSN-…-023 · patterns → PAT-…-011 ·
+decisions → DEC-001…003 · playbooks → PB-001…003.
