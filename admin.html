@@ -58,6 +58,15 @@
     .allergen-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
     .allergen-cell{padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--bg2)}
     @media (max-width:520px){.allergen-grid{grid-template-columns:1fr}}
+
+    /* Variant editor (P1.6) */
+    .var-list{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+    .var-row{display:grid;grid-template-columns:1fr 1fr 30px;gap:6px;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px}
+    .var-row input{width:100%;padding:8px 9px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-size:12.5px;color:var(--text);min-width:0}
+    .var-prices{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+    .mv-del{width:30px;height:30px;border-radius:8px;background:var(--card2);border:1px solid var(--border2);color:var(--text2);cursor:pointer;font-size:13px}
+    .mv-del:hover{border-color:var(--danger);color:var(--danger)}
+    .btn-sm{padding:7px 12px;font-size:12px;border-radius:8px}
     .checkbox input{accent-color:var(--accent);width:16px;height:16px}
     .field{margin-bottom:12px}
     table{width:100%;border-collapse:collapse;font-size:13px}
@@ -435,7 +444,11 @@ const I18N = {
   fixed_off:        { en: 'Fixed amount off', ar: 'مبلغ ثابت' },
   currency:         { en: 'Currency', ar: 'العملة' },
   allergens:        { en: 'Allergens', ar: 'مسببات الحساسية' },
-  none:             { en: 'None', ar: 'لا يوجد' }
+  none:             { en: 'None', ar: 'لا يوجد' },
+  variants:         { en: 'Sizes / Options', ar: 'الأحجام / الخيارات' },
+  add_variant:      { en: 'Add option', ar: 'إضافة خيار' },
+  variant_name_en:  { en: 'Name (EN)', ar: 'الاسم (إنجليزي)' },
+  variant_name_ar:  { en: 'Name (AR)', ar: 'الاسم (عربي)' }
 };
 function t(key) { return (I18N[key] && I18N[key][lang]) || (I18N[key] && I18N[key].en) || key; }
 
@@ -931,12 +944,53 @@ function openItemModal(id) {
         }).join('')}
       </div>
     </div>
+    <div class="field" style="margin-top:6px">
+      <label style="margin-bottom:8px">${t('variants')} <span style="font-size:11px;color:var(--text3);font-weight:400">${lang==='ar' ? 'اختياري — يظهر السعر كـ "من"' : 'optional — price shows as "From"'}</span></label>
+      <div class="var-list" id="m-variants">
+        ${(item?.variants && item.variants.length ? item.variants : [null]).map(v => variantRowHTML(v)).join('')}
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="addVariantRow()">+ ${t('add_variant')}</button>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button>
       <button class="btn btn-primary" onclick="saveItem('${id || ''}')">${t('save')}</button>
     </div>
   `;
   document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+// Variant editor (P1.6): rows of name_en / name_ar / 3 currency prices
+function variantRowHTML(v) {
+  const p = (v && v.prices) || {};
+  const val = (c) => (p[c] != null ? p[c] : '');
+  return `<div class="var-row">
+    <input class="mv-en" placeholder="${t('variant_name_en')}" value="${v ? esc(v.name || '') : ''}">
+    <input class="mv-ar" dir="rtl" placeholder="${t('variant_name_ar')}" value="${v ? esc(v.name_ar || '') : ''}">
+    <button type="button" class="mv-del" title="${t('remove_variant') || 'Remove'}" onclick="this.closest('.var-row').remove()">✕</button>
+    <div class="var-prices">
+      <input class="mv-SYP" type="number" step="0.01" placeholder="SYP" value="${val('SYP')}">
+      <input class="mv-USD" type="number" step="0.01" placeholder="USD" value="${val('USD')}">
+      <input class="mv-TRY" type="number" step="0.01" placeholder="TRY" value="${val('TRY')}">
+    </div>
+  </div>`;
+}
+function addVariantRow() {
+  const list = document.getElementById('m-variants');
+  if (list) list.insertAdjacentHTML('beforeend', variantRowHTML(null));
+  else openItemModal(currentItemId || null);
+}
+function collectVariants() {
+  return [...document.querySelectorAll('.var-row')].map(r => {
+    const name = r.querySelector('.mv-en').value.trim();
+    const name_ar = r.querySelector('.mv-ar').value.trim();
+    const prices = {};
+    ['SYP', 'USD', 'TRY'].forEach(c => {
+      const v = r.querySelector('.mv-' + c).value;
+      if (v !== '') prices[c] = Number(v);
+    });
+    if (!name && !name_ar && Object.keys(prices).length === 0) return null;
+    return { name, name_ar, prices };
+  }).filter(Boolean);
 }
 
 async function saveItem(id) {
@@ -952,6 +1006,7 @@ async function saveItem(id) {
     chef_choice: document.getElementById('m-item-chef')?.checked ?? false,
     is_new: document.getElementById('m-item-new')?.checked ?? false,
     allergens: [...document.querySelectorAll('.allergen-grid input:checked')].map(i => i.value),
+    variants: collectVariants(),
     shop_id: currentShop.id
   };
 

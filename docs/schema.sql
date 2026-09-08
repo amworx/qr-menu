@@ -64,6 +64,7 @@ create table if not exists items (
   kcal integer,                                  -- calories per portion (P1.4)
   prep_time_min integer,                         -- preparation time in minutes (P1.4)
   allergens jsonb,                               -- array of allergen codes from fixed 14 list (P1.5)
+  variants jsonb,                                -- size/option variants: [{name, name_ar, prices:{SYP,USD,TRY}}] (P1.6)
   sort_order int default 0,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
@@ -178,6 +179,11 @@ create table if not exists orders (
 -- Fixed 14-allergen codes stored as a jsonb array: gluten, crustaceans, eggs,
 -- fish, peanuts, soy, milk, nuts, celery, mustard, sesame, sulphites, lupin,
 -- molluscs. AR/EN labels + icons live in the frontend ALLERGENS constants.
+
+-- ─── MIGRATION (2026-09-08) — size/price variants (P1.6) ──
+-- alter table items add column if not exists variants jsonb;
+-- Variant shape: [{ "name":"Small","name_ar":"صغير","prices":{"SYP":15000,"USD":1.5,"TRY":45} }, ...]
+-- Cards show "From <min>" when variants exist; the product sheet forces a choice.
 
 -- ─── INDEXES ────────────────────────────────────────────────
 create index if not exists idx_categories_shop on categories(shop_id);

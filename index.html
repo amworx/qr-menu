@@ -190,6 +190,7 @@
     .item-name{font-size:15.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .item-dots{flex:1;border-bottom:2px dotted var(--border2);transform:translateY(-4px);min-width:12px}
     .item-price{font-size:15.5px;font-weight:800;color:var(--primary);white-space:nowrap;font-variant-numeric:tabular-nums}
+    .price-from{font-size:13.5px;font-weight:700;color:var(--text2)}
     .item-sub{display:flex;align-items:baseline;gap:8px;margin-top:2px}
     .item-name-ar{font-size:12.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
     .item-desc{font-size:12px;color:var(--text2);line-height:1.55;margin-top:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
@@ -280,6 +281,7 @@
     .order-line:last-of-type{border-bottom:none}
     .ol-name{flex:1;font-size:13.5px;font-weight:600;min-width:0}
     .ol-name small{display:block;color:var(--text3);font-weight:400;font-size:11px}
+    .ol-name small.ol-variant{color:var(--primary);font-weight:700;font-size:11.5px}
     .ol-price{font-size:13.5px;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums;white-space:nowrap}
     .order-line.offer-line{background:var(--card2);border-radius:14px;padding:10px 12px;margin:8px 0;border-bottom:none}
     .order-line.offer-line .ol-name small{color:var(--primary);font-weight:600}
@@ -310,6 +312,13 @@
     .pd-sub{color:var(--text3);font-size:13px;margin-top:3px}
     .pd-desc{color:var(--text2);font-size:13.5px;line-height:1.65;margin-top:10px}
     .pd-item-meta{margin-top:12px}
+    .pd-var-row{display:flex;flex-direction:column;gap:9px;margin-top:12px;border-top:1px dashed var(--border);padding-top:13px}
+    .pd-var-group{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
+    .pd-var{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:10px 12px;border:1.5px solid var(--border2);border-radius:14px;background:var(--card2);cursor:pointer;text-align:start;transition:.15s;font-family:inherit}
+    .pd-var .pv-name{font-size:13px;font-weight:700;color:var(--text)}
+    .pd-var .pv-price{font-size:12px;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums}
+    .pd-var.active{border-color:var(--primary);background:color-mix(in srgb, var(--primary) 12%, var(--card));box-shadow:0 0 0 1px var(--primary)}
+    .pd-var:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
     .pd-label{display:block;font-size:11.5px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
     .pd-allg-row{display:flex;flex-direction:column;gap:9px;margin-top:12px;border-top:1px dashed var(--border);padding-top:13px}
     .pd-allg-list{display:flex;flex-wrap:wrap;gap:8px}
@@ -418,8 +427,10 @@
     let cart = {}; // { itemId: qty }
     let cartOffers = {}; // { dealId: 1 } — offers added to the order
     let cartNotes = {}; // { itemId: note } — per-item note (P1.2), in-memory like cart
+    let selectedVariants = {}; // { itemId: variantIndex } — chosen size/option (P1.6)
     let currentProductId = null; // open product sheet (P1.2)
     let sheetQty = 1;
+    let sheetVariant = 0; // chosen variant index while the sheet is open (P1.6)
     let viewMode = localStorage.getItem('qm-view') || 'grid'; // 'grid' | 'list'
 
     // ─── INIT ───────────────────────────────────────────────
@@ -663,18 +674,19 @@
         const name = lang === 'ar' ? (item.name_ar || item.name) : item.name;
         const name2 = lang === 'ar' ? (item.name || '') : (item.name_ar || '');
         const desc = lang === 'ar' ? (item.description_ar || item.description) : item.description;
-        const priceObj = (item.item_prices || []).find(p => p.currency === activeCurrency && p.is_visible);
-        const price = priceObj ? formatPrice(priceObj.price, activeCurrency) : '';
         const img = item.image_url
           ? `<img class="item-img" src="${esc(item.image_url)}" alt="" loading="lazy">`
           : `<div class="item-img ph">${emojiFor(item)}</div>`;
         const viewLabel = lang === 'ar' ? 'عرض التفاصيل' : 'View details';
         const badge = item.is_featured ? `<span class="badge-feat">${lang === 'ar' ? 'مميز' : 'FEATURED'}</span>` : '';
         const chips = badgeChipsHTML(item);
+        const priceHtml = cardPriceHTML(item);
         const qty = cart[item.id] || 0;
         const control = qty > 0
           ? stepperHTML(item.id, qty)
-          : `<button class="add-btn" onclick="incCart('${item.id}')"><span>+</span> ${lang === 'ar' ? 'أضف' : 'Add'}</button>`;
+          : itemHasVariants(item)
+            ? `<button class="add-btn" onclick="openProductSheet('${item.id}')"><span>+</span> ${lang === 'ar' ? 'إختر' : 'Choose'}</button>`
+            : `<button class="add-btn" onclick="incCart('${item.id}')"><span>+</span> ${lang === 'ar' ? 'أضف' : 'Add'}</button>`;
         return `
           <div class="item-card ${item.is_featured ? 'featured' : ''}">
             <button class="item-media" onclick="openProductSheet('${item.id}')" aria-label="${viewLabel}">${img}</button>
@@ -682,7 +694,7 @@
               <div class="item-top">
                 <button class="item-name-btn" onclick="openProductSheet('${item.id}')"><span class="item-name">${esc(name)}${badge}</span></button>
                 <span class="item-dots"></span>
-                <span class="item-price">${price}</span>
+                ${priceHtml}
               </div>
               ${name2 ? `<div class="item-sub"><span class="item-name-ar">${esc(name2)}</span></div>` : ''}
               ${chips}
@@ -831,6 +843,8 @@
     function openProductSheet(id) {
       currentProductId = id;
       sheetQty = cart[id] || 1;
+      const item = items.find(i => i.id === id);
+      sheetVariant = (itemHasVariants(item) && selectedVariants[id] != null) ? selectedVariants[id] : 0;
       renderProductSheet();
       document.getElementById('product-modal').classList.add('visible');
     }
@@ -858,8 +872,12 @@
       const name = lang === 'ar' ? (item.name_ar || item.name) : item.name;
       const name2 = lang === 'ar' ? (item.name || '') : (item.name_ar || '');
       const desc = lang === 'ar' ? (item.description_ar || item.description) : item.description;
-      const priceObj = (item.item_prices || []).find(p => p.currency === activeCurrency && p.is_visible);
-      const price = priceObj ? formatPrice(priceObj.price, activeCurrency) : '';
+      const hasVars = itemHasVariants(item);
+      const vPrices = itemVariantPrices(item) || [];
+      const chosenIdx = hasVars ? sheetVariant : null;
+      const unit = hasVars ? (vPrices[chosenIdx] != null ? vPrices[chosenIdx] : null)
+                            : (() => { const p = (item.item_prices || []).find(x => x.currency === activeCurrency && x.is_visible); return p ? Number(p.price) || 0 : null; })();
+      const price = unit == null ? '' : formatPrice(unit, activeCurrency);
       const img = item.image_url
         ? `<img src="${esc(item.image_url)}" alt="${esc(name)}">`
         : `<div class="pd-ph">${emojiFor(item)}</div>`;
@@ -874,6 +892,21 @@
       const hint = inCart
         ? `<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:6px">${lang === 'ar' ? `في السلة حالياً: ${cart[item.id]}` : `In cart: ${cart[item.id]}`}</div>`
         : '';
+      let varHtml = '';
+      if (hasVars) {
+        varHtml = `
+          <div class="pd-var-row">
+            <span class="pd-label">${lang === 'ar' ? 'الحجم / النوع' : 'Size / Option'}</span>
+            <div class="pd-var-group">
+              ${item.variants.map((v, i) => {
+                const p = vPrices[i];
+                const lbl = lang === 'ar' ? (v.name_ar || v.name || '') : (v.name || v.name_ar || '');
+                const pl = p == null ? '' : formatPrice(p, activeCurrency);
+                return `<button class="pd-var ${i === chosenIdx ? 'active' : ''}" onclick="pdSelectVariant(${i})" aria-pressed="${i === chosenIdx}"><span class="pv-name">${esc(lbl)}</span>${pl ? `<span class="pv-price">${pl}</span>` : ''}</button>`;
+              }).join('')}
+            </div>
+          </div>`;
+      }
       sheet.innerHTML = `
         <div class="pd-hero">
           ${img}
@@ -885,6 +918,7 @@
           ${name2 ? `<div class="pd-sub">${esc(name2)}</div>` : ''}
           ${desc ? `<p class="pd-desc">${esc(desc)}</p>` : ''}
           ${meta ? `<div class="pd-item-meta">${meta}</div>` : ''}
+          ${varHtml}
           ${allergenSectionHTML(item)}
           <div class="pd-note-wrap">
             <label class="pd-label" for="pd-note">${noteLabel}</label>
@@ -901,6 +935,17 @@
           <button class="pd-add" onclick="pdCommit()"><span>${addLabel}</span><span class="pd-add-price">${price}</span></button>
         </div>`;
     }
+    function pdSelectVariant(i) {
+      sheetVariant = i;
+      document.querySelectorAll('.pd-var').forEach((el, idx) => {
+        el.classList.toggle('active', idx === i);
+        el.setAttribute('aria-pressed', idx === i);
+      });
+      const item = items.find(x => x.id === currentProductId);
+      const p = itemHasVariants(item) ? variantPrice(item, i) : null;
+      const priceEl = document.querySelector('.pd-add-price');
+      if (priceEl && p != null) priceEl.textContent = formatPrice(p, activeCurrency);
+    }
     function pdQty(delta) {
       sheetQty = Math.max(0, Math.min(99, sheetQty + delta));
       const el = document.getElementById('pd-qty');
@@ -915,9 +960,11 @@
     function pdCommit() {
       const id = currentProductId;
       if (!id) return;
+      const item = items.find(i => i.id === id);
       const note = document.getElementById('pd-note')?.value?.trim() || '';
       if (note) cartNotes[id] = note; else delete cartNotes[id];
-      if (sheetQty <= 0) { delete cart[id]; delete cartNotes[id]; }
+      if (itemHasVariants(item)) selectedVariants[id] = sheetVariant;
+      if (sheetQty <= 0) { delete cart[id]; delete cartNotes[id]; delete selectedVariants[id]; }
       else cart[id] = Math.min(sheetQty, 99);
       closeProductSheet();
       renderItems(); updateCartBar();
@@ -961,10 +1008,39 @@
     }
 
     // ─── PRICING ENGINE ─────────────────────────────────────
+    function itemHasVariants(item) { return !!item && Array.isArray(item.variants) && item.variants.length > 0; }
+    // Price of a specific variant in the active currency (null when unset)
+    function variantPrice(item, idx) {
+      if (!itemHasVariants(item)) return null;
+      const v = item.variants[idx];
+      if (!v || !v.prices) return null;
+      const p = v.prices[activeCurrency];
+      return p == null ? null : (Number(p) || 0);
+    }
     function itemUnitPrice(id) {
       const item = items.find(i => i.id === id);
+      if (itemHasVariants(item) && selectedVariants[id] != null) {
+        const vp = variantPrice(item, selectedVariants[id]);
+        if (vp != null) return vp;
+      }
       const p = (item?.item_prices || []).find(x => x.currency === activeCurrency && x.is_visible);
       return p ? Number(p.price) || 0 : 0;
+    }
+    // Card price cell: "From X" when the item has variants, plain price otherwise (P1.6)
+    function cardPriceHTML(item) {
+      if (!itemHasVariants(item)) {
+        const p = (item.item_prices || []).find(x => x.currency === activeCurrency && x.is_visible);
+        return p ? `<span class="item-price">${formatPrice(p.price, activeCurrency)}</span>` : `<span class="item-price"></span>`;
+      }
+      const prices = item.variants.map((_, i) => variantPrice(item, i)).filter(p => p != null);
+      if (!prices.length) return `<span class="item-price"></span>`;
+      const min = Math.min(...prices);
+      const label = lang === 'ar' ? 'من' : 'From';
+      return `<span class="item-price price-from">${label} ${formatPrice(min, activeCurrency)}</span>`;
+    }
+    // All prices of an item's variants in the active currency, or null when the item has none
+    function itemVariantPrices(item) {
+      return itemHasVariants(item) ? item.variants.map((_, i) => variantPrice(item, i)) : null;
     }
     function cartSubtotal() {
       return Object.entries(cart).reduce((s, [id, qty]) => s + itemUnitPrice(id) * qty, 0);
@@ -1022,7 +1098,8 @@
         const item = items.find(i => i.id === id);
         if (!item) continue;
         const unit = itemUnitPrice(id);
-        itemsList.push({ id, name: item.name || '', name_ar: item.name_ar || '', qty, unit_price: unit, note: cartNotes[id] || '' });
+        const v = (itemHasVariants(item) && selectedVariants[id] != null) ? item.variants[selectedVariants[id]] : null;
+        itemsList.push({ id, name: item.name || '', name_ar: item.name_ar || '', qty, unit_price: unit, note: cartNotes[id] || '', variant: v ? { name: v.name || '', name_ar: v.name_ar || '' } : null });
       }
       for (const id of Object.keys(cartOffers)) {
         const d = deals.find(x => x.id === id);
@@ -1075,10 +1152,12 @@
         if (!item) continue;
         const name = lang === 'ar' ? (item.name_ar || item.name) : item.name;
         const sub = lang === 'ar' ? (item.name || '') : (item.name_ar || '');
+        const v = (itemHasVariants(item) && selectedVariants[id] != null) ? item.variants[selectedVariants[id]] : null;
+        const vName = v ? (lang === 'ar' ? (v.name_ar || v.name) : (v.name || v.name_ar)) : '';
         const unit = itemUnitPrice(id);
         rows += `
           <div class="order-line">
-            <div class="ol-name">${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ''}</div>
+            <div class="ol-name">${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ''}${vName ? `<small class="ol-variant">${esc(vName)}</small>` : ''}</div>
             <div class="ol-price">${formatPrice(unit * qty, activeCurrency)}</div>
             ${stepperHTML(id, qty)}
             <button class="ol-remove" onclick="removeItem('${id}')" aria-label="${lang === 'ar' ? 'إزالة العنصر' : 'Remove item'}">✕</button>
@@ -1165,8 +1244,10 @@
         if (!item) continue;
         const name = lang === 'ar' ? (item.name_ar || item.name) : item.name;
         const unit = itemUnitPrice(id);
+        const v = (itemHasVariants(item) && selectedVariants[id] != null) ? item.variants[selectedVariants[id]] : null;
+        const vName = v ? (lang === 'ar' ? (v.name_ar || v.name) : (v.name || v.name_ar)) : '';
         const note = cartNotes[id] ? ` (${lang === 'ar' ? 'ملاحظة' : 'note'}: ${cartNotes[id]})` : '';
-        lines.push(`• ${name} × ${qty} — ${formatPrice(unit * qty, activeCurrency)}${note}`);
+        lines.push(`• ${name}${vName ? ` (${vName})` : ''} × ${qty} — ${formatPrice(unit * qty, activeCurrency)}${note}`);
       }
       for (const id of Object.keys(cartOffers)) {
         const d = deals.find(x => x.id === id);
