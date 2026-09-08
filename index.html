@@ -6,6 +6,12 @@
   <title>QR Menu</title>
   <meta name="description" content="Browse the menu and order via WhatsApp.">
   <meta name="theme-color" content="#0d0a07">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Judy Joy">
   <link rel="canonical" id="canonical-link">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="QR Menu">
@@ -428,6 +434,13 @@
     .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);z-index:120;background:var(--text);color:var(--bg);padding:10px 18px;border-radius:30px;font-size:12.5px;font-weight:600;opacity:0;transition:.25s ease;pointer-events:none;white-space:nowrap}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+    /* Install banner (P2.4) */
+    .install-banner{position:fixed;left:16px;right:16px;bottom:96px;z-index:90;display:none;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow)}
+    .install-banner.show{display:flex}
+    .ib-ico{font-size:16px;line-height:1}
+    .ib-text{flex:1;font-size:12.5px;color:var(--text);line-height:1.35}
+    .ib-btn{background:var(--primary);color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:12.5px;font-weight:800;cursor:pointer}
+
     @media (max-width:420px){
       .hero{padding:48px 14px 24px}
       .item-img,.item-img.ph{width:60px;height:60px;border-radius:14px}
@@ -520,6 +533,13 @@
 
   <div class="shop-footer" id="shop-footer" style="display:none"></div>
 
+  <!-- Install banner (P2.4, beforeinstallprompt) -->
+  <div class="install-banner" id="install-banner">
+    <span class="ib-ico">⬇️</span>
+    <span class="ib-text" id="ib-text"></span>
+    <button class="ib-btn" id="ib-btn" onclick="installPWA()"></button>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script src="config.js"></script>
@@ -589,6 +609,7 @@
         setTimeout(() => openProductSheet(deepItem), 400);
       }
       initVoice();
+      setupPWA();
     })();
 
     // ─── RENDER ─────────────────────────────────────────────
@@ -610,6 +631,42 @@
     // ─── FAVORITES (P2.1) ─────────────────────────────────
     // localStorage 'qm_favs' = [itemId,...]; rail + card/sheet hearts.
     let favs = loadFavs();
+
+    // ─── PWA (P2.4) ──────────────────────────────────────
+    let deferredPrompt = null;
+    function setupPWA() {
+      // Script runs at end of body; register right away rather than on window.load
+      // (the data fetch above may resolve AFTER load has already fired).
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      }
+      window.addEventListener('beforeinstallprompt', e => {
+        e.preventDefault();
+        deferredPrompt = e;
+        showInstallBanner(true);
+      });
+      window.addEventListener('appinstalled', () => {
+        deferredPrompt = null;
+        showInstallBanner(false);
+      });
+    }
+    function showInstallBanner(show) {
+      const b = document.getElementById('install-banner');
+      if (!b) return;
+      if (show) {
+        const ar = lang === 'ar';
+        document.getElementById('ib-text').textContent = ar ? 'ثبّت التطبيق لفتح القائمة بشكل أسرع' : 'Install the app for faster menu access';
+        document.getElementById('ib-btn').textContent = ar ? 'تثبيت' : 'Install';
+        b.classList.add('show');
+      } else {
+        b.classList.remove('show');
+      }
+    }
+    function installPWA() {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => { deferredPrompt = null; showInstallBanner(false); });
+    }
     function loadFavs() { try { return JSON.parse(localStorage.getItem('qm_favs') || '[]'); } catch (e) { return []; } }
     function saveFavs() { try { localStorage.setItem('qm_favs', JSON.stringify(favs)); } catch (e) {} }
     function isFav(id) { return favs.includes(id); }
