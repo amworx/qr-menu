@@ -55,6 +55,9 @@
     .card-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     .card-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
     .checkbox{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;user-select:none}
+    .allergen-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+    .allergen-cell{padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--bg2)}
+    @media (max-width:520px){.allergen-grid{grid-template-columns:1fr}}
     .checkbox input{accent-color:var(--accent);width:16px;height:16px}
     .field{margin-bottom:12px}
     table{width:100%;border-collapse:collapse;font-size:13px}
@@ -430,9 +433,30 @@ const I18N = {
   reward_value:     { en: 'Reward Value', ar: 'قيمة المكافأة' },
   percent_off:      { en: 'Percent off', ar: 'نسبة مئوية (%)' },
   fixed_off:        { en: 'Fixed amount off', ar: 'مبلغ ثابت' },
-  currency:         { en: 'Currency', ar: 'العملة' }
+  currency:         { en: 'Currency', ar: 'العملة' },
+  allergens:        { en: 'Allergens', ar: 'مسببات الحساسية' },
+  none:             { en: 'None', ar: 'لا يوجد' }
 };
 function t(key) { return (I18N[key] && I18N[key][lang]) || (I18N[key] && I18N[key].en) || key; }
+
+// Fixed 14-allergen list (EU FIC 1169/2011 style) — codes stored in items.allergens jsonb
+const ALLERGENS = [
+  { code: 'gluten',       en: 'Gluten',       ar: 'الغلوتين',      icon: '🌾' },
+  { code: 'crustaceans',  en: 'Crustaceans',  ar: 'القشريات',      icon: '🦐' },
+  { code: 'eggs',         en: 'Eggs',         ar: 'البيض',         icon: '🥚' },
+  { code: 'fish',         en: 'Fish',         ar: 'السمك',         icon: '🐟' },
+  { code: 'peanuts',      en: 'Peanuts',      ar: 'الفول السوداني', icon: '🥜' },
+  { code: 'soy',          en: 'Soy',          ar: 'الصويا',        icon: '🫘' },
+  { code: 'milk',         en: 'Milk',         ar: 'الحليب',        icon: '🥛' },
+  { code: 'nuts',         en: 'Nuts',         ar: 'المكسرات',      icon: '🌰' },
+  { code: 'celery',       en: 'Celery',       ar: 'الكرفس',        icon: '🥬' },
+  { code: 'mustard',      en: 'Mustard',      ar: 'الخردل',        icon: '🟡' },
+  { code: 'sesame',       en: 'Sesame',       ar: 'السمسم',        icon: '🫓' },
+  { code: 'sulphites',    en: 'Sulphites',    ar: 'الكبريتيت',     icon: '🧪' },
+  { code: 'lupin',        en: 'Lupin',        ar: 'الترمس',        icon: '🌱' },
+  { code: 'molluscs',     en: 'Molluscs',     ar: 'الرخويات',      icon: '🐚' }
+];
+function allergenMeta(code) { return ALLERGENS.find(a => a.code === code) || { en: code, ar: code, icon: '⚠' }; }
 
 function applyLang() {
   document.documentElement.lang = lang;
@@ -898,6 +922,15 @@ function openItemModal(id) {
         <label class="checkbox"><input type="checkbox" id="m-item-new" ${item?.is_new?'checked':''}> ${t('new_badge')}</label>
       </div>
     </div>
+    <div class="field" style="margin-top:6px">
+      <label style="margin-bottom:8px">${t('allergens')}</label>
+      <div class="allergen-grid">
+        ${ALLERGENS.map(a => {
+          const checked = (item?.allergens || []).includes(a.code);
+          return `<label class="checkbox allergen-cell" title="${a.en} / ${a.ar}"><input type="checkbox" value="${a.code}" ${checked?'checked':''}> ${a.icon} ${lang==='ar'?a.ar:a.en}</label>`;
+        }).join('')}
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button>
       <button class="btn btn-primary" onclick="saveItem('${id || ''}')">${t('save')}</button>
@@ -918,6 +951,7 @@ async function saveItem(id) {
     popular: document.getElementById('m-item-popular')?.checked ?? false,
     chef_choice: document.getElementById('m-item-chef')?.checked ?? false,
     is_new: document.getElementById('m-item-new')?.checked ?? false,
+    allergens: [...document.querySelectorAll('.allergen-grid input:checked')].map(i => i.value),
     shop_id: currentShop.id
   };
 

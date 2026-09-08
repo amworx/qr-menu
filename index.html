@@ -195,6 +195,10 @@
     .item-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
     .item-meta span{font-size:10.5px;font-weight:700;color:var(--text3);background:var(--card2);border:1px solid var(--border);border-radius:999px;padding:3px 9px;font-variant-numeric:tabular-nums}
 
+    /* allergen icon chips (P1.5) */
+    .allergen-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+    .allg-chip{font-size:13px;line-height:1;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;background:var(--card2);border:1px solid var(--border);border-radius:50%;filter:saturate(.9)}
+
     .badge-feat{display:inline-block;font-size:9.5px;font-weight:800;background:var(--primary);color:#fff;padding:2px 8px;border-radius:10px;margin-inline-start:8px;letter-spacing:.3px;transform:translateY(-1px)}
 
     /* Item badges (P1.3) — New / Popular / Chef's Choice */
@@ -645,6 +649,7 @@
               ${chips}
               ${desc ? `<div class="item-desc">${esc(desc)}</div>` : ''}
               ${itemMetaHTML(item)}
+              ${allergenChipsHTML(item)}
               ${control}
             </div>
           </div>`;
@@ -677,6 +682,34 @@
       if (item.kcal != null) parts.push(`<span class="meta-kcal">🔥 ${item.kcal} kcal</span>`);
       if (item.prep_time_min != null) parts.push(`<span class="meta-prep">⏱ ${lang === 'ar' ? `~${item.prep_time_min} دقيقة` : `~${item.prep_time_min} min`}</span>`);
       return `<div class="item-meta">${parts.join('')}</div>`;
+    }
+
+    // Fixed 14-allergen list (EU FIC) — codes stored in items.allergens jsonb (P1.5)
+    const ALLERGENS = [
+      { code: 'gluten',       en: 'Gluten',       ar: 'الغلوتين',      icon: '🌾' },
+      { code: 'crustaceans',  en: 'Crustaceans',  ar: 'القشريات',      icon: '🦐' },
+      { code: 'eggs',         en: 'Eggs',         ar: 'البيض',         icon: '🥚' },
+      { code: 'fish',         en: 'Fish',         ar: 'السمك',         icon: '🐟' },
+      { code: 'peanuts',      en: 'Peanuts',      ar: 'الفول السوداني', icon: '🥜' },
+      { code: 'soy',          en: 'Soy',          ar: 'الصويا',        icon: '🫘' },
+      { code: 'milk',         en: 'Milk',         ar: 'الحليب',        icon: '🥛' },
+      { code: 'nuts',         en: 'Nuts',         ar: 'المكسرات',      icon: '🌰' },
+      { code: 'celery',       en: 'Celery',       ar: 'الكرفس',        icon: '🥬' },
+      { code: 'mustard',      en: 'Mustard',      ar: 'الخردل',        icon: '🟡' },
+      { code: 'sesame',       en: 'Sesame',       ar: 'السمسم',        icon: '🫓' },
+      { code: 'sulphites',    en: 'Sulphites',    ar: 'الكبريتيت',     icon: '🧪' },
+      { code: 'lupin',        en: 'Lupin',        ar: 'الترمس',        icon: '🌱' },
+      { code: 'molluscs',     en: 'Molluscs',     ar: 'الرخويات',      icon: '🐚' }
+    ];
+    // Icon-only chips on the card (localized tooltip); full labeled section comes in the product sheet
+    function allergenChipsHTML(item) {
+      if (!item || !Array.isArray(item.allergens) || !item.allergens.length) return '';
+      const chips = item.allergens.map(code => {
+        const a = ALLERGENS.find(x => x.code === code) || { en: code, ar: code, icon: '⚠' };
+        const label = lang === 'ar' ? a.ar : a.en;
+        return `<span class="allg-chip" title="${esc(label)}">${a.icon}</span>`;
+      }).join('');
+      return `<div class="allergen-row" aria-label="${lang === 'ar' ? 'مسببات الحساسية' : 'Allergens'}">${chips}</div>`;
     }
 
     function emojiFor(item) {

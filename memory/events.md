@@ -237,3 +237,15 @@
 - **errors**: None
 - **lessons**: (none new — kcal/prep follow the same schema→admin→render pattern as P1.3/P1.7)
 - **tags**: p1.4, kcal, prep-time, calories, db-migration, admin-crud, item-meta, rtl, mobile-375, local-verify, pending-commit
+
+## EVT-20260908-0021
+
+- **timestamp**: 2026-09-08
+- **mode**: BUILD / DB-MIGRATION / I18N / LOCAL-VERIFY
+- **action**: P1.5 — Allergens (fixed 14-list, icon chips on cards + admin CRUD)
+- **summary**: Continued queue after P1.4 shipped (commit a75c91b). Implemented allergen declarations end-to-end: (1) **DB migration** via Management API — added `allergens jsonb` to `items` (array of codes); documented in `docs/schema.sql` (column + P1.5 migration note + list of the 14 codes); (2) **admin.html** — `ALLERGENS` constant (14 EU-FIC codes × en/ar label + icon) + `allergenMeta()` helper; i18n keys (`allergens` مسببات الحساسية, `none`); item modal gained a 2-column `.allergen-grid` (1-col under 520px) of 14 icon+label checkboxes pre-checked from `item.allergens`; `saveItem()` collects checked values into the `allergens` array; (3) **index.html** — same `ALLERGENS` constant + `allergenChipsHTML(item)` rendering a row of circular icon-only `.allg-chip` with localized `title` tooltips (aria-label on the row); wired into `renderItems()` after the meta line. The full labeled "Allergens" section is deferred to the product sheet (P1.2). Seeded: Cappuccino [eggs,gluten], Cheese Manakish [gluten,milk], Chicken Wrap [gluten,sesame,milk], Iced Latte [milk], Kunafa [gluten,milk,nuts].
+- **result**: Success — verified locally at strict 375px in AR and EN (docScrollW==docClientW==375): 5 card rows show the correct icon sets; AR tooltips are Arabic (البيض, الحليب, الغلوتين…); cards without allergens show no row. Admin: item modal shows all 14 localized checkboxes and edit loads them; save path proven (checked gluten on Arabic Coffee via modal → persisted `["gluten"]` → restored to `[]`). Console clean apart from the two pre-existing issues.
+- **files**: `docs/schema.sql` (allergens column + migration note), `admin.html` (ALLERGENS const, i18n, allergen grid, saveItem), `index.html` (ALLERGENS const, `allergenChipsHTML()`, CSS, renderItems), memory/events.md
+- **errors**: Seed ids for Chicken Wrap / Iced Latte were misremembered (wrong UUID tails) — first seed silently updated 0 rows; lessons: look up real ids via a SELECT before multi-row UPDATEs. No code error; fixed by re-seeding with looked-up ids.
+- **lessons**: (reusable) When seeding by id, SELECT the ids first — don't trust remembered UUIDs.
+- **tags**: p1.5, allergens, allergen-chips, jsonb, db-migration, admin-crud, rtl, mobile-375, local-verify, pending-commit

@@ -63,6 +63,7 @@ create table if not exists items (
   is_new boolean default false,                  -- badge "New" (P1.3)
   kcal integer,                                  -- calories per portion (P1.4)
   prep_time_min integer,                         -- preparation time in minutes (P1.4)
+  allergens jsonb,                               -- array of allergen codes from fixed 14 list (P1.5)
   sort_order int default 0,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
@@ -171,6 +172,12 @@ create table if not exists orders (
 -- ─── MIGRATION (2026-09-08) — kcal + prep time (P1.4) ────
 -- alter table items add column if not exists kcal integer;
 -- alter table items add column if not exists prep_time_min integer;
+
+-- ─── MIGRATION (2026-09-08) — allergens (P1.5) ────────────
+-- alter table items add column if not exists allergens jsonb;
+-- Fixed 14-allergen codes stored as a jsonb array: gluten, crustaceans, eggs,
+-- fish, peanuts, soy, milk, nuts, celery, mustard, sesame, sulphites, lupin,
+-- molluscs. AR/EN labels + icons live in the frontend ALLERGENS constants.
 
 -- ─── INDEXES ────────────────────────────────────────────────
 create index if not exists idx_categories_shop on categories(shop_id);
