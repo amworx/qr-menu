@@ -309,3 +309,15 @@
 - **errors**: None.
 - **lessons**: (reused) hard reload after hash-only navigation to re-run JS; discover the app's dead `slug` branch while building share links — deep links are `?item=` only for now.
 - **tags**: p1.10, share, whatsapp-share, copy-link, deep-link, product-sheet, bmp-safe, rtl, mobile-375, local-verify, pending-commit
+
+## EVT-20260908-0027
+
+- **timestamp**: 2026-09-08
+- **mode**: BUILD / DB-MIGRATION / I18N / LOCAL-VERIFY
+- **action**: P1.11 — Service hours + "Open now / Closed" status
+- **summary**: Added opening-hours to `shops.hours jsonb` (7 entries Mon..Sun, each `{open,close}` or `null` = closed; overnight allowed like Fri 09:00–02:00): (1) migration `alter table shops add column if not exists hours jsonb;` and seeded Judy Joy as Mon–Thu 08:00–23:00, Fri–Sat 09:00–02:00, Sun closed; (2) admin Shop Settings gains an "Opening Hours / ساعات العمل" card — 7 localized rows (`.hours-row` with `.h-open`/`.h-close` time inputs, empty/empty = closed) fed by `hoursEditorRows(s)` and persisted via `saveShop → collectHours()` (save path proven: set Sunday 10:00–22:00 in UI → API read back → restored to null); (3) public side: `isNowOpen()` computes Mon=0..Sun=6 from `getDay()`, supports same-day + overnight windows and **attributes early-morning hours to YESTERDAY's overnight window** (first version exited early on `cur >= o` and wrongly reported Sat 01:00 as closed when Friday's 09:00–02:00 covers it — fixed by falling through to the prev-day check only when today's window hasn't opened yet); `infoHoursHTML()` now appends an 🟢 "مفتوح الآن / Open now" or 🔴 "مغلق الآن / Closed now" chip (hidden when no hours configured); chip CSS `.info-openchip.open/.closed`.
+- **result**: Success — Admin editor loads 7 seeded rows; DB round-trip verified (write Sunday → API select shows 10:00–22:00 → restored to null). Public AR 375px: hours table (الاثنين…الأحد, «مغلق» for Sun) + chip «🔴 مغلق الآن» correct at 23:16 local (Tue closes 23:00). EN 375px: "Closed now" + English rows + no overflow. isNowOpen mocked over 11 clock cases all correct (Tue 12:00 ✓ open, Tue 7:59 ✓ closed, Fri 1:00 ✓ closed before Fri's open, Fri 23:30 ✓ open overnight, Sat 01:00/01:59 ✓ open via Fri overnight, Sat 03:00 ✓ closed, Sun 01:00 ✓ open via Sat overnight, Sun noon ✓ closed). Console only pre-existing favicon 404.
+- **files**: `docs/schema.sql` (hours jsonb column + P1.11 note), `admin.html` (i18n day keys, hours card, hoursEditorRows/collectHours, CSS), `index.html` (isNowOpen, infoHoursHTML chip, CSS), memory/events.md. DB: `shops.hours` seeded.
+- **errors**: (1) PowerShell ok; (2) isNowOpen overnight early-return bug caught by mocked-clock matrix — lesson: always test overnight-window logic over a weekday matrix, not just the current clock.
+- **lessons**: extend the existing mock-clock verification technique to any time-window logic; seed hours using Friday/Saturday late-night windows so the public field has realistic data.
+- **tags**: p1.11, service-hours, open-now, hours-jsonb, db-migration, admin-editor, overnight-hours, i18n, rtl, mobile-375, local-verify, pending-commit

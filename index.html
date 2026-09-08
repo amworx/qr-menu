@@ -368,7 +368,10 @@
     .info-title{font-size:19px;font-weight:800}
     .info-sub{font-size:12.5px;color:var(--text3);margin-top:2px}
     .info-section{margin-top:16px;border-top:1px dashed var(--border);padding-top:14px}
-    .info-label{font-size:11.5px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+    .info-label{font-size:11.5px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .info-openchip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;letter-spacing:.2px;text-transform:none;padding:4px 10px;border-radius:999px}
+    .info-openchip.open{background:rgba(34,197,94,.16);color:#22c55e;border:1px solid rgba(34,197,94,.35)}
+    .info-openchip.closed{background:rgba(239,68,68,.14);color:#ef4444;border:1px solid rgba(239,68,68,.35)}
     .info-text{font-size:13.5px;color:var(--text2);line-height:1.7}
     .info-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13.5px;padding:7px 0;border-bottom:1px solid var(--border);color:var(--text)}
     .info-row:last-child{border-bottom:none}
@@ -981,6 +984,31 @@
     // P1.11), address + Google Maps directions, phone (tel:), socials, legal note.
     function openInfo() { renderInfo(); document.getElementById('info-modal').classList.add('visible'); }
     function closeInfo() { document.getElementById('info-modal').classList.remove('visible'); }
+    // P1.11 — is the shop open right now? null = no hours configured.
+    //   Weekdays Mon=0..Sun=6. A day with open>close runs overnight into the
+    //   next day (e.g. Fri 09:00–02:00). Early-morning hours (before today's open)
+    //   are only covered by YESTERDAY's overnight window.
+    function isNowOpen() {
+      if (!shop || !Array.isArray(shop.hours)) return null;
+      const now = new Date();
+      const dayIdx = (now.getDay() + 6) % 7;
+      const cur = now.getHours() * 60 + now.getMinutes();
+      const mm = s => { const [h, m] = (s || '').split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+      const entry = shop.hours[dayIdx];
+      if (entry && entry.open && entry.close) {
+        const o = mm(entry.open), c = mm(entry.close);
+        if (o < c) return cur >= o && cur < c;
+        if (o === c) return false;             // open == close => closed
+        if (cur >= o) return true;             // overnight: open from today's open past midnight
+      }
+      // not covered by today's hours: yesterday's overnight window may still cover early morning
+      const prev = shop.hours[(dayIdx + 6) % 7];
+      if (prev && prev.open && prev.close) {
+        const o = mm(prev.open), c = mm(prev.close);
+        if (o > c && cur < c) return true;
+      }
+      return false;
+    }
     function infoHoursHTML() {
       if (!shop || !Array.isArray(shop.hours)) return '';
       const days = shop.hours;
@@ -992,7 +1020,10 @@
         const hrs = h.open && h.close ? `${h.open} – ${h.close}` : (lang === 'ar' ? 'مغلق' : 'Closed');
         return `<div class="info-row"><span class="dow">${d}</span><span class="hrs">${esc(hrs)}</span></div>`;
       }).join('');
-      return `<div class="info-section"><div class="info-label">${lang === 'ar' ? 'ساعات العمل' : 'Opening Hours'}</div>${rows}</div>`;
+      const open = isNowOpen();
+      const chip = open === null ? ''
+        : `<span class="info-openchip ${open ? 'open' : 'closed'}">${open ? '🟢 ' + (lang === 'ar' ? 'مفتوح الآن' : 'Open now') : '🔴 ' + (lang === 'ar' ? 'مغلق الآن' : 'Closed now')}</span>`;
+      return `<div class="info-section"><div class="info-label">${lang === 'ar' ? 'ساعات العمل' : 'Opening Hours'} ${chip}</div>${rows}</div>`;
     }
     function renderInfo() {
       const sheet = document.getElementById('info-sheet');

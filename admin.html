@@ -67,6 +67,14 @@
     .mv-del{width:30px;height:30px;border-radius:8px;background:var(--card2);border:1px solid var(--border2);color:var(--text2);cursor:pointer;font-size:13px}
     .mv-del:hover{border-color:var(--danger);color:var(--danger)}
     .btn-sm{padding:7px 12px;font-size:12px;border-radius:8px}
+
+    /* Hours editor (P1.11) */
+    .hours-list{display:flex;flex-direction:column;gap:8px}
+    .hours-row{display:grid;grid-template-columns:1fr 96px 20px 96px;gap:8px;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px}
+    .hours-day{font-size:12.5px;font-weight:700;color:var(--text2)}
+    .hours-row input{width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-size:12.5px;color:var(--text);min-width:0;font-family:inherit}
+    .hours-sep{text-align:center;color:var(--text3);font-size:13px}
+    @media (max-width:520px){.hours-row{grid-template-columns:1fr 88px 16px 88px;gap:6px}}
     .checkbox input{accent-color:var(--accent);width:16px;height:16px}
     .field{margin-bottom:12px}
     table{width:100%;border-collapse:collapse;font-size:13px}
@@ -364,6 +372,15 @@ const I18N = {
   legal_note:       { en: 'Legal Note (EN) — e.g. "All prices include VAT"', ar: 'التنويه القانوني (إنجليزي)' },
   legal_note_ar:    { en: 'Legal Note (AR)', ar: 'التنويه القانوني (عربي)' },
   page_about:       { en: 'About / Social / Legal (Info modal)', ar: 'نبذة / تواصل / تنويه (نافذة المعلومات)' },
+  hours:            { en: 'Opening Hours', ar: 'ساعات العمل' },
+  hours_hint:       { en: 'Empty = closed. Overnight allowed (e.g. close 02:00).', ar: 'فارغ = مغلق. يدعم العمل حتى الصباح (مثال: إغلاق 02:00).' },
+  day_mon:          { en: 'Monday', ar: 'الاثنين' },
+  day_tue:          { en: 'Tuesday', ar: 'الثلاثاء' },
+  day_wed:          { en: 'Wednesday', ar: 'الأربعاء' },
+  day_thu:          { en: 'Thursday', ar: 'الخميس' },
+  day_fri:          { en: 'Friday', ar: 'الجمعة' },
+  day_sat:          { en: 'Saturday', ar: 'السبت' },
+  day_sun:          { en: 'Sunday', ar: 'الأحد' },
   default_currency: { en: 'Default Currency', ar: 'العملة الافتراضية' },
   show_currency_selector: { en: 'Show Currency Selector', ar: 'إظهار محوّل العملات' },
   save_changes:     { en: 'Save Changes', ar: 'حفظ التغييرات' },
@@ -692,6 +709,13 @@ function renderShopTab() {
       </div>
     </div>
     <div class="card">
+      <h4>${t('hours')}</h4>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:10px">${t('hours_hint')}</p>
+      <div class="hours-list" id="s-hours">
+        ${hoursEditorRows(s)}
+      </div>
+    </div>
+    <div class="card">
       <h4>${t('branding')}</h4>
       <div class="card-row-3">
         <div class="field"><label>${t('primary_color')}</label><input type="color" id="s-color" value="${s.primary_color || '#D97706'}" style="height:36px;padding:2px"></div>
@@ -733,6 +757,7 @@ async function saveShop() {
     about: gv('s-about'), about_ar: gv('s-about-ar'),
     instagram: gv('s-instagram'), facebook: gv('s-facebook'), tripadvisor: gv('s-tripadvisor'),
     legal_note: gv('s-legal-note'), legal_note_ar: gv('s-legal-note-ar'),
+    hours: collectHours(),
     primary_color: gv('s-color'), accent_color: gv('s-accent'),
     footer_text: gv('s-footer'),
     currency_default: gv('s-default-currency'),
@@ -742,6 +767,28 @@ async function saveShop() {
   if (error) return toast(t('error') + ': ' + error.message, true);
   Object.assign(currentShop, updates);
   toast(t('shop_settings_saved'));
+}
+
+// P1.11 — 7 rows (Mon..Sun) of open/close time inputs from shops.hours jsonb
+function hoursEditorRows(s) {
+  const days = [t('day_mon'), t('day_tue'), t('day_wed'), t('day_thu'), t('day_fri'), t('day_sat'), t('day_sun')];
+  const h = Array.isArray(s.hours) ? s.hours : [];
+  return days.map((d, i) => {
+    const e = h[i] || {};
+    return `<div class="hours-row"><span class="hours-day">${d}</span>
+      <input class="h-open" type="time" value="${esc(e.open || '')}">
+      <span class="hours-sep">–</span>
+      <input class="h-close" type="time" value="${esc(e.close || '')}">
+    </div>`;
+  }).join('');
+}
+function collectHours() {
+  return [...document.querySelectorAll('#s-hours .hours-row')].map(r => {
+    const open = r.querySelector('.h-open').value;
+    const close = r.querySelector('.h-close').value;
+    if (!open && !close) return null;
+    return { open: open || null, close: close || null };
+  });
 }
 
 // ─── CATEGORIES ─────────────────────────────────────────────

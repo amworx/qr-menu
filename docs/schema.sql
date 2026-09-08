@@ -36,6 +36,7 @@ create table if not exists shops (
   tripadvisor text default '',
   legal_note text default '',               -- legal note (EN), e.g. "All prices include VAT"
   legal_note_ar text default '',            -- legal note (AR)
+  hours jsonb,                              -- P1.11: 7 entries Mon..Sun [{open:'08:00',close:'23:00'}, ...] or null = closed
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -323,3 +324,10 @@ end $$;
 --     add column if not exists tripadvisor text default '',
 --     add column if not exists legal_note text default '',
 --     add column if not exists legal_note_ar text default '';
+
+-- P1.11 (2026-09-08): service hours jsonb on shops — 7 entries Mon..Sun,
+--   each `[{open:'08:00', close:'23:00'}, ...]`, null entry = closed that day;
+--   drives the "Open now / Closed" chip + hours table in the public info modal
+--   (isNowOpen()/infoHoursHTML()) and the admin Shop Settings hours editor
+--   (s.hours persisted by saveShop → hoursEditorRows()/collectHours()).
+--   alter table shops add column if not exists hours jsonb;
