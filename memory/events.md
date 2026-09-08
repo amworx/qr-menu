@@ -297,3 +297,15 @@
 - **errors**: One self-inflicted failure: attempted to restore the legal note in AR by building a payload inline in a PowerShell command + `Set-Content` — PS 5.1 mangled the Arabic to mojibake BEFORE curl (stored garbage in DB). Fix: re-ran restore with a payload file written via the **Write tool** (project rule) → clean UTF-8 stored. Lesson logged in lessons.md.
 - **lessons**: (reinforced) NEVER pass Arabic inline through PowerShell when building SQL payloads — always Write tool → curl.exe --data-binary @file.
 - **tags**: p1.9, info-modal, about, directions, socials, legal-note, shop-columns, db-migration, admin-settings, i18n, rtl, mobile-375, local-verify, pending-commit
+
+## EVT-20260908-0026
+
+- **timestamp**: 2026-09-08
+- **mode**: BUILD / I18N / LOCAL-VERIFY
+- **action**: P1.10 — Share product (native share / WhatsApp text / copy link) + `?item=` deep link
+- **summary**: Added sharing on the product sheet without any DB change: (1) two floating buttons in the sheet hero (`.pd-share` 📤 at inset-inline-end 58px, `.pd-copy` 🔗 at 102px, both sharing `.pd-close` glass style, localized aria-labels); (2) `productLink(item)` → `${origin}${pathname}?item=<id>` (no per-page routing; noted that `shops.slug` column does NOT exist — init's `?shop=` filter branch is dead code, so deep links carry only `?item=`); (3) `shareText(item)` builds a localized BMP-safe message `Name / Name_AR — From X (variant-aware min price)`, shop name, first 90 chars of description, link — `.replace(/[\uD800-\uDFFF]/g,'')` applied for the wa.me redirect; (4) `shareProduct()` → `navigator.share` when available/secure context, else `window.open('https://wa.me/?text=…')`; (5) `copyProductLink()` → clipboard writeText with `window.prompt` fallback + localized toast «تم نسخ الرابط / Link copied»; (6) deep-link support in init: after `render()`, parse `?item=<id>` and `setTimeout(() => openProductSheet(id), 400)` so a shared link opens the exact item after first paint.
+- **result**: Success — AR 375px: hero shows 🔗/📤/✕, share text for Cappuccino = `كابتشينو / Cappuccino — من ١٧٬٠٠٠ SYP` + shop + desc + deep link, BMP-safe, no overflow. Deep link `?item=d97406b4-…` opened the sheet on fresh load (AR and EN via hard reload): AR «كابتشينو», EN «Cappuccino», EN shareText `From 17,000 SYP` + Judy Joy + English desc. Console only pre-existing favicon 404.
+- **files**: `index.html` (hero share/copy buttons, productLink/shareText/shareProduct/copyProductLink, deep-link init block), memory/events.md
+- **errors**: None.
+- **lessons**: (reused) hard reload after hash-only navigation to re-run JS; discover the app's dead `slug` branch while building share links — deep links are `?item=` only for now.
+- **tags**: p1.10, share, whatsapp-share, copy-link, deep-link, product-sheet, bmp-safe, rtl, mobile-375, local-verify, pending-commit
