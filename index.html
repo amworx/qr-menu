@@ -357,6 +357,30 @@
     .sr-empty{text-align:center;padding:40px 16px;color:var(--text3);font-size:14px}
     @keyframes slideDown{from{opacity:0;transform:translateY(-18px)}to{opacity:1;transform:translateY(0)}}
 
+    /* ═══ INFO MODAL (P1.9) ═══ */
+    .info-sheet{background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;animation:slideUp .3s ease}
+    .info-body{overflow-y:auto;overscroll-behavior:contain;padding:18px 20px calc(20px + env(safe-area-inset-bottom))}
+    .info-head{display:flex;align-items:center;gap:14px;padding:20px 20px 0}
+    .info-logo{width:58px;height:58px;border-radius:18px;object-fit:cover;flex:none;background:var(--card2)}
+    .info-logo.ph{display:flex;align-items:center;justify-content:center;font-size:26px}
+    .info-title{font-size:19px;font-weight:800}
+    .info-sub{font-size:12.5px;color:var(--text3);margin-top:2px}
+    .info-section{margin-top:16px;border-top:1px dashed var(--border);padding-top:14px}
+    .info-label{font-size:11.5px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+    .info-text{font-size:13.5px;color:var(--text2);line-height:1.7}
+    .info-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13.5px;padding:7px 0;border-bottom:1px solid var(--border);color:var(--text)}
+    .info-row:last-child{border-bottom:none}
+    .info-row .dow{font-weight:700;flex:none}
+    .info-row .hrs{color:var(--text2);font-variant-numeric:tabular-nums;direction:ltr}
+    .info-link{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:8px;padding:12px;border-radius:14px;background:var(--primary);color:#fff;font-weight:800;font-size:14px;transition:.15s;border:none;font-family:inherit}
+    .info-link.ghost{background:var(--card2);color:var(--text);border:1px solid var(--border2);font-weight:700}
+    .info-link:hover{background:var(--primary-2)}
+    .info-link.ghost:hover{background:var(--border2)}
+    .info-socials{display:flex;gap:10px;flex-wrap:wrap}
+    .info-social{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:999px;border:1px solid var(--border2);background:var(--card2);color:var(--text);font-weight:700;font-size:13px;text-decoration:none;transition:.15s}
+    .info-social:hover{border-color:var(--primary);color:var(--primary)}
+    .info-legal{margin-top:14px;padding:11px 14px;border:1px dashed var(--border);border-radius:12px;background:var(--card2);font-size:12px;color:var(--text3);line-height:1.6}
+
     /* Empty */
     .empty-msg{text-align:center;padding:46px 16px;color:var(--text3);font-size:14px}
     .empty-msg .big{font-size:34px;display:block;margin-bottom:10px}
@@ -394,6 +418,7 @@
     <button class="ctl" id="theme-btn" onclick="toggleTheme()" title="Theme" aria-label="Toggle theme">☀️</button>
     <button class="ctl cur" id="currency-btn" onclick="cycleCurrency()" title="Currency" aria-label="Currency" style="display:none">SYP</button>
     <button class="ctl" id="search-btn" onclick="openSearch()" title="Search" aria-label="Search">🔍</button>
+    <button class="ctl" id="info-btn" onclick="openInfo()" title="Info" aria-label="Info">ⓘ</button>
     <button class="ctl lang" id="lang-btn" onclick="toggleLang()">EN</button>
   </div>
 
@@ -443,6 +468,11 @@
       </div>
       <div class="search-body" id="search-body"></div>
     </div>
+  </div>
+
+  <!-- Info modal (P1.9): about, hours, address+directions, phone, socials, legal note -->
+  <div class="order-modal" id="info-modal" onclick="if(event.target===this)closeInfo()">
+    <div class="info-sheet" id="info-sheet"></div>
   </div>
 
   <div class="shop-footer" id="shop-footer" style="display:none"></div>
@@ -938,6 +968,81 @@
       </button>`;
     }
 
+    // ─── INFO MODAL (P1.9) ─────────────────────────────────
+    // About, opening hours (rendered when shops.hours jsonb exists — populated in
+    // P1.11), address + Google Maps directions, phone (tel:), socials, legal note.
+    function openInfo() { renderInfo(); document.getElementById('info-modal').classList.add('visible'); }
+    function closeInfo() { document.getElementById('info-modal').classList.remove('visible'); }
+    function infoHoursHTML() {
+      if (!shop || !Array.isArray(shop.hours)) return '';
+      const days = shop.hours;
+      const labels = lang === 'ar'
+        ? ['الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد']
+        : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const rows = labels.map((d, i) => {
+        const h = days[i] || {};
+        const hrs = h.open && h.close ? `${h.open} – ${h.close}` : (lang === 'ar' ? 'مغلق' : 'Closed');
+        return `<div class="info-row"><span class="dow">${d}</span><span class="hrs">${esc(hrs)}</span></div>`;
+      }).join('');
+      return `<div class="info-section"><div class="info-label">${lang === 'ar' ? 'ساعات العمل' : 'Opening Hours'}</div>${rows}</div>`;
+    }
+    function renderInfo() {
+      const sheet = document.getElementById('info-sheet');
+      if (!shop) { closeInfo(); return; }
+      const name = lang === 'ar' ? (shop.name_ar || shop.name) : shop.name;
+      const name2 = lang === 'ar' ? (shop.name || '') : (shop.name_ar || '');
+      const about = lang === 'ar' ? (shop.about_ar || shop.about || '') : (shop.about || '');
+      const address = lang === 'ar' ? (shop.address_ar || shop.address || '') : (shop.address || '');
+      const legal = lang === 'ar' ? (shop.legal_note_ar || shop.legal_note || '') : (shop.legal_note || '');
+      const logo = shop.logo_url
+        ? `<img class="info-logo" src="${esc(shop.logo_url)}" alt="">`
+        : `<div class="info-logo ph">🍽️</div>`;
+      const aboutSection = about
+        ? `<div class="info-section"><div class="info-label">${lang === 'ar' ? 'نبذة عنا' : 'About'}</div><p class="info-text">${esc(about)}</p></div>`
+        : '';
+      const hoursSection = infoHoursHTML();
+      const dirQuery = encodeURIComponent(address || name);
+      const addressSection = address
+        ? `<div class="info-section"><div class="info-label">${lang === 'ar' ? 'العنوان' : 'Address'}</div>
+            <p class="info-text">${esc(address)}</p>
+            <a class="info-link" href="https://www.google.com/maps/search/?api=1&query=${dirQuery}" target="_blank" rel="noopener">🧭 ${lang === 'ar' ? 'الاتجاهات' : 'Get Directions'}</a>
+          </div>`
+        : '';
+      const phoneRow = shop.phone
+        ? `<a class="info-link ghost" href="tel:${esc(shop.phone)}">📞 ${esc(shop.phone)}</a>`
+        : '';
+      const waRow = shop.whatsapp
+        ? `<a class="info-link ghost" href="https://wa.me/${esc(shop.whatsapp)}">✆ ${lang === 'ar' ? 'واتساب' : 'WhatsApp'}</a>`
+        : '';
+      const socials = [['instagram', '📸', shop.instagram], ['facebook', '👍', shop.facebook], ['tripadvisor', '🦉', shop.tripadvisor]]
+        .filter(s => s[2])
+        .map(s => `<a class="info-social" href="${esc(s[2])}" target="_blank" rel="noopener">${s[1]} ${s[0] === 'tripadvisor' ? 'Tripadvisor' : s[0][0].toUpperCase() + s[0].slice(1)}</a>`)
+        .join('');
+      const socialSection = socials
+        ? `<div class="info-section"><div class="info-label">${lang === 'ar' ? 'تابعنا' : 'Follow us'}</div><div class="info-socials">${socials}</div></div>`
+        : '';
+      const legalSection = legal
+        ? `<div class="info-legal">${esc(legal)}</div>`
+        : '';
+      sheet.innerHTML = `
+        <div class="info-head">
+          ${logo}
+          <div style="flex:1;min-width:0">
+            <h3 class="info-title">${esc(name)}</h3>
+            ${name2 ? `<div class="info-sub">${esc(name2)}</div>` : ''}
+          </div>
+          <button class="sheet-close" onclick="closeInfo()" aria-label="${lang === 'ar' ? 'إغلاق' : 'Close'}">✕</button>
+        </div>
+        <div class="info-body">
+          ${aboutSection}
+          ${hoursSection}
+          ${addressSection}
+          ${(phoneRow || waRow) ? `<div class="info-section">${phoneRow}${waRow}</div>` : ''}
+          ${socialSection}
+          ${legalSection}
+        </div>`;
+    }
+
     // ─── PRODUCT DETAIL SHEET (P1.2) ───────────────────────
     function openProductSheet(id) {
       currentProductId = id;
@@ -1395,7 +1500,7 @@
     }
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
-      closeProductSheet(); closeOrderSheet(); closeSearch();
+      closeProductSheet(); closeOrderSheet(); closeSearch(); closeInfo();
     });
   </script>
 </body>

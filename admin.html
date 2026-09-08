@@ -355,6 +355,15 @@ const I18N = {
   primary_color:    { en: 'Primary Color', ar: 'اللون الأساسي' },
   accent_color:     { en: 'Accent Color', ar: 'اللون الثانوي' },
   footer_text:      { en: 'Footer Text', ar: 'نص التذييل' },
+  about_en:         { en: 'About (EN)', ar: 'نبذة (إنجليزي)' },
+  about_ar:         { en: 'About (AR)', ar: 'نبذة (عربي)' },
+  social_links:     { en: 'Social Links', ar: 'روابط التواصل' },
+  instagram:        { en: 'Instagram', ar: 'إنستغرام' },
+  facebook:         { en: 'Facebook', ar: 'فيسبوك' },
+  tripadvisor:      { en: 'Tripadvisor', ar: 'تريب أدفايزر' },
+  legal_note:       { en: 'Legal Note (EN) — e.g. "All prices include VAT"', ar: 'التنويه القانوني (إنجليزي)' },
+  legal_note_ar:    { en: 'Legal Note (AR)', ar: 'التنويه القانوني (عربي)' },
+  page_about:       { en: 'About / Social / Legal (Info modal)', ar: 'نبذة / تواصل / تنويه (نافذة المعلومات)' },
   default_currency: { en: 'Default Currency', ar: 'العملة الافتراضية' },
   show_currency_selector: { en: 'Show Currency Selector', ar: 'إظهار محوّل العملات' },
   save_changes:     { en: 'Save Changes', ar: 'حفظ التغييرات' },
@@ -667,6 +676,22 @@ function renderShopTab() {
       </div>
     </div>
     <div class="card">
+      <h4>${t('page_about')}</h4>
+      <div class="card-row">
+        <div class="field"><label>${t('about_en')}</label><textarea id="s-about" rows="3" dir="ltr">${esc(s.about || '')}</textarea></div>
+        <div class="field"><label>${t('about_ar')}</label><textarea id="s-about-ar" rows="3" dir="rtl">${esc(s.about_ar || '')}</textarea></div>
+      </div>
+      <div class="card-row-3">
+        <div class="field"><label>${t('instagram')}</label><input id="s-instagram" value="${esc(s.instagram || '')}" placeholder="https://instagram.com/..."></div>
+        <div class="field"><label>${t('facebook')}</label><input id="s-facebook" value="${esc(s.facebook || '')}" placeholder="https://facebook.com/..."></div>
+        <div class="field"><label>${t('tripadvisor')}</label><input id="s-tripadvisor" value="${esc(s.tripadvisor || '')}" placeholder="https://tripadvisor.com/..."></div>
+      </div>
+      <div class="card-row">
+        <div class="field"><label>${t('legal_note')}</label><input id="s-legal-note" value="${esc(s.legal_note || '')}" dir="ltr"></div>
+        <div class="field"><label>${t('legal_note_ar')}</label><input id="s-legal-note-ar" value="${esc(s.legal_note_ar || '')}" dir="rtl"></div>
+      </div>
+    </div>
+    <div class="card">
       <h4>${t('branding')}</h4>
       <div class="card-row-3">
         <div class="field"><label>${t('primary_color')}</label><input type="color" id="s-color" value="${s.primary_color || '#D97706'}" style="height:36px;padding:2px"></div>
@@ -705,6 +730,9 @@ async function saveShop() {
     logo_url: gv('s-logo'),
     whatsapp: gv('s-whatsapp'), phone: gv('s-phone'), email: gv('s-email'),
     address: gv('s-address'), address_ar: gv('s-address-ar'),
+    about: gv('s-about'), about_ar: gv('s-about-ar'),
+    instagram: gv('s-instagram'), facebook: gv('s-facebook'), tripadvisor: gv('s-tripadvisor'),
+    legal_note: gv('s-legal-note'), legal_note_ar: gv('s-legal-note-ar'),
     primary_color: gv('s-color'), accent_color: gv('s-accent'),
     footer_text: gv('s-footer'),
     currency_default: gv('s-default-currency'),

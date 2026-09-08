@@ -28,6 +28,14 @@ create table if not exists shops (
   footer_text text default '',
   footer_text_ar text default '',
   is_active boolean default true,
+  -- P1.9 Info modal fields
+  about text default '',                    -- about (EN)
+  about_ar text default '',                 -- about (AR)
+  instagram text default '',
+  facebook text default '',
+  tripadvisor text default '',
+  legal_note text default '',               -- legal note (EN), e.g. "All prices include VAT"
+  legal_note_ar text default '',            -- legal note (AR)
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -298,3 +306,20 @@ begin
     on conflict do nothing;
   end if;
 end $$;
+
+-- ─── MIGRATIONS ─────────────────────────────────────────────
+-- P1.6 (2026-09-08): item size/price variants (jsonb array
+--   [{name, name_ar, prices:{SYP,USD,TRY}}]); card shows "From X";
+--   cart line carries the chosen variant.
+--   alter table items add column if not exists variants jsonb;
+
+-- P1.9 (2026-09-08): public Info modal data on shops —
+--   about/about_ar (EN/AR text), social links (instagram/facebook/tripadvisor),
+--   legal note (EN/AR). Rendered by index.html #info-modal.
+--   alter table shops add column if not exists about text default '',
+--     add column if not exists about_ar text default '',
+--     add column if not exists instagram text default '',
+--     add column if not exists facebook text default '',
+--     add column if not exists tripadvisor text default '',
+--     add column if not exists legal_note text default '',
+--     add column if not exists legal_note_ar text default '';

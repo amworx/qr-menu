@@ -160,6 +160,12 @@
 - **Fix**: Use the Write tool to create a clean no-BOM UTF-8 JSON payload file (one-line `{"query":"..."}`; escape inner double quotes, newlines as literal `\n`), then `curl.exe -s -X POST ... -H "Authorization: Bearer $pat" -H "Content-Type: application/json" --data-binary "@file"`. Verify responses the same way (`curl -o file` then Read).
 - **Lesson**: For Supabase Management API SQL with Arabic/multiline content, the payload must originate from a file written by the Write tool and be sent with `curl.exe --data-binary @file`; reading the response back through `-o` + Read avoids PowerShell's Latin-1 mangling of UTF-8. (Also: `alter table ... add column if not exists` is idempotent and safe to run via this API.)
 
+## LSSN-20260908-018 — Never inline Arabic in a PowerShell command when building SQL payloads (even for temp files)
+- **Problem**: Restoring an Arabic `legal_note_ar` via `$q = '{"query":"update shops set legal_note_ar = ''...Arabic...'' ..."}'` then `Set-Content` wrote mojibake to the DB (stored `O�U.USO1...` garbage), corrupting a previously-good value.
+- **Root cause**: The Arabic literal passed through the PowerShell 5.1 command line + `Set-Content -Encoding UTF8` lost encoding fidelity BEFORE curl; the payload bytes were already wrong.
+- **Fix**: Deleted the corrupted attempt and re-ran the same UPDATE with a payload JSON file created by the **Write tool** (clean UTF-8) → value restored byte-perfect.
+- **Lesson**: The "never Set-Content payloads for repo files" rule extends to ANY Arabic-containing payload — even throwaway temp files. If the payload contains Arabic (or any UTF-8 beyond ASCII), it must be authored with the Write tool and sent with `curl.exe --data-binary @file`; PowerShell 5.1 Polish/Latin-1 console + `.NET` string handling corrupts Arabic at the command-line stage. Verified by fetch → Read shows correct text.
+
 (End of file - total 139 lines)
 
 (End of file - total 125 lines)
