@@ -137,6 +137,18 @@
 - **Approach**: One `computeOrder()` snapshot (items, offers with savings, subtotal, discountLines, discount, total) reused by FAB, order sheet and WhatsApp so all three can never disagree. Deal math is pure and per-deal: percent/fixed use a scope subtotal (item/category/all); BOGO needs `item_id` present with `qty ≥ buy+get` (groups = floor(qty/(buy+get)) × get × unit price); bundle needs ALL bundle item ids in cart (≥1 each) and saves `Σ unit prices − bundle_price`; min_order triggers past `min_total` with % or fixed reward. Fixed/bundle/min-fixed discounts only apply in the deal's own currency (percent applies anywhere). Stacking is additive and capped: `discount = min(Σ savings, subtotal)`; `total = max(subtotal − discount, 0)` — explainable, never negative.
 - **Lesson**: Compute one order snapshot once and derive every UI/outbound representation from it; scope-based discounts need the cart's items+quantities, not just an offer line; always cap total discount at subtotal to avoid negative orders when offers stack.
 
+## LSSN-20260908-024 — A programmatic `fill` with an empty string may not fire `input`/`change`
+- **Problem**: During Orders-tab testing, "clearing" the search box via the chrome-devtools `fill` tool left the view stale ("Showing 0 of 1" + no-match state) even though the input looked empty.
+- **Root cause**: Not an app bug — the automation tool sets the field value programmatically and, for an empty-string fill, did not dispatch the `input` event the inline `oninput` handler listens on (non-empty fills had fired it). Real users typing/clearing with keys always fire the event.
+- **Fix**: For tool-driven clears, dispatch manually: `el.value=''; el.dispatchEvent(new Event('input',{bubbles:true}))` (and `change` for selects) before asserting the re-render.
+- **Lesson**: When automating browser verification, treat `fill`/value-setting as "set value, maybe no event" — if the test needs the app's handler, dispatch the event explicitly, or drive the field with real key presses. Don't turn a tooling quirk into a code change.
+
+## LSSN-20260908-025 — jsonb order snapshots hold localized text; admin views must pick a language per field
+- **Problem**: The Orders tab initially showed the offers column in Arabic even when the admin was in EN mode — because `orders.offers[]` stores `summary` as snapshot text *localized to the customer's session language* at order time (the AR customer saw "اشترِ 2 واحصل على 1 مجاناً").
+- **Root cause**: Snapshot payloads intentionally freeze what the customer saw (title/summary/price per language) — but the admin's language is independent, so a fixed `summary || title` readout produces a mixed-language row.
+- **Fix**: Render order-line text by the ADMIN's current lang, preferring the field that matches: AR → `summary || title_ar || title` (rich localized summary), EN → `title || summary` (English label; drop to the snapshot summary only if title is missing). Same principle for items (`name_ar`/`name`).
+- **Lesson**: Whenever you persist per-language display text in jsonb payloads, every consumer must branch on its OWN current language and know which stored field is canonical for that language — never render a fixed field hoping it matches the viewer.
+
 (End of file - total 139 lines)
 
 (End of file - total 125 lines)
