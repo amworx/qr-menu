@@ -321,3 +321,15 @@
 - **errors**: (1) PowerShell ok; (2) isNowOpen overnight early-return bug caught by mocked-clock matrix — lesson: always test overnight-window logic over a weekday matrix, not just the current clock.
 - **lessons**: extend the existing mock-clock verification technique to any time-window logic; seed hours using Friday/Saturday late-night windows so the public field has realistic data.
 - **tags**: p1.11, service-hours, open-now, hours-jsonb, db-migration, admin-editor, overnight-hours, i18n, rtl, mobile-375, local-verify, pending-commit
+
+## EVT-20260908-0028
+
+- **timestamp**: 2026-09-08
+- **mode**: BUILD / I18N / LOCAL-VERIFY
+- **action**: P2.1 — Favorites (localStorage) + favorites rail
+- **summary**: Added per-device favorites without any DB change: (1) `localStorage 'qm_favs'` = JSON array of item ids, `favs` state + `loadFavs/saveFavs/isFav`; (2) heart button on every card `.fav-heart` (absolute over media, top:12px inset-inline-end:12px, z-index 3, dark glass, ♥ filled / ♡ outline, `.on` = rose rgba(190,24,93,.72)) plus a heart on the product sheet `.pd-fav` at inset-inline-end:146px (4th round button, `pd-fav-btn`) with synchronized `syncFavHearts()`; (3) horizontal `#fav-rail` under the category rail — `<div class="fav-card">` mini cards (thumb/emoji, name, `cardPriceHTML` incl. "من/From" variant prices), ✕ remove, "مسح الكل / Clear" button, `renderFavRail()` shows only when ≥1 fav; (4) `toggleFav` localizes the toast (♥ أُضيف إلى المفضلة / ♥ Added to favorites; أُزيل من المفضلة / Removed from favorites; أُفرغت المفضلة / Favorites cleared).
+- **result**: Success — AR 375px: card hearts toggle, rail shows «♥ المفضلة» + «مسح الكل» with correct AR mini cards (كابتشينو «من ١٧٬٠٠٠ SYP», كنافة), sheet heart added Kunafa and rail updated; hard-reload persistence verified (2 favs survive re-render incl. post-deep-link state); rail ✕ removed one (favs [كنافة]); Clear emptied + hid rail. EN 375px: sheet heart aria «Remove from favorites», rail «♥ Favorites» / «Clear» with Cappuccino, no overflow. Console only pre-existing favicon 404.
+- **files**: `index.html` (fav-rail DOM, CSS heart/rail/pd-fav, FAVORITES module, favBtnHTML in card, pd-fav-btn in sheet, render() calls renderFavRail), memory/events.md
+- **errors**: None (test note: the AR wrap card lookup by «راب دجاج» missed — the seeded AR name differs; no code impact).
+- **lessons**: keep favoriting fully client-side (no per-item table needed) — localStorage suits a QR-per-table audience; reuse the existing `cardPriceHTML` so variant-aware "From" prices carry into the rail for free.
+- **tags**: p2.1, favorites, localStorage, favorites-rail, heart-toggle, i18n, rtl, mobile-375, local-verify, pending-commit

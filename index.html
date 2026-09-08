@@ -183,6 +183,25 @@
     .item-img{width:72px;height:72px;border-radius:18px;object-fit:cover;border:1px solid var(--border)}
     .item-img.ph{width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,var(--card2),var(--border));display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--text3)}
 
+    /* Favorites heart on cards (P2.1) */
+    .fav-heart{position:absolute;top:12px;inset-inline-end:12px;z-index:3;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.42);color:#fff;border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:17px;line-height:1;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);transition:transform .15s ease,background .15s ease}
+    .fav-heart:hover{transform:scale(1.12)}
+    .fav-heart.on{background:rgba(190,24,93,.72)}
+
+    /* Favorites rail (P2.1) */
+    .fav-rail{display:none;padding:4px 16px 10px}
+    .fav-rail.show{display:block}
+    .fav-head{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:800;color:var(--text2);margin-bottom:8px}
+    .fav-head .clear-favs{margin-inline-start:auto;background:none;border:none;color:var(--text3);font-size:11.5px;cursor:pointer;font-weight:700}
+    .fav-track{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+    .fav-track::-webkit-scrollbar{display:none}
+    .fav-card{flex:0 0 auto;width:132px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:8px;text-align:start;cursor:pointer;position:relative;transition:border-color .18s ease}
+    .fav-card:hover{border-color:var(--border2)}
+    .fav-thumb{width:100%;height:56px;border-radius:10px;object-fit:cover;background:linear-gradient(135deg,var(--card2),var(--border));display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text3);margin-bottom:6px;line-height:1}
+    .fav-name{font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+    .fav-price{font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+    .fav-del{position:absolute;top:4px;inset-inline-end:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;border:none;font-size:10px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
+
     .item-body{flex:1;min-width:0}
     .item-name-btn{background:none;border:none;padding:0;margin:0;color:inherit;font:inherit;cursor:pointer;text-align:start;min-width:0}
     .item-name-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:6px}
@@ -308,6 +327,8 @@
     .pd-close:hover{background:rgba(0,0,0,.65)}
     .pd-share{inset-inline-end:58px}
     .pd-copy{inset-inline-end:102px}
+    .pd-fav{inset-inline-end:146px}
+    .pd-fav.on{background:rgba(190,24,93,.78)}
     .pd-body{padding:18px 20px 8px;overflow-y:auto;overscroll-behavior:contain;flex:1}
     .pd-body .badge-row{margin-top:0;margin-bottom:10px}
     .pd-name{font-size:21px;font-weight:800;line-height:1.25}
@@ -432,6 +453,12 @@
 
   <!-- Category rail (injected) -->
   <div class="rail-wrap" id="rail-wrap" style="display:none"><div class="cat-tabs" id="cat-tabs"></div></div>
+
+  <!-- Favorites rail (P2.1, localStorage) -->
+  <div class="fav-rail" id="fav-rail">
+    <div class="fav-head"><span id="fav-head-label">♥ المفضلة</span><button class="clear-favs" onclick="clearFavs()"></button></div>
+    <div class="fav-track" id="fav-track"></div>
+  </div>
 
   <!-- Deals (injected) -->
   <div class="deals-scroll" id="deals-section" style="display:none"></div>
@@ -564,7 +591,63 @@
       renderItems();
       renderViewBtn();
       renderFooter();
+      renderFavRail();
       updateCartBar();
+    }
+
+    // ─── FAVORITES (P2.1) ─────────────────────────────────
+    // localStorage 'qm_favs' = [itemId,...]; rail + card/sheet hearts.
+    let favs = loadFavs();
+    function loadFavs() { try { return JSON.parse(localStorage.getItem('qm_favs') || '[]'); } catch (e) { return []; } }
+    function saveFavs() { try { localStorage.setItem('qm_favs', JSON.stringify(favs)); } catch (e) {} }
+    function isFav(id) { return favs.includes(id); }
+    function toggleFav(id) {
+      const on = !isFav(id);
+      favs = on ? favs.concat(id) : favs.filter(x => x !== id);
+      saveFavs();
+      syncFavHearts();
+      renderFavRail();
+      toast(on ? (lang === 'ar' ? '♥ أُضيف إلى المفضلة' : '♥ Added to favorites') : (lang === 'ar' ? 'أُزيل من المفضلة' : 'Removed from favorites'));
+    }
+    function clearFavs() {
+      favs = []; saveFavs(); syncFavHearts(); renderFavRail();
+      toast(lang === 'ar' ? 'أُفرغت المفضلة' : 'Favorites cleared');
+    }
+    function favBtnHTML(item) {
+      const on = isFav(item.id);
+      return `<button class="fav-heart ${on ? 'on' : ''}" data-id="${item.id}" onclick="event.stopPropagation();toggleFav('${item.id}')" aria-label="${lang === 'ar' ? (on ? 'إزالة من المفضلة' : 'أضف إلى المفضلة') : (on ? 'Remove from favorites' : 'Add to favorites')}">${on ? '♥' : '♡'}</button>`;
+    }
+    function syncFavHearts() {
+      document.querySelectorAll('.fav-heart').forEach(b => {
+        const on = isFav(b.dataset.id);
+        b.classList.toggle('on', on);
+        b.textContent = on ? '♥' : '♡';
+        b.setAttribute('aria-label', lang === 'ar' ? (on ? 'إزالة من المفضلة' : 'أضف إلى المفضلة') : (on ? 'Remove from favorites' : 'Add to favorites'));
+      });
+      const sf = document.getElementById('pd-fav-btn');
+      if (sf) { const on = isFav(sf.dataset.id); sf.classList.toggle('on', on); sf.textContent = on ? '♥' : '♡'; }
+    }
+    function renderFavRail() {
+      const rail = document.getElementById('fav-rail');
+      if (!rail) return;
+      const list = favs.map(id => items.find(i => i.id === id)).filter(Boolean);
+      if (!list.length) { rail.classList.remove('show'); return; }
+      rail.classList.add('show');
+      document.getElementById('fav-head-label').textContent = lang === 'ar' ? '♥ المفضلة' : '♥ Favorites';
+      const clearLabel = lang === 'ar' ? 'مسح الكل' : 'Clear';
+      rail.querySelector('.clear-favs').textContent = clearLabel;
+      document.getElementById('fav-track').innerHTML = list.map(it => {
+        const name = lang === 'ar' ? (it.name_ar || it.name) : it.name;
+        const thumb = it.image_url
+          ? `<img class="fav-thumb" src="${esc(it.image_url)}" alt="" loading="lazy">`
+          : `<div class="fav-thumb">${emojiFor(it)}</div>`;
+        return `<div class="fav-card" role="button" tabindex="0" onclick="openProductSheet('${it.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openProductSheet('${it.id}')}">
+          ${thumb}
+          <button class="fav-del" onclick="event.stopPropagation();toggleFav('${it.id}')" aria-label="${lang === 'ar' ? 'إزالة' : 'Remove'}">✕</button>
+          <span class="fav-name">${esc(name)}</span>
+          <span class="fav-price">${cardPriceHTML(it)}</span>
+        </div>`;
+      }).join('');
     }
 
     function applyLang() {
@@ -766,6 +849,7 @@
             : `<button class="add-btn" onclick="incCart('${item.id}')"><span>+</span> ${lang === 'ar' ? 'أضف' : 'Add'}</button>`;
         return `
           <div class="item-card ${item.is_featured ? 'featured' : ''}">
+            ${favBtnHTML(item)}
             <button class="item-media" onclick="openProductSheet('${item.id}')" aria-label="${viewLabel}">${img}</button>
             <div class="item-body">
               <div class="item-top">
@@ -1200,6 +1284,7 @@
       sheet.innerHTML = `
         <div class="pd-hero">
           ${img}
+          <button class="sheet-close pd-close pd-fav ${isFav(item.id) ? 'on' : ''}" id="pd-fav-btn" data-id="${item.id}" onclick="toggleFav('${item.id}')" aria-label="${lang === 'ar' ? (isFav(item.id) ? 'إزالة من المفضلة' : 'أضف إلى المفضلة') : (isFav(item.id) ? 'Remove from favorites' : 'Add to favorites')}">${isFav(item.id) ? '♥' : '♡'}</button>
           <button class="sheet-close pd-close pd-copy" onclick="copyProductLink()" aria-label="${lang === 'ar' ? 'نسخ الرابط' : 'Copy link'}">🔗</button>
           <button class="sheet-close pd-close pd-share" onclick="shareProduct()" aria-label="${lang === 'ar' ? 'مشاركة' : 'Share'}">📤</button>
           <button class="sheet-close pd-close" onclick="closeProductSheet()" aria-label="${lang === 'ar' ? 'إغلاق' : 'Close'}">✕</button>
