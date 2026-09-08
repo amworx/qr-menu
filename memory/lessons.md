@@ -149,6 +149,11 @@
 - **Fix**: Render order-line text by the ADMIN's current lang, preferring the field that matches: AR → `summary || title_ar || title` (rich localized summary), EN → `title || summary` (English label; drop to the snapshot summary only if title is missing). Same principle for items (`name_ar`/`name`).
 - **Lesson**: Whenever you persist per-language display text in jsonb payloads, every consumer must branch on its OWN current language and know which stored field is canonical for that language — never render a fixed field hoping it matches the viewer.
 
+## LSSN-20260908-026 — Dynamic SEO/schema meta must be re-emitted on every render(), not just on init
+- **Problem**: For AR/EN (and theme/currency) toggling to keep the meta tags, canonical + JSON-LD in sync, the SEO builder can't be a one-shot at load.
+- **Fix**: Add `renderSEO()` as a normal member of the central `render()` pipeline (after `renderHeader()`, before the sections it depends on like `renderItems()`). It reads the already-loaded `shop`, `categories`, `items` globals and re-writes `document.title`, `meta[name=description]`, og/twitter tags, `link[rel=canonical]`, `meta[name=theme-color]`, and the `application/ld+json` `Restaurant` schema using the *current* `lang` (so MenuSection/MenuItem names + desc + Offer currency localize on the fly). Static placeholder tags live in `<head>`; `renderSEO()` only mutates `content`/`href`/`textContent` so duplicate-meta risk is nil.
+- **Lesson**: Treat share/SEO meta as derived UI fed by the same render pass as the visible content; localize the JSON-LD the same way you localize the body, and rebuild it whenever language (or data) changes — not just at bootstrap.
+
 (End of file - total 139 lines)
 
 (End of file - total 125 lines)

@@ -4,6 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>QR Menu</title>
+  <meta name="description" content="Browse the menu and order via WhatsApp.">
+  <meta name="theme-color" content="#0d0a07">
+  <link rel="canonical" id="canonical-link">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="QR Menu">
+  <meta property="og:title" content="QR Menu">
+  <meta property="og:description" content="Browse the menu and order via WhatsApp.">
+  <meta property="og:url" content="">
+  <meta property="og:image" content="">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="QR Menu">
+  <meta name="twitter:description" content="Browse the menu and order via WhatsApp.">
+  <meta name="twitter:image" content="">
+  <script id="ld-json" type="application/ld+json">{}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Kufi+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -377,6 +391,7 @@
     function render() {
       applyLang();
       renderHeader();
+      renderSEO();
       renderCurrencyBtn();
       renderCategories();
       renderDeals();
@@ -395,6 +410,70 @@
       document.getElementById('cart-review-text').textContent = lang === 'ar' ? 'الطلب' : 'Order';
       const label = document.getElementById('section-label');
       label.textContent = lang === 'ar' ? 'من القائمة' : 'FROM THE MENU';
+    }
+
+    // ─── SEO (meta + JSON-LD) ──────────────────────────────
+    // Matches the professional platform pattern (OG, Twitter, canonical,
+    // Restaurant schema + Menu/OfferCatalog) so shared links look rich.
+    function renderSEO() {
+      const cleanUrl = window.location.origin + window.location.pathname + window.location.search;
+      const name = shop.name || 'QR Menu';
+      const desc = (lang === 'ar' ? (shop.tagline_ar || shop.tagline) : shop.tagline)
+        || (lang === 'ar' ? (shop.footer_text_ar || shop.footer_text) : shop.footer_text)
+        || `Order from ${name} on WhatsApp`;
+      const image = shop.logo_url || '';
+      const setMeta = (sel, attr, val) => { const el = document.querySelector(sel); if (el) el.setAttribute(attr, val); };
+
+      document.title = lang === 'ar' ? (shop.name_ar || shop.name || 'QR Menu') : (shop.name || 'QR Menu');
+      setMeta('meta[name="description"]', 'content', desc);
+      setMeta('meta[property="og:title"]', 'content', name);
+      setMeta('meta[property="og:description"]', 'content', desc);
+      setMeta('meta[property="og:url"]', 'content', cleanUrl);
+      setMeta('meta[property="og:image"]', 'content', image);
+      setMeta('meta[name="twitter:title"]', 'content', name);
+      setMeta('meta[name="twitter:description"]', 'content', desc);
+      setMeta('meta[name="twitter:image"]', 'content', image);
+      setMeta('meta[name="theme-color"]', 'content', shop.primary_color || '#0d0a07');
+      const canonical = document.getElementById('canonical-link');
+      if (canonical) canonical.href = cleanUrl;
+
+      const priceRange = shop.currency_default || 'SYP';
+      const menuSections = categories
+        .map(c => {
+          const menuItems = items
+            .filter(i => i.category_id === c.id)
+            .map(i => {
+              const p = (i.item_prices || []).find(p => p.is_visible && p.price > 0) || (i.item_prices || [])[0];
+              const itemName = lang === 'ar' ? (i.name_ar || i.name) : i.name;
+              const itemDesc = lang === 'ar' ? (i.description_ar || i.description) : i.description;
+              const offer = (p && p.price > 0)
+                ? { '@type': 'Offer', price: Number(p.price).toFixed(2), priceCurrency: p.currency || priceRange, availability: i.is_available ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' }
+                : null;
+              const node = { '@type': 'MenuItem', name: itemName };
+              if (i.image_url) node.image = i.image_url;
+              if (itemDesc) node.description = itemDesc;
+              if (offer) node.offers = offer;
+              return node;
+            });
+          return { '@type': 'MenuSection', name: lang === 'ar' ? (c.name_ar || c.name) : c.name, hasMenuItem: menuItems };
+        })
+        .filter(s => s.hasMenuItem.length);
+
+      const restaurant = {
+        '@context': 'https://schema.org',
+        '@type': 'Restaurant',
+        name,
+        url: cleanUrl
+      };
+      if (image) restaurant.image = image;
+      if (shop.phone) restaurant.telephone = shop.phone;
+      else if (shop.whatsapp) restaurant.telephone = `+${shop.whatsapp}`;
+      if (shop.address) restaurant.address = { '@type': 'PostalAddress', streetAddress: lang === 'ar' ? (shop.address_ar || shop.address) : shop.address };
+      restaurant.priceRange = priceRange;
+      if (menuSections.length) restaurant.hasMenu = { '@type': 'Menu', hasMenuSection: menuSections };
+
+      const ld = document.getElementById('ld-json');
+      if (ld) ld.textContent = JSON.stringify(restaurant);
     }
 
     function renderHeader() {
