@@ -364,6 +364,10 @@
     .search-input{flex:1;min-width:0;background:var(--card2);border:1px solid var(--border2);border-radius:14px;padding:12px 14px;color:var(--text);font-size:15px;outline:none;font-family:inherit;font-variant-numeric:tabular-nums}
     .search-input:focus{border-color:var(--primary)}
     .search-input::placeholder{color:var(--text3)}
+    .voice-btn{width:40px;height:40px;flex:0 0 auto;border-radius:50%;background:var(--card2);border:1px solid var(--border2);color:var(--text2);font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease}
+    .voice-btn:hover{color:var(--text)}
+    .voice-btn.recording{background:rgba(239,68,68,.16);color:#ef4444;border-color:rgba(239,68,68,.5);animation:rec-pulse 1.2s infinite}
+    @keyframes rec-pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.35)}50%{box-shadow:0 0 0 9px rgba(239,68,68,0)}}
     .search-body{overflow-y:auto;overscroll-behavior:contain;padding:6px 14px 16px}
     .search-group-title{font-size:11.5px;font-weight:800;letter-spacing:.6px;color:var(--text3);text-transform:uppercase;margin:12px 4px 6px}
     .search-row{display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:14px;width:100%;text-align:start;cursor:pointer;background:transparent;border:none;transition:background .15s ease;font-family:inherit}
@@ -496,6 +500,7 @@
     <div class="search-sheet" id="search-sheet">
       <div class="search-head">
         <input class="search-input" id="search-input" autocomplete="off" enterkeyhint="search" spellcheck="false" oninput="searchRender(this.value)" aria-label="Search">
+        <button class="voice-btn" id="voice-btn" onclick="toggleVoice()" title="Voice search" aria-label="Voice search" style="display:none">🎤</button>
         <button class="sheet-close" onclick="closeSearch()" aria-label="Close">✕</button>
       </div>
       <div class="search-body" id="search-body"></div>
@@ -577,6 +582,7 @@
       if (deepItem && items.some(i => i.id === deepItem)) {
         setTimeout(() => openProductSheet(deepItem), 400);
       }
+      initVoice();
     })();
 
     // ─── RENDER ─────────────────────────────────────────────
@@ -1007,6 +1013,11 @@
       const input = document.getElementById('search-input');
       input.placeholder = lang === 'ar' ? 'ابحث عن طبق أو مشروب…' : 'Search dishes or drinks…';
       input.setAttribute('aria-label', lang === 'ar' ? 'بحث' : 'Search');
+      const mic = document.getElementById('voice-btn');
+      if (mic) {
+        mic.setAttribute('aria-label', lang === 'ar' ? 'بحث صوتي' : 'Voice search');
+        mic.setAttribute('title', lang === 'ar' ? 'بحث صوتي' : 'Voice search');
+      }
       searchRender(input.value);
       document.getElementById('search-modal').classList.add('visible');
       setTimeout(() => input.focus(), 60);
@@ -1061,6 +1072,63 @@
         </div>
         <span class="sr-price">${price}</span>
       </button>`;
+    }
+
+    // ─── VOICE SEARCH (P2.2) ─────────────────────────────
+    // Thin Web Speech API wrapper on the P1.8 search overlay; mic hidden when
+    // the browser has no SpeechRecognition. Results land in the normal search box.
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let rec = null, recActive = false;
+    function initVoice() {
+      const mic = document.getElementById('voice-btn');
+      if (!mic) return;
+      mic.style.display = SR ? '' : 'none';
+    }
+    function toggleVoice() {
+      if (!SR) { toast(lang === 'ar' ? 'متصفحك لا يدعم الإدخال الصوتي' : 'Voice input is not supported in this browser'); return; }
+      if (recActive) { stopVoice(); return; }
+      try {
+        rec = new SR();
+        rec.lang = lang === 'ar' ? 'ar-SA' : 'en-US';
+        rec.interimResults = false;
+        rec.maxAlternatives = 1;
+        rec.onstart = () => {
+          recActive = true;
+          document.getElementById('voice-btn').classList.add('recording');
+          toast(lang === 'ar' ? '🎤 استمع الآن…' : '🎤 Listening…');
+        };
+        rec.onresult = e => {
+          const t = e.results[0][0].transcript;
+          const input = document.getElementById('search-input');
+          input.value = t;
+          searchRender(t);
+        };
+        rec.onend = () => { recActive = false; document.getElementById('voice-btn').classList.remove('recording'); };
+        rec.onerror = e => {
+          recActive = false;
+          document.getElementById('voice-btn').classList.remove('recording');
+          toast(voiceErrMsg(e.error));
+        };
+        rec.start();
+      } catch (err) {
+        recActive = false;
+        document.getElementById('voice-btn').classList.remove('recording');
+        toast(lang === 'ar' ? 'تعذر بدء الإدخال الصوتي' : 'Could not start voice input');
+      }
+    }
+    function stopVoice() {
+      try { if (rec) rec.stop(); } catch (e) {}
+      recActive = false;
+      const mic = document.getElementById('voice-btn');
+      if (mic) mic.classList.remove('recording');
+    }
+    function voiceErrMsg(code) {
+      const ar = lang === 'ar';
+      if (code === 'not-allowed' || code === 'service-not-allowed') return ar ? 'لا يمكن الوصول للميكروفون — امنح الإذن للموقع' : 'Microphone blocked — allow access in the browser';
+      if (code === 'no-speech') return ar ? 'لم يُسمع كلام — حاول مجدداً' : 'No speech heard — try again';
+      if (code === 'audio-capture') return ar ? 'لا يوجد ميكروفون متاح' : 'No microphone available';
+      if (code === 'network') return ar ? 'تعذر الوصول لخدمة التعرف الصوتي' : 'Speech service unreachable';
+      return ar ? 'تعذر التعرف على الصوت' : 'Speech recognition failed';
     }
 
     // ─── INFO MODAL (P1.9) ─────────────────────────────────
