@@ -680,13 +680,14 @@ function renderCategoriesTab() {
     </div>
     <div class="table-wrap">
     <table>
-      <thead><tr><th>${t('order')}</th><th>${t('name_en')}</th><th>${t('name_ar')}</th><th>${t('active')}</th><th></th></tr></thead>
+      <thead><tr><th>${t('order')}</th><th>${t('name_en')}</th><th>${t('name_ar')}</th><th>${t('image_url')}</th><th>${t('active')}</th><th></th></tr></thead>
       <tbody>
         ${allCategories.map(c => `
           <tr>
             <td data-label="${t('order')}">${c.sort_order}</td>
             <td data-label="${t('name_en')}">${esc(c.name)}</td>
             <td data-label="${t('name_ar')}" dir="rtl">${esc(c.name_ar)}</td>
+            <td data-label="${t('image_url')}">${c.image_url ? `<img src="${esc(c.image_url)}" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:10px">` : '<span style="color:var(--text3)">—</span>'}</td>
             <td data-label="${t('active')}"><label class="toggle"><input type="checkbox" ${c.is_active?'checked':''} onchange="toggleCategory('${c.id}','is_active',this.checked)"><span class="slider"></span></label></td>
             <td data-label="${t('actions')}">
               <button class="btn btn-ghost btn-sm" onclick="openCategoryModal('${c.id}')">${t('edit')}</button>
@@ -694,7 +695,7 @@ function renderCategoriesTab() {
             </td>
           </tr>
         `).join('')}
-        ${allCategories.length===0 ? '<tr><td colspan="5" class="empty">' + t('no_categories') + '</td></tr>' : ''}
+        ${allCategories.length===0 ? '<tr><td colspan="6" class="empty">' + t('no_categories') + '</td></tr>' : ''}
       </tbody>
     </table>
     </div>
@@ -707,6 +708,9 @@ function openCategoryModal(id) {
     <h3>${cat ? t('edit_category') : t('new_category_short')}</h3>
     <div class="field"><label>${t('name_en')}</label><input id="m-cat-name" value="${cat ? esc(cat.name) : ''}"></div>
     <div class="field"><label>${t('name_ar')}</label><input id="m-cat-name-ar" value="${cat ? esc(cat.name_ar) : ''}" dir="rtl"></div>
+    <div class="field"><label>${t('image_url')}</label><input id="m-cat-image" value="${cat ? esc(cat.image_url || '') : ''}" placeholder="https://..."></div>
+    <div class="field"><label>${t('desc_en')}</label><textarea id="m-cat-desc" rows="2">${cat ? esc(cat.description || '') : ''}</textarea></div>
+    <div class="field"><label>${t('desc_ar')}</label><textarea id="m-cat-desc-ar" rows="2" dir="rtl">${cat ? esc(cat.description_ar || '') : ''}</textarea></div>
     <div class="field"><label>${t('sort_order')}</label><input type="number" id="m-cat-sort" value="${cat ? cat.sort_order : (allCategories.length + 1) * 10}"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button>
@@ -717,7 +721,7 @@ function openCategoryModal(id) {
 }
 
 async function saveCategory(id) {
-  const data = { name: gv('m-cat-name'), name_ar: gv('m-cat-name-ar'), sort_order: parseInt(gv('m-cat-sort')) || 0, shop_id: currentShop.id };
+  const data = { name: gv('m-cat-name'), name_ar: gv('m-cat-name-ar'), image_url: gv('m-cat-image'), description: gv('m-cat-desc'), description_ar: gv('m-cat-desc-ar'), sort_order: parseInt(gv('m-cat-sort')) || 0, shop_id: currentShop.id };
   let error;
   if (id) {
     ({ error } = await sb.from('categories').update(data).eq('id', id));

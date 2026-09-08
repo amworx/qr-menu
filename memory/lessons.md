@@ -154,6 +154,12 @@
 - **Fix**: Add `renderSEO()` as a normal member of the central `render()` pipeline (after `renderHeader()`, before the sections it depends on like `renderItems()`). It reads the already-loaded `shop`, `categories`, `items` globals and re-writes `document.title`, `meta[name=description]`, og/twitter tags, `link[rel=canonical]`, `meta[name=theme-color]`, and the `application/ld+json` `Restaurant` schema using the *current* `lang` (so MenuSection/MenuItem names + desc + Offer currency localize on the fly). Static placeholder tags live in `<head>`; `renderSEO()` only mutates `content`/`href`/`textContent` so duplicate-meta risk is nil.
 - **Lesson**: Treat share/SEO meta as derived UI fed by the same render pass as the visible content; localize the JSON-LD the same way you localize the body, and rebuild it whenever language (or data) changes — not just at bootstrap.
 
+## LSSN-20260908-027 — Management API: ship SQL as a Write-tool JSON file + curl --data-binary; never rebuild JSON in PowerShell
+- **Problem**: Sending multi-line SQL to `POST /projects/{ref}/database/query` failed twice: `Invoke-RestMethod` with a payload built from a `.sql` file returned "expected string, received object", and `curl.exe --data-binary` with an inline payload failed "not valid JSON" because the string started with a UTF-8 BOM.
+- **Root cause**: PowerShell `ConvertTo-Json` on a multiline value and quote escaping mangles the body; the Management API expects a single JSON object `{"query": "..."}`, and any BOM before `{` breaks parsing.
+- **Fix**: Use the Write tool to create a clean no-BOM UTF-8 JSON payload file (one-line `{"query":"..."}`; escape inner double quotes, newlines as literal `\n`), then `curl.exe -s -X POST ... -H "Authorization: Bearer $pat" -H "Content-Type: application/json" --data-binary "@file"`. Verify responses the same way (`curl -o file` then Read).
+- **Lesson**: For Supabase Management API SQL with Arabic/multiline content, the payload must originate from a file written by the Write tool and be sent with `curl.exe --data-binary @file`; reading the response back through `-o` + Read avoids PowerShell's Latin-1 mangling of UTF-8. (Also: `alter table ... add column if not exists` is idempotent and safe to run via this API.)
+
 (End of file - total 139 lines)
 
 (End of file - total 125 lines)

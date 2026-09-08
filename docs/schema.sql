@@ -38,6 +38,9 @@ create table if not exists categories (
   shop_id uuid references shops(id) on delete cascade,
   name text not null,
   name_ar text default '',
+  image_url text default '',                    -- category hero image (P1.7)
+  description text default '',                  -- category hero description EN (P1.7)
+  description_ar text default '',               -- category hero description AR (P1.7)
   sort_order int default 0,
   is_active boolean default true,
   created_at timestamptz default now()
@@ -149,6 +152,11 @@ create table if not exists orders (
 -- alter table deals add constraint deals_deal_type_check check (deal_type in ('percent','fixed','bogo','bundle','min_order'));
 -- alter table deals add constraint deals_applies_to_check check (applies_to in ('item','category','all'));
 -- alter table deals add constraint deals_reward_type_check check (reward_type is null or reward_type in ('percent','fixed'));
+
+-- ─── MIGRATION (2026-09-08) — category hero fields (P1.7) ──
+-- alter table categories add column if not exists image_url text default '';
+-- alter table categories add column if not exists description text default '';
+-- alter table categories add column if not exists description_ar text default '';
 
 -- ─── INDEXES ────────────────────────────────────────────────
 create index if not exists idx_categories_shop on categories(shop_id);
