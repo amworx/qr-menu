@@ -333,6 +333,30 @@
     .pd-add:active{transform:scale(.97)}
     .pd-add-price{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
 
+    /* ═══ SEARCH OVERLAY (P1.8) ═══ */
+    .search-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:110;display:none;align-items:flex-start;justify-content:center}
+    .search-modal.visible{display:flex}
+    .search-sheet{background:var(--card);width:100%;max-width:560px;margin-top:9vh;border-radius:24px;max-height:76vh;display:flex;flex-direction:column;overflow:hidden;animation:slideDown .25s ease;border:1px solid var(--border)}
+    .search-head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)}
+    .search-input{flex:1;min-width:0;background:var(--card2);border:1px solid var(--border2);border-radius:14px;padding:12px 14px;color:var(--text);font-size:15px;outline:none;font-family:inherit;font-variant-numeric:tabular-nums}
+    .search-input:focus{border-color:var(--primary)}
+    .search-input::placeholder{color:var(--text3)}
+    .search-body{overflow-y:auto;overscroll-behavior:contain;padding:6px 14px 16px}
+    .search-group-title{font-size:11.5px;font-weight:800;letter-spacing:.6px;color:var(--text3);text-transform:uppercase;margin:12px 4px 6px}
+    .search-row{display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:14px;width:100%;text-align:start;cursor:pointer;background:transparent;border:none;transition:background .15s ease;font-family:inherit}
+    .search-row:hover{background:var(--card2)}
+    .search-row:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+    .sr-media{width:46px;height:46px;border-radius:12px;object-fit:cover;flex:none;background:var(--card2)}
+    .sr-media.ph{display:flex;align-items:center;justify-content:center;font-size:22px}
+    .sr-info{flex:1;min-width:0}
+    .sr-name{font-weight:700;font-size:14.5px;color:var(--text);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .sr-name .badge-row{margin:0}
+    .sr-sub{font-size:12px;color:var(--text3);margin-top:2px}
+    .sr-price{flex:none;color:var(--primary);font-weight:800;font-size:13.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .sr-price .item-price{font-size:13.5px;font-weight:800;color:inherit}
+    .sr-empty{text-align:center;padding:40px 16px;color:var(--text3);font-size:14px}
+    @keyframes slideDown{from{opacity:0;transform:translateY(-18px)}to{opacity:1;transform:translateY(0)}}
+
     /* Empty */
     .empty-msg{text-align:center;padding:46px 16px;color:var(--text3);font-size:14px}
     .empty-msg .big{font-size:34px;display:block;margin-bottom:10px}
@@ -369,6 +393,7 @@
     <button class="ctl view" id="view-btn" onclick="toggleView()" title="View" aria-label="Toggle view mode" aria-pressed="false">☰</button>
     <button class="ctl" id="theme-btn" onclick="toggleTheme()" title="Theme" aria-label="Toggle theme">☀️</button>
     <button class="ctl cur" id="currency-btn" onclick="cycleCurrency()" title="Currency" aria-label="Currency" style="display:none">SYP</button>
+    <button class="ctl" id="search-btn" onclick="openSearch()" title="Search" aria-label="Search">🔍</button>
     <button class="ctl lang" id="lang-btn" onclick="toggleLang()">EN</button>
   </div>
 
@@ -407,6 +432,17 @@
   <!-- Product detail modal (P1.2) -->
   <div class="order-modal" id="product-modal" onclick="if(event.target===this)closeProductSheet()">
     <div class="product-sheet" id="product-sheet"></div>
+  </div>
+
+  <!-- Instant search overlay (P1.8) -->
+  <div class="search-modal" id="search-modal" onclick="if(event.target===this)closeSearch()">
+    <div class="search-sheet" id="search-sheet">
+      <div class="search-head">
+        <input class="search-input" id="search-input" autocomplete="off" enterkeyhint="search" spellcheck="false" oninput="searchRender(this.value)" aria-label="Search">
+        <button class="sheet-close" onclick="closeSearch()" aria-label="Close">✕</button>
+      </div>
+      <div class="search-body" id="search-body"></div>
+    </div>
   </div>
 
   <div class="shop-footer" id="shop-footer" style="display:none"></div>
@@ -838,6 +874,69 @@
       setCurrency(list[(idx + 1) % list.length] || list[0]);
     }
     function setCategory(id) { activeCategory = id; renderCategories(); renderCatHero(); renderItems(); }
+
+    // ─── INSTANT SEARCH OVERLAY (P1.8) ─────────────────────
+    // Fuzzy keyword search across name / name_ar / description / description_ar,
+    // results grouped by category. No AI and no voice in v1 (plan: P1.8).
+    function openSearch() {
+      const input = document.getElementById('search-input');
+      input.placeholder = lang === 'ar' ? 'ابحث عن طبق أو مشروب…' : 'Search dishes or drinks…';
+      input.setAttribute('aria-label', lang === 'ar' ? 'بحث' : 'Search');
+      searchRender(input.value);
+      document.getElementById('search-modal').classList.add('visible');
+      setTimeout(() => input.focus(), 60);
+    }
+    function closeSearch() {
+      document.getElementById('search-modal').classList.remove('visible');
+      document.getElementById('search-input').value = '';
+    }
+    // Normalize for matching: lowercase, drop Arabic diacritics/tatweel, fold alef/teh/yeh forms
+    function normSearch(s) {
+      return (s || '').toLowerCase()
+        .replace(/[\u064B-\u0652\u0640]/g, '')
+        .replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي')
+        .trim();
+    }
+    function searchRender(q) {
+      const body = document.getElementById('search-body');
+      const qn = normSearch(q);
+      const groups = categories
+        .map(c => ({ c, found: items.filter(i => i.category_id === c.id && (
+          !qn ||
+          normSearch(i.name).includes(qn) || normSearch(i.name_ar).includes(qn) ||
+          normSearch(i.description).includes(qn) || normSearch(i.description_ar).includes(qn)
+        )) }))
+        .filter(g => g.found.length > 0);
+      if (!qn) {
+        body.innerHTML = `<div class="sr-empty"><span style="display:block;font-size:30px;margin-bottom:8px">🔍</span>${lang === 'ar' ? 'ابدأ الكتابة للبحث في القائمة…' : 'Start typing to search the menu…'}</div>`;
+        return;
+      }
+      if (groups.length === 0) {
+        body.innerHTML = `<div class="sr-empty"><span style="display:block;font-size:30px;margin-bottom:8px">🔍</span>${lang === 'ar' ? `لا توجد نتائج لـ «${esc(q)}»` : `No results for “${esc(q)}”`}</div>`;
+        return;
+      }
+      body.innerHTML = groups.map(g => {
+        const cname = lang === 'ar' ? (g.c.name_ar || g.c.name) : g.c.name;
+        return `<div class="search-group"><div class="search-group-title">${esc(cname)}</div>${g.found.map(searchRowHTML).join('')}</div>`;
+      }).join('');
+    }
+    function searchRowHTML(item) {
+      const name = lang === 'ar' ? (item.name_ar || item.name) : item.name;
+      const sub = lang === 'ar' ? (item.name || '') : (item.name_ar || '');
+      const price = cardPriceHTML(item);
+      const img = item.image_url
+        ? `<img class="sr-media" src="${esc(item.image_url)}" alt="" loading="lazy">`
+        : `<div class="sr-media ph">${emojiFor(item)}</div>`;
+      const chips = badgeChipsHTML(item);
+      return `<button class="search-row" onclick="openProductSheet('${item.id}'); closeSearch()">
+        ${img}
+        <div class="sr-info">
+          <div class="sr-name">${esc(name)}${chips}</div>
+          ${sub ? `<div class="sr-sub">${esc(sub)}</div>` : ''}
+        </div>
+        <span class="sr-price">${price}</span>
+      </button>`;
+    }
 
     // ─── PRODUCT DETAIL SHEET (P1.2) ───────────────────────
     function openProductSheet(id) {
@@ -1296,7 +1395,7 @@
     }
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
-      closeProductSheet(); closeOrderSheet();
+      closeProductSheet(); closeOrderSheet(); closeSearch();
     });
   </script>
 </body>
