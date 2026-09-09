@@ -241,6 +241,8 @@
       <button onclick="showTab('categories')" data-tab="categories" data-i18n="tab_categories">Categories</button>
       <button onclick="showTab('items')" data-tab="items" data-i18n="tab_items">Menu Items</button>
       <button onclick="showTab('deals')" data-tab="deals" data-i18n="tab_deals">Deals &amp; Offers</button>
+      <button onclick="showTab('badges')" data-tab="badges" data-i18n="tab_badges">Badges</button>
+      <button onclick="showTab('allergens')" data-tab="allergens" data-i18n="tab_allergens">Allergens</button>
       <button onclick="showTab('orders')" data-tab="orders" data-i18n="tab_orders">Orders</button>
       <button onclick="showTab('currencies')" data-tab="currencies" data-i18n="tab_currencies">Currencies</button>
     </nav>
@@ -249,6 +251,8 @@
       <button onclick="showTab('categories')" data-tab="categories" data-i18n="tab_categories">Categories</button>
       <button onclick="showTab('items')" data-tab="items" data-i18n="tab_items">Menu Items</button>
       <button onclick="showTab('deals')" data-tab="deals" data-i18n="tab_deals">Deals &amp; Offers</button>
+      <button onclick="showTab('badges')" data-tab="badges" data-i18n="tab_badges">Badges</button>
+      <button onclick="showTab('allergens')" data-tab="allergens" data-i18n="tab_allergens">Allergens</button>
       <button onclick="showTab('orders')" data-tab="orders" data-i18n="tab_orders">Orders</button>
       <button onclick="showTab('currencies')" data-tab="currencies" data-i18n="tab_currencies">Currencies</button>
     </div>
@@ -277,6 +281,8 @@ let allCategories = [];
 let allItems = [];
 let allOutlets = []; // P2.8: branches for this shop
 let removedOutletIds = []; // P2.8: outlet rows marked for delete
+let allShopBadges = []; // Badges catalog (shop_badges)
+let allShopAllergens = []; // Allergen catalog (shop_allergens)
 let currentTab = 'shop';
 // Items list UX state (search / filter / sort / pagination)
 let itemQuery = '', itemCat = '', itemSort = 'order', itemShown = 50;
@@ -284,8 +290,9 @@ const ITEM_PAGE = 50;
 // Orders tab state (loaded set + filters + range pagination)
 let ordersAll = [];
 let orderHasMore = true;
-let orderQuery = '', orderFilter = 'all';
+let orderQuery = '', orderFilter = 'all', orderStatusFilter = 'all';
 const ORDER_PAGE = 200;
+const ORDER_STATUSES = ['new', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'];
 
 // ─── I18N (Arabic default) ─────────────────────────────────
 let lang = localStorage.getItem('qm-admin-lang') || 'ar';
@@ -305,6 +312,8 @@ const I18N = {
   tab_categories:   { en: 'Categories', ar: 'التصنيفات' },
   tab_items:        { en: 'Menu Items', ar: 'عناصر القائمة' },
   tab_deals:        { en: 'Deals & Offers', ar: 'العروض والخصومات' },
+  tab_badges:       { en: 'Badges', ar: 'الشارات' },
+  tab_allergens:    { en: 'Allergens', ar: 'مسببات الحساسية' },
   tab_orders:       { en: 'Orders', ar: 'الطلبات' },
   tab_currencies:   { en: 'Currencies', ar: 'العملات' },
 
@@ -491,7 +500,59 @@ const I18N = {
   variants:         { en: 'Sizes / Options', ar: 'الأحجام / الخيارات' },
   add_variant:      { en: 'Add option', ar: 'إضافة خيار' },
   variant_name_en:  { en: 'Name (EN)', ar: 'الاسم (إنجليزي)' },
-  variant_name_ar:  { en: 'Name (AR)', ar: 'الاسم (عربي)' }
+  variant_name_ar:  { en: 'Name (AR)', ar: 'الاسم (عربي)' },
+
+  // Badges catalog (P3)
+  badges_hint:      { en: 'Custom badges you can attach to any menu item (e.g. Spicy, Vegan, Local). "New / Popular / Chef\u2019s Choice" are built-in toggles on each item.', ar: 'شارات مخصصة يمكنك إرفاقها بأي عنصر في القائمة (مثل: حار، نباتي، محلي). شارات "جديد / الأكثر طلباً / اختيار الشيف" هي مفاتيح مدمجة في كل عنصر.' },
+  no_badges:        { en: 'No badges yet. Create one to start tagging items.', ar: 'لا توجد شارات بعد. أنشئ واحدة لتبدأ بوسم العناصر.' },
+  new_badge:        { en: 'New', ar: 'جديد' },
+  new_badge_short:  { en: 'New Badge', ar: 'شارة جديدة' },
+  edit_badge:       { en: 'Edit Badge', ar: 'تعديل الشارة' },
+  badge_label:      { en: 'Label (EN)', ar: 'التسمية (إنجليزي)' },
+  badge_label_ar:   { en: 'Label (AR)', ar: 'التسمية (عربي)' },
+  badge_color:      { en: 'Color', ar: 'اللون' },
+  badge_emoji:      { en: 'Icon (emoji)', ar: 'الأيقونة (إيموجي)' },
+  badge_created:    { en: 'Badge created', ar: 'تم إنشاء الشارة' },
+  badge_updated:    { en: 'Badge updated', ar: 'تم تحديث الشارة' },
+  badge_deleted:    { en: 'Badge deleted', ar: 'تم حذف الشارة' },
+  delete_badge_q:   { en: 'Delete this badge? It will be removed from every item using it.', ar: 'حذف هذه الشارة؟ ستُزال من كل عنصر يستخدمها.' },
+  custom_badges:    { en: 'Custom badges', ar: 'الشارات المخصصة' },
+  custom_badges_empty:{ en: 'No custom badges yet — add them in the Badges tab.', ar: 'لا توجد شارات مخصصة بعد — أضفها من تبويب الشارات.' },
+
+  // Allergen catalog (P3)
+  allergens_hint:   { en: 'Allergens customers can flag on an item. The 14 EU allergens are pre-seeded; add your own or rename as needed.', ar: 'مسببات الحساسية التي يمكن للعملاء رؤيتها على العناصر. المسببات الأوروبية الأربعة عشر مجهزة مسبقاً؛ أضف ما تشاء أو عدّل الأسماء.' },
+  no_allergens:     { en: 'No allergens yet.', ar: 'لا توجد مسببات حساسية بعد.' },
+  new_allergen:     { en: '+ New Allergen', ar: '+ مسبب جديد' },
+  new_allergen_short:{ en: 'New Allergen', ar: 'مسبب حساسية جديد' },
+  edit_allergen:    { en: 'Edit Allergen', ar: 'تعديل مسبب الحساسية' },
+  allergen_name:    { en: 'Name (EN)', ar: 'الاسم (إنجليزي)' },
+  allergen_name_ar: { en: 'Name (AR)', ar: 'الاسم (عربي)' },
+  allergen_icon:    { en: 'Icon (emoji)', ar: 'الأيقونة (إيموجي)' },
+  allergen_code:    { en: 'Code (unique)', ar: 'الرمز (فريد)' },
+  allergen_created: { en: 'Allergen created', ar: 'تم إنشاء مسبب الحساسية' },
+  allergen_updated: { en: 'Allergen updated', ar: 'تم تحديث مسبب الحساسية' },
+  allergen_deleted: { en: 'Allergen deleted', ar: 'تم حذف مسبب الحساسية' },
+  delete_allergen_q:{ en: 'Delete this allergen? It will be removed from every item using it.', ar: 'حذف هذا المسبب؟ ستُزال من كل عنصر يستخدمه.' },
+
+  // Orders — status + reply (P3)
+  order_status:     { en: 'Status', ar: 'الحالة' },
+  st_all:           { en: 'All statuses', ar: 'كل الحالات' },
+  st_new:           { en: 'New', ar: 'جديد' },
+  st_confirmed:     { en: 'Confirmed', ar: 'مؤكد' },
+  st_preparing:     { en: 'Preparing', ar: 'قيد التحضير' },
+  st_ready:         { en: 'Ready', ar: 'جاهز' },
+  st_delivered:     { en: 'Delivered', ar: 'تم التسليم' },
+  st_cancelled:     { en: 'Cancelled', ar: 'ملغي' },
+  status_updated:   { en: 'Status updated', ar: 'تم تحديث الحالة' },
+  reply:            { en: 'Reply', ar: 'رد' },
+  reply_to_customer:{ en: 'Reply to customer', ar: 'الرد على العميل' },
+  reply_msg:        { en: 'Message', ar: 'الرسالة' },
+  reply_prefill:    { en: 'Concern about order', ar: 'استفسار بخصوص الطلب' },
+  send_whatsapp:    { en: 'Send via WhatsApp', ar: 'إرسال عبر واتساب' },
+  reply_no_phone:   { en: 'No customer phone on this order', ar: 'لا يوجد رقم هاتف للعميل في هذا الطلب' },
+  customer_phone:   { en: 'Customer phone', ar: 'هاتف العميل' },
+  copy:             { en: 'Copy', ar: 'نسخ' },
+  copied:           { en: 'Copied', ar: 'تم النسخ' }
 };
 function t(key) { return (I18N[key] && I18N[key][lang]) || (I18N[key] && I18N[key].en) || key; }
 
@@ -663,6 +724,12 @@ async function showDashboard() {
   const { data: outs } = await sb.from('outlets').select('*').eq('shop_id', currentShop.id).order('sort_order');
   allOutlets = outs || [];
 
+  // Load badge + allergen catalogs (P3)
+  const { data: badges } = await sb.from('shop_badges').select('*').eq('shop_id', currentShop.id).order('sort_order');
+  allShopBadges = badges || [];
+  const { data: allgs } = await sb.from('shop_allergens').select('*').eq('shop_id', currentShop.id).order('sort_order');
+  allShopAllergens = allgs || [];
+
   showTab('shop');
 }
 
@@ -679,6 +746,8 @@ function showTab(tab) {
     case 'categories': c.innerHTML = renderCategoriesTab(); break;
     case 'items': c.innerHTML = renderItemsTab(); renderItemRows(); break;
     case 'deals': c.innerHTML = `<div class="empty">${t('loading_deals')}</div>`; renderDealsTab().then(html => { c.innerHTML = html; }); break;
+    case 'badges': c.innerHTML = renderBadgesTab(); break;
+    case 'allergens': c.innerHTML = renderAllergensTab(); break;
     case 'orders': c.innerHTML = `<div class="empty">${t('loading_orders')}</div>`; renderOrdersTab().then(html => { c.innerHTML = html; }); break;
     case 'currencies': c.innerHTML = renderCurrenciesTab(); break;
   }
@@ -974,6 +1043,192 @@ async function deleteCategory(id) {
   toast(t('category_deleted'));
 }
 
+// ─── BADGES CATALOG (P3) ──────────────────────────────────
+function renderBadgesTab() {
+  return `
+    <h3>${t('tab_badges')}</h3>
+    <div class="btn-group" style="margin-top:0;margin-bottom:16px">
+      <button class="btn btn-primary" onclick="openBadgeModal()">${t('new_badge_short')}</button>
+    </div>
+    <div class="card" style="padding:12px 14px;margin-bottom:14px">
+      <p style="font-size:12px;color:var(--text2);margin:0">${t('badges_hint')}</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>${t('order')}</th><th>${t('badge_label')}</th><th>${t('badge_label_ar')}</th><th>${t('badge_emoji')}</th><th>${t('badge_color')}</th><th>${t('active')}</th><th></th></tr></thead>
+        <tbody>
+          ${allShopBadges.length === 0 ? `<tr><td colspan="7" class="empty">${t('no_badges')}</td></tr>`
+          : allShopBadges.map(b => `
+            <tr>
+              <td data-label="${t('order')}">${b.sort_order}</td>
+              <td data-label="${t('badge_label')}"><span style="display:inline-block;background:${esc(b.color)};color:#fff;font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px">${esc(b.emoji || '')} ${esc(b.label)}</span></td>
+              <td data-label="${t('badge_label_ar')}">${esc(b.label_ar || '')}</td>
+              <td data-label="${t('badge_emoji')}">${esc(b.emoji || '')}</td>
+              <td data-label="${t('badge_color')}"><input type="color" value="${esc(b.color)}" style="width:36px;height:24px;border:none;padding:0" onchange="updateBadgeColor('${b.id}', this.value)"></td>
+              <td data-label="${t('active')}"><label class="toggle"><input type="checkbox" ${b.is_active ? 'checked' : ''} onchange="toggleBadge('${b.id}','is_active',this.checked)"><span class="slider"></span></label></td>
+              <td data-label="${t('actions')}">
+                <button class="btn btn-ghost btn-sm" onclick="openBadgeModal('${b.id}')">${t('edit')}</button>
+                <button class="btn btn-ghost btn-sm" onclick="deleteBadge('${b.id}')">${t('delete')}</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function openBadgeModal(id) {
+  const b = id ? allShopBadges.find(x => x.id === id) : null;
+  document.getElementById('modal-content').innerHTML = `
+    <h3>${b ? t('edit_badge') : t('new_badge_short')}</h3>
+    <div class="field"><label>${t('badge_label')}</label><input id="m-badge-label" value="${b ? esc(b.label) : ''}"></div>
+    <div class="field"><label>${t('badge_label_ar')}</label><input id="m-badge-label-ar" value="${b ? esc(b.label_ar || '') : ''}" dir="rtl"></div>
+    <div class="card-row">
+      <div class="field"><label>${t('badge_color')}</label><input type="color" id="m-badge-color" value="${b ? esc(b.color || '#D97706') : '#D97706'}" style="height:36px;padding:2px"></div>
+      <div class="field"><label>${t('badge_emoji')}</label><input id="m-badge-emoji" value="${b ? esc(b.emoji || '') : ''}" placeholder="🔥"></div>
+    </div>
+    <div class="field"><label>${t('sort_order')}</label><input type="number" id="m-badge-sort" value="${b ? b.sort_order : (allShopBadges.length + 1) * 10}"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button>
+      <button class="btn btn-primary" onclick="saveBadge('${id || ''}')">${t('save')}</button>
+    </div>
+  `;
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+async function saveBadge(id) {
+  const data = { label: gv('m-badge-label'), label_ar: gv('m-badge-label-ar'), color: gv('m-badge-color') || '#D97706', emoji: gv('m-badge-emoji'), sort_order: parseInt(gv('m-badge-sort')) || 0, is_active: true, shop_id: currentShop.id };
+  let error;
+  if (id) {
+    ({ error } = await sb.from('shop_badges').update(data).eq('id', id));
+  } else {
+    ({ error } = await sb.from('shop_badges').insert(data));
+  }
+  if (error) return toast(t('error') + ': ' + error.message, true);
+  closeModal();
+  const { data: badges } = await sb.from('shop_badges').select('*').eq('shop_id', currentShop.id).order('sort_order');
+  allShopBadges = badges || [];
+  showTab('badges');
+  toast(id ? t('badge_updated') : t('badge_created'));
+}
+
+async function toggleBadge(id, field, val) {
+  await sb.from('shop_badges').update({ [field]: val }).eq('id', id);
+  const b = allShopBadges.find(x => x.id === id);
+  if (b) b[field] = val;
+}
+async function updateBadgeColor(id, color) {
+  await sb.from('shop_badges').update({ color }).eq('id', id);
+  const b = allShopBadges.find(x => x.id === id);
+  if (b) b.color = color;
+}
+async function deleteBadge(id) {
+  if (!confirm(t('delete_badge_q'))) return;
+  await sb.from('shop_badges').delete().eq('id', id);
+  // Clean the removed badge id off every item using it
+  const using = allItems.filter(i => (i.custom_badges || []).includes(id));
+  for (const it of using) {
+    await sb.from('items').update({ custom_badges: (it.custom_badges || []).filter(b => b !== id) }).eq('id', it.id);
+    it.custom_badges = it.custom_badges.filter(b => b !== id);
+  }
+  allShopBadges = allShopBadges.filter(b => b.id !== id);
+  showTab('badges');
+  toast(t('badge_deleted'));
+}
+
+// ─── ALLERGENS CATALOG (P3) ────────────────────────────────
+function renderAllergensTab() {
+  return `
+    <h3>${t('tab_allergens')}</h3>
+    <div class="btn-group" style="margin-top:0;margin-bottom:16px">
+      <button class="btn btn-primary" onclick="openAllergenModal()">${t('new_allergen')}</button>
+    </div>
+    <div class="card" style="padding:12px 14px;margin-bottom:14px">
+      <p style="font-size:12px;color:var(--text2);margin:0">${t('allergens_hint')}</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>${t('order')}</th><th>${t('allergen_icon')}</th><th>${t('allergen_name')}</th><th>${t('allergen_name_ar')}</th><th>${t('active')}</th><th></th></tr></thead>
+        <tbody>
+          ${allShopAllergens.length === 0 ? `<tr><td colspan="6" class="empty">${t('no_allergens')}</td></tr>`
+          : allShopAllergens.map(a => `
+            <tr>
+              <td data-label="${t('order')}">${a.sort_order}</td>
+              <td data-label="${t('allergen_icon')}" style="font-size:18px">${esc(a.icon || '⚠')}</td>
+              <td data-label="${t('allergen_name')}">${esc(a.name)} <small style="color:var(--text3)">(${esc(a.code)})</small></td>
+              <td data-label="${t('allergen_name_ar')}">${esc(a.name_ar || '')}</td>
+              <td data-label="${t('active')}"><label class="toggle"><input type="checkbox" ${a.is_active ? 'checked' : ''} onchange="toggleAllergen('${a.id}','is_active',this.checked)"><span class="slider"></span></label></td>
+              <td data-label="${t('actions')}">
+                <button class="btn btn-ghost btn-sm" onclick="openAllergenModal('${a.id}')">${t('edit')}</button>
+                <button class="btn btn-ghost btn-sm" onclick="deleteAllergen('${a.id}')">${t('delete')}</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function openAllergenModal(id) {
+  const a = id ? allShopAllergens.find(x => x.id === id) : null;
+  document.getElementById('modal-content').innerHTML = `
+    <h3>${a ? t('edit_allergen') : t('new_allergen_short')}</h3>
+    <div class="card-row">
+      <div class="field"><label>${t('allergen_name')}</label><input id="m-allg-name" value="${a ? esc(a.name) : ''}"></div>
+      <div class="field"><label>${t('allergen_name_ar')}</label><input id="m-allg-name-ar" value="${a ? esc(a.name_ar || '') : ''}" dir="rtl"></div>
+    </div>
+    <div class="card-row">
+      <div class="field"><label>${t('allergen_icon')}</label><input id="m-allg-icon" value="${a ? esc(a.icon || '') : ''}" placeholder="🌾"></div>
+      <div class="field"><label>${t('allergen_code')}</label><input id="m-allg-code" value="${a ? esc(a.code) : ''}" placeholder="gluten"></div>
+    </div>
+    <div class="field"><label>${t('sort_order')}</label><input type="number" id="m-allg-sort" value="${a ? a.sort_order : (allShopAllergens.length + 1) * 10}"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button>
+      <button class="btn btn-primary" onclick="saveAllergen('${id || ''}')">${t('save')}</button>
+    </div>
+  `;
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+async function saveAllergen(id) {
+  const code = gv('m-allg-code').toLowerCase().replace(/\s+/g, '_') || 'a_' + Date.now().toString(36);
+  const data = { name: gv('m-allg-name'), name_ar: gv('m-allg-name-ar'), icon: gv('m-allg-icon'), code, sort_order: parseInt(gv('m-allg-sort')) || 0, is_active: true, shop_id: currentShop.id };
+  let error;
+  if (id) {
+    ({ error } = await sb.from('shop_allergens').update(data).eq('id', id));
+  } else {
+    ({ error } = await sb.from('shop_allergens').insert(data));
+  }
+  if (error) return toast(t('error') + ': ' + error.message, true);
+  closeModal();
+  const { data: allgs } = await sb.from('shop_allergens').select('*').eq('shop_id', currentShop.id).order('sort_order');
+  allShopAllergens = allgs || [];
+  showTab('allergens');
+  toast(id ? t('allergen_updated') : t('allergen_created'));
+}
+
+async function toggleAllergen(id, field, val) {
+  await sb.from('shop_allergens').update({ [field]: val }).eq('id', id);
+  const a = allShopAllergens.find(x => x.id === id);
+  if (a) a[field] = val;
+}
+async function deleteAllergen(id) {
+  if (!confirm(t('delete_allergen_q'))) return;
+  const a = allShopAllergens.find(x => x.id === id);
+  await sb.from('shop_allergens').delete().eq('id', id);
+  // Clean the removed code off every item using it
+  if (a) {
+    const using = allItems.filter(i => (i.allergens || []).includes(a.code));
+    for (const it of using) {
+      await sb.from('items').update({ allergens: (it.allergens || []).filter(c => c !== a.code) }).eq('id', it.id);
+      it.allergens = it.allergens.filter(c => c !== a.code);
+    }
+  }
+  allShopAllergens = allShopAllergens.filter(x => x.id !== id);
+  showTab('allergens');
+  toast(t('allergen_deleted'));
+}
+
 // ─── MENU ITEMS ─────────────────────────────────────────────
 function renderItemsTab() {
   return `
@@ -1047,7 +1302,11 @@ function renderItemRows() {
           ${[
             item.is_new ? `<span style="display:inline-block;background:var(--success);color:#000;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;margin:1px">${t('new_badge')}</span>` : '',
             item.popular ? `<span style="display:inline-block;background:var(--accent);color:#000;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;margin:1px">${t('popular')}</span>` : '',
-            item.chef_choice ? `<span style="display:inline-block;background:#c026d3;color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;margin:1px">${t('chef_choice')}</span>` : ''
+            item.chef_choice ? `<span style="display:inline-block;background:#c026d3;color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;margin:1px">${t('chef_choice')}</span>` : '',
+            ...(item.custom_badges || []).map(bid => {
+              const b = allShopBadges.find(x => x.id === bid);
+              return b ? `<span style="display:inline-block;background:${esc(b.color)};color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;margin:1px">${esc(b.emoji || '')} ${esc(b.label)}</span>` : '';
+            })
           ].join('') || '<span style="color:var(--text3)">—</span>'}
         </td>
         <td data-label="${t('prices')}" style="font-size:12px">${prices || '<span style="color:var(--text3)">—</span>'}</td>
@@ -1113,14 +1372,23 @@ function openItemModal(id) {
         <label class="checkbox"><input type="checkbox" id="m-item-chef" ${item?.chef_choice?'checked':''}> ${t('chef_choice')}</label>
         <label class="checkbox"><input type="checkbox" id="m-item-new" ${item?.is_new?'checked':''}> ${t('new_badge')}</label>
       </div>
+      <label style="margin-bottom:8px;margin-top:10px">${t('custom_badges')}</label>
+      <div class="allergen-grid" id="m-custom-badges-grid">${allShopBadges.length === 0
+          ? `<span class="empty" style="font-size:12px">${t('custom_badges_empty')}</span>`
+          : allShopBadges.filter(b => b.is_active).map(b => {
+              const checked = (item?.custom_badges || []).includes(b.id);
+              return `<label class="checkbox allergen-cell" style="display:inline-flex;align-items:center;gap:4px;margin:2px"><input type="checkbox" value="${b.id}" ${checked?'checked':''}> <span style="background:${esc(b.color)};color:#fff;font-size:11px;font-weight:800;padding:2px 6px;border-radius:999px">${esc(b.emoji || '')} ${esc(b.label)}</span></label>`;
+            }).join('')}
+      </div>
     </div>
     <div class="field" style="margin-top:6px">
       <label style="margin-bottom:8px">${t('allergens')}</label>
-      <div class="allergen-grid">
-        ${ALLERGENS.map(a => {
-          const checked = (item?.allergens || []).includes(a.code);
-          return `<label class="checkbox allergen-cell" title="${a.en} / ${a.ar}"><input type="checkbox" value="${a.code}" ${checked?'checked':''}> ${a.icon} ${lang==='ar'?a.ar:a.en}</label>`;
-        }).join('')}
+      <div class="allergen-grid" id="m-allergens-grid">${allShopAllergens.length === 0
+          ? `<span class="empty" style="font-size:12px">${t('allergens_hint')}</span>`
+          : allShopAllergens.filter(a => a.is_active).map(a => {
+              const checked = (item?.allergens || []).includes(a.code);
+              return `<label class="checkbox allergen-cell" title="${a.name} / ${a.name_ar}"><input type="checkbox" value="${a.code}" ${checked?'checked':''}> ${a.icon} ${lang==='ar'?(a.name_ar||a.name):a.name}</label>`;
+            }).join('')}
       </div>
     </div>
     <div class="field" style="margin-top:6px">
@@ -1184,7 +1452,8 @@ async function saveItem(id) {
     popular: document.getElementById('m-item-popular')?.checked ?? false,
     chef_choice: document.getElementById('m-item-chef')?.checked ?? false,
     is_new: document.getElementById('m-item-new')?.checked ?? false,
-    allergens: [...document.querySelectorAll('.allergen-grid input:checked')].map(i => i.value),
+    custom_badges: [...document.querySelectorAll('#m-custom-badges-grid input:checked')].map(i => i.value),
+    allergens: [...document.querySelectorAll('#m-allergens-grid input:checked')].map(i => i.value),
     variants: collectVariants(),
     shop_id: currentShop.id
   };
@@ -1560,7 +1829,70 @@ function filterOrders() {
     const start = new Date(); start.setHours(0, 0, 0, 0);
     list = list.filter(o => new Date(o.created_at) >= start);
   }
+  if (orderStatusFilter !== 'all') list = list.filter(o => (o.status || 'new') === orderStatusFilter);
   return list;
+}
+
+function statusLabel(st) { return t('st_' + (st || 'new')); }
+function statusBadge(st) {
+  const map = { new: 'var(--primary)', confirmed: '#0ea5e9', preparing: '#f59e0b', ready: '#10b981', delivered: '#6b7280', cancelled: '#ef4444' };
+  return `<span class="st-badge" style="background:${map[st] || map.new};color:#fff;font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;white-space:nowrap">${statusLabel(st)}</span>`;
+}
+
+// Status change (owner-managed; RLS owner update)
+async function updateOrderStatus(id, val) {
+  const { error } = await sb.from('orders').update({ status: val }).eq('id', id);
+  if (error) return toast(t('error') + ': ' + error.message, true);
+  const o = ordersAll.find(x => String(x.id) === String(id));
+  if (o) o.status = val;
+  renderOrderRows();
+  toast(t('status_updated'));
+}
+
+// Reply to the customer who placed the order. If their phone is stored,
+// offer a pre-filled WhatsApp message (wa.me); otherwise copy a summary.
+function openReplyModal(id) {
+  const o = ordersAll.find(x => String(x.id) === String(id));
+  if (!o) return;
+  document.getElementById('modal-content').innerHTML = `
+    <h3>${t('reply_to_customer')} <span class="order-id">#${o.id}</span></h3>
+    <div class="field">
+      <label>${t('customer_phone')}</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="m-reply-phone" value="${esc(o.customer_phone || '')}" dir="ltr" placeholder="963...">
+        <button class="btn btn-ghost btn-sm" onclick="copyReplyPhone()">${t('copy')}</button>
+      </div>
+    </div>
+    <div class="field"><label>${t('reply_msg')}</label><textarea id="m-reply-text" rows="3">${lang === 'ar' ? 'مرحباً، بخصوص طلبك رقم ' + o.id + ' — ' : 'Hello, regarding your order #' + o.id + ' — '}</textarea></div>
+    <p style="font-size:12px;color:var(--text2)">${lang === 'ar' ? `الطلب الحالي: ${statusLabel(o.status || 'new')} — الإجمالي ${o.total} ${o.currency || 'SYP'}` : `Current status: ${statusLabel(o.status || 'new')} — Total ${o.total} ${o.currency || 'SYP'}`}</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button>
+      <button class="btn btn-primary" onclick="sendReply('${o.id}')">${t('send_whatsapp')}</button>
+    </div>
+  `;
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+function copyReplyPhone() {
+  const v = gv('m-reply-phone');
+  if (!v) return toast(t('reply_no_phone'), true);
+  navigator.clipboard?.writeText(v).then(() => toast(t('copied'))).catch(() => toast(t('copied')));
+}
+
+function sendReply(id) {
+  const o = ordersAll.find(x => String(x.id) === String(id));
+  const phone = gv('m-reply-phone').replace(/\D/g, '');
+  const msg = document.getElementById('m-reply-text').value.trim();
+  if (!phone) return toast(t('reply_no_phone'), true);
+  const text = msg || (lang === 'ar' ? 'مرحباً، بخصوص طلبك رقم ' + id : 'Hello, regarding your order #' + id);
+  // BMP-safe WhatsApp text (surrogate pairs stripped, like the public flow)
+  const safe = text.replace(/[\uD800-\uDFFF]/g, '');
+  window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(safe), '_blank');
+  // Persist the reply phone back on the order for future use
+  if (o && o.customer_phone !== phone) {
+    sb.from('orders').update({ customer_phone: phone }).eq('id', id).then(() => { if (o) o.customer_phone = phone; });
+  }
+  closeModal();
 }
 
 function orderRowHTML(o) {
@@ -1580,11 +1912,22 @@ function orderRowHTML(o) {
     <tr>
       <td data-label="${t('order_no')}"><span class="order-id">#${o.id}</span></td>
       <td data-label="${t('date')}"><small>${esc(dt)}</small></td>
+      <td data-label="${t('order_status')}">
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">
+          ${statusBadge(o.status || 'new')}
+          <select onchange="updateOrderStatus('${o.id}',this.value)" style="max-width:130px">
+            ${ORDER_STATUSES.map(s => `<option value="${s}" ${(o.status || 'new')===s?'selected':''}>${t('st_' + s)}</option>`).join('')}
+          </select>
+        </div>
+      </td>
       <td data-label="${t('items_label')}"><div class="order-lines">${items}${noteHtml}</div></td>
       <td data-label="${t('offers')}">${offers ? `<div class="order-lines">${offers}</div>` : '<span style="color:var(--text3)">—</span>'}</td>
       <td data-label="${t('subtotal')}">${esc(o.subtotal)} ${cur}</td>
       <td data-label="${t('discount')}"><span class="neg">−${esc(o.discount)} ${cur}</span></td>
       <td data-label="${t('total')}"><strong>${esc(o.total)} ${cur}</strong></td>
+      <td data-label="${t('reply')}">
+        <button class="btn btn-ghost btn-sm" onclick="openReplyModal(${JSON.stringify(o.id)})">${t('reply')}</button>
+      </td>
     </tr>`;
 }
 
@@ -1596,7 +1939,7 @@ function renderOrderRows() {
   if (count) count.textContent = `${t('showing')} ${list.length} ${t('of')} ${ordersAll.length}${orderHasMore ? '+' : ''}`;
   const more = document.getElementById('order-more-wrap');
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty">${ordersAll.length ? t('no_orders_match') : t('no_orders')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="empty">${ordersAll.length ? t('no_orders_match') : t('no_orders')}</td></tr>`;
     if (more) more.innerHTML = '';
     return;
   }
@@ -1616,12 +1959,16 @@ async function renderOrdersTab() {
         <option value="all" ${orderFilter==='all'?'selected':''}>${t('orders_all')}</option>
         <option value="today" ${orderFilter==='today'?'selected':''}>${t('orders_today')}</option>
       </select>
+      <select id="order-status-filter" onchange="orderStatusFilter=this.value; renderOrderRows();">
+        <option value="all" ${orderStatusFilter==='all'?'selected':''}>${t('st_all')}</option>
+        ${ORDER_STATUSES.map(s => `<option value="${s}" ${orderStatusFilter===s?'selected':''}>${t('st_' + s)}</option>`).join('')}
+      </select>
       <button class="btn btn-ghost" onclick="loadOrders(true)">⟳ ${t('refresh')}</button>
       <span class="item-count" id="order-count"></span>
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>${t('order_no')}</th><th>${t('date')}</th><th>${t('items_label')}</th><th>${t('offers')}</th><th>${t('subtotal')}</th><th>${t('discount')}</th><th>${t('total')}</th></tr></thead>
+        <thead><tr><th>${t('order_no')}</th><th>${t('date')}</th><th>${t('order_status')}</th><th>${t('items_label')}</th><th>${t('offers')}</th><th>${t('subtotal')}</th><th>${t('discount')}</th><th>${t('total')}</th><th></th></tr></thead>
         <tbody id="orders-tbody"></tbody>
       </table>
     </div>

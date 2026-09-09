@@ -408,3 +408,66 @@ end $$;
 --   (exists (select 1 from shops where shops.id = shop_id and shops.owner_email = auth.email()));
 -- Edge function: supabase/functions/submit-survey/index.ts
 --   supabase functions deploy submit-survey --project-ref pxgwxcurhzphmtvowdri --no-verify-jwt
+
+-- P3 (2026-09-08): Badges + Allergens catalogs + Orders interaction (admin).
+--   A1 Badges: `shop_badges` catalog table (per shop), items.custom_badges jsonb
+--   holds an ARRAY OF BADGE IDS (rename-safe). The three built-in booleans
+--   (popular / chef_choice / is_new) stay; custom badges render in addition.
+--   Deleting a badge strips its id from every item.custom_badges.
+-- create table if not exists shop_badges (
+--   id uuid primary key default gen_random_uuid(),
+--   shop_id uuid not null references shops(id) on delete cascade,
+--   label text not null default '',
+--   label_ar text not null default '',
+--   color text not null default '#D97706',
+--   emoji text not null default '',
+--   is_active boolean not null default true,
+--   sort_order int not null default 0,
+--   created_at timestamptz not null default now(),
+--   updated_at timestamptz not null default now()
+-- );
+-- create index if not exists shop_badges_shop_id_idx on shop_badges(shop_id);
+-- alter table shop_badges enable row level security;
+-- create policy shop_badges_public_select on shop_badges for select using (true);
+-- create policy shop_badges_owner_insert on shop_badges for insert with check
+--   (exists (select 1 from shops where shops.id = shop_id and shops.owner_email = auth.email()));
+-- create policy shop_badges_owner_update on shop_badges for update using
+--   (exists (select 1 from shops where shops.id = shop_id and shops.owner_email = auth.email()));
+-- create policy shop_badges_owner_delete on shop_badges for delete using
+--   (exists (select 1 from shops where shops.id = shop_id and shops.owner_email = auth.email()));
+-- alter table items add column if not exists custom_badges jsonb default '[]'::jsonb;
+--
+--   A2 Allergens: `shop_allergens` catalog (per shop); items.allergens stays an
+--   ARRAY OF CODES that resolve against the catalog (frontend falls back to the
+--   built-in 14 EU FIC list for legacy codes). The 14 EU allergens are seeded per
+--   shop; unique(shop_id, code). Deleting an allergen strips its code from items.
+-- create table if not exists shop_allergens (
+--   id uuid primary key default gen_random_uuid(),
+--   shop_id uuid not null references shops(id) on delete cascade,
+--   code text not null,
+--   name text not null default '',
+--   name_ar text not null default '',
+--   icon text not null default '',
+--   is_active boolean not null default true,
+--   sort_order int not null default 0,
+--   created_at timestamptz not null default now(),
+--   updated_at timestamptz not null default now(),
+--   unique (shop_id, code)
+-- );
+-- create index if not exists shop_allergens_shop_id_idx on shop_allergens(shop_id);
+-- alter table shop_allergens enable row level security;
+-- (same public-select + owner-write policy pattern as shop_badges)
+--
+--   A3 Orders interaction: orders.status (check constraint) + orders.customer_phone.
+--   The public order sheet has an optional phone field (persisted per device in
+--   localStorage 'qm-phone'); the admin Orders tab has a status filter + per-row
+--   status select + Reply button that opens wa.me with a pre-filled message using
+--   the customer's phone (copy button; phone persisted back onto the order).
+-- alter table orders add column if not exists status text not null default 'new'
+--   constraint orders_status_check check
+--   (status in ('new','confirmed','preparing','ready','delivered','cancelled'));
+-- alter table orders add column if not exists customer_phone text default '';
+--
+--   Note: an `item_allergens` junction table was created during the first
+--   migration attempt then dropped — items.allergens (jsonb codes) is the
+--   source of truth, no junction table is used.

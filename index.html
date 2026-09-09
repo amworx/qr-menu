@@ -326,6 +326,7 @@
     .ol-save{color:#10b981}
     .order-note{width:100%;margin-top:12px;padding:12px 14px;border:1px solid var(--border2);border-radius:14px;background:var(--card2);font-size:13px;resize:none;min-height:64px;color:var(--text)}
     .order-note::placeholder{color:var(--text3)}
+    .order-phone{margin-top:10px;min-height:46px;font-family:inherit}
     .order-whatsapp{width:100%;margin-top:12px;padding:15px;border:none;border-radius:16px;background:var(--wa);color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:9px;transition:.15s ease;box-shadow:0 6px 20px rgba(37,211,102,.3)}
     .order-whatsapp:hover{background:var(--wa-dark)}
     .order-whatsapp:disabled{opacity:.5;pointer-events:none}
@@ -596,6 +597,7 @@
     let activeCategory = null;
     let cart = {}; // { itemId: qty }
     let cartOffers = {}; // { dealId: 1 } — offers added to the order
+    let customerPhone = localStorage.getItem('qm-phone') || ''; // P3: optional phone for admin replies
     let cartNotes = {}; // { itemId: note } — per-item note (P1.2), in-memory like cart
     let selectedVariants = {}; // { itemId: variantIndex } — chosen size/option (P1.6)
     let currentProductId = null; // open product sheet (P1.2)
@@ -604,6 +606,8 @@
     let viewMode = localStorage.getItem('qm-view') || 'grid'; // 'grid' | 'list'
     let outlets = []; // P2.8: active outlets for this shop
     let selectedOutletId = null; // P2.8: persisted in qm-outlet-id
+    let allBadges = []; // P3: shop_badges catalog (custom badges)
+    let allAllergens = []; // P3: shop_allergens catalog (codes → labels/icons)
 
     // ─── INIT ───────────────────────────────────────────────
     (async () => {
@@ -645,6 +649,12 @@
       outlets = outs || [];
       const savedOut = localStorage.getItem('qm-outlet-id');
       selectedOutletId = outlets.some(o => o.id === savedOut) ? savedOut : (outlets.length ? outlets[0].id : null);
+
+      // Badges + allergens catalogs (P3)
+      const { data: bgs } = await sb.from('shop_badges').select('*').eq('shop_id', shop.id).eq('is_active', true).order('sort_order');
+      allBadges = bgs || [];
+      const { data: alg } = await sb.from('shop_allergens').select('*').eq('shop_id', shop.id).eq('is_active', true).order('sort_order');
+      allAllergens = alg || [];
 
       document.documentElement.style.setProperty('--primary', shop.primary_color || '#e08a2e');
       document.documentElement.style.setProperty('--primary-2', shop.accent_color || shop.primary_color || '#c96a12');
@@ -1009,6 +1019,13 @@
       if (item.is_new) chips.push(`<span class="badge-chip b-new">${lang === 'ar' ? 'جديد' : 'NEW'}</span>`);
       if (item.popular) chips.push(`<span class="badge-chip b-popular">${lang === 'ar' ? 'الأكثر طلباً' : 'POPULAR'}</span>`);
       if (item.chef_choice) chips.push(`<span class="badge-chip b-chef">${lang === 'ar' ? 'اختيار الشيف' : "CHEF'S CHOICE"}</span>`);
+      // P3: custom badges from the shop catalog (ids → defs)
+      (item.custom_badges || []).forEach(bid => {
+        const b = allBadges.find(x => x.id === bid);
+        if (!b) return;
+        const label = lang === 'ar' ? (b.label_ar || b.label) : b.label;
+        chips.push(`<span class="badge-chip" style="background:${b.color || '#D97706'};color:#fff">${esc(b.emoji || '')} ${esc(label)}</span>`);
+      });
       return chips.length ? `<div class="badge-row">${chips.join('')}</div>` : '';
     }
 
@@ -1039,11 +1056,17 @@
       { code: 'molluscs',     en: 'Molluscs',     ar: 'الرخويات',      icon: '🐚' }
     ];
     // Icon-only chips on the card (localized tooltip); full labeled section comes in the product sheet
+    // P3: codes resolve against the shop allergen catalog, falling back to the seeded EU list.
+    function allergenDef(code) {
+      return allAllergens.find(x => x.code === code)
+        || ALLERGENS.find(x => x.code === code)
+        || null;
+    }
     function allergenChipsHTML(item) {
       if (!item || !Array.isArray(item.allergens) || !item.allergens.length) return '';
       const chips = item.allergens.map(code => {
-        const a = ALLERGENS.find(x => x.code === code) || { en: code, ar: code, icon: '⚠' };
-        const label = lang === 'ar' ? a.ar : a.en;
+        const a = allergenDef(code) || { name: code, name_ar: code, icon: '⚠' };
+        const label = lang === 'ar' ? (a.name_ar || a.name) : a.name;
         return `<span class="allg-chip" title="${esc(label)}">${a.icon}</span>`;
       }).join('');
       return `<div class="allergen-row" aria-label="${lang === 'ar' ? 'مسببات الحساسية' : 'Allergens'}">${chips}</div>`;
@@ -1466,8 +1489,8 @@
         return `<div class="pd-allg-row"><span class="pd-label">${title}</span><span class="pd-allg-none">${lang === 'ar' ? 'لا يحتوي على مسببات حساسية' : 'No allergens'}</span></div>`;
       }
       const chip = (code) => {
-        const a = ALLERGENS.find(x => x.code === code) || { en: code, ar: code, icon: '⚠' };
-        const label = lang === 'ar' ? a.ar : a.en;
+        const a = allergenDef(code) || { name: code, name_ar: code, icon: '⚠' };
+        const label = lang === 'ar' ? (a.name_ar || a.name) : a.name;
         return `<span class="pd-allg-chip">${a.icon} ${esc(label)}</span>`;
       };
       return `<div class="pd-allg-row"><span class="pd-label">${title}</span><div class="pd-allg-list">${item.allergens.map(chip).join('')}</div></div>`;
@@ -1841,6 +1864,7 @@
         ${offerRows}
         ${totalHtml}
         <div class="om-foot">${branchRow}${tableRow}${modeHtml}</div>
+        <input class="order-note order-phone" id="order-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="${lang === 'ar' ? 'رقم هاتفك (اختياري)' : 'Your phone (optional)'}" value="${esc(customerPhone)}">
         <textarea class="order-note" id="order-note" placeholder="${noteLabel}"></textarea>
         <button class="order-whatsapp" onclick="sendWhatsApp()">🟢 ${waLabel}</button>`;
     }
@@ -1857,6 +1881,8 @@
 
       let orderNo = null;
       const note = document.getElementById('order-note')?.value?.trim() || '';
+      const customerPhoneInput = document.getElementById('order-phone')?.value?.trim() || '';
+      if (customerPhoneInput) { customerPhone = customerPhoneInput; try { localStorage.setItem('qm-phone', customerPhoneInput); } catch (e) {} }
       try {
         const { data, error } = await sb.from('orders').insert({
           shop_id: shop.id,
@@ -1871,7 +1897,8 @@
           order_mode: orderMode,
           table_label: tableLabel,
           outlet_id: (selectedOutlet() || {}).id || null,
-          outlet_label: outletLabel(selectedOutlet())
+          outlet_label: outletLabel(selectedOutlet()),
+          customer_phone: customerPhoneInput
         }).select('id').single();
         if (!error && data && data.id) orderNo = data.id;
       } catch (e) { /* keep client-only fallback below */ }
@@ -1886,6 +1913,7 @@
         ? (lang === 'ar' ? 'طلب سفري (TAKEAWAY)' : 'Takeaway (TAKEAWAY)')
         : (lang === 'ar' ? 'في المكان (DINE-IN)' : 'Dine-in (DINE-IN)'));
       if (tableLabel) lines.push(`${lang === 'ar' ? 'الطاولة' : 'Table'}: ${tableLabel}`);
+      if (customerPhone) lines.push(`${lang === 'ar' ? 'الهاتف' : 'Phone'}: ${customerPhone}`);
       lines.push('');
       for (const [id, qty] of Object.entries(cart)) {
         const item = items.find(i => i.id === id);

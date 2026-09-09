@@ -441,3 +441,27 @@
 - **errors**: none.
 - **lessons**: one-time promo = compare `localStorage 'qm_campaign_seen'` against the CURRENT featured deal id (not a boolean) so a new campaign naturally shows again; seed the flag before showing the modal to avoid re-open on reload. Reuse existing modal CSS classes rather than duplicating overlay styles.
 - **tags**: p2.10, campaign, promo, landing, one-time, localStorage, deals, i18n, rtl, mobile-375, local-verify, pending-commit
+
+## EVT-20260908-0038
+
+- **timestamp**: 2026-09-08
+- **mode**: MEMORY / SESSION-WRAP
+- **action**: Session wrap-up — Phase 2 fully closed, Phase 3 deferred
+- **summary**: User reviewed the gap-closing work (P2.5 WiFi, P2.6 order mode, P2.7 table attribution, P2.8 multi-outlet, P2.9 survey, P2.10 campaign) and decided to leave Phase 3 (platform/large: AI concierge, extra languages, tenant theme editor, desktop mockup stage, loyalty) untouched for now. They will inspect the shipped work and return with fixes if needed.
+- **result**: Paused — no pending work. Commits this session: 33dd668 (P2.8), ae23d1d (P2.9), eb721f4 (P2.10), e0555b0 (plan marks). All live. Phase 3 + any post-inspection fixes await explicit user request.
+- **files**: memory/events.md only (informational event)
+- **errors**: none
+- **lessons**: none new
+- **tags**: session-wrap, phase2-done, phase3-deferred, parked-for-user-review
+
+## EVT-20260908-0039
+
+- **timestamp**: 2026-09-08
+- **mode**: BUILD
+- **action**: Admin Badges + Allergens CRUD pages and Orders status/reply (A1/A2/A3)
+- **summary**: New user request: separate admin pages to CRUD Badges and Allergens, plus admin order interaction (status updates + WhatsApp replies). Implemented: shop_badges catalog + items.custom_badges (ids); shop_allergens catalog (14 EU FIC pre-seeded per shop) + items.allergens stays codes; orders.status check constraint + orders.customer_phone, public order sheet optional phone field (localStorage qm-phone), admin Orders tab status filter + per-row status select + Reply modal (wa.me pre-filled, phone copy + persist back). item_allergens junction created then dropped (Option A: jsonb codes is the source of truth). Verified AR/EN/375px both pages; test data cleaned (0 badges, 0 orders).
+- **result**: Working locally. DB migrations applied via Management API. Bugs fixed during testing: duplicate `const phone` (renamed customerPhoneInput), openReplyModal/sendReply/updateOrderStatus id lookup string-vs-number (String() compare).
+- **files**: admin.html, index.html, docs/schema.sql, memory/events.md
+- **errors**: duplicate const phone -> SyntaxError; undefined order id in reply modal (Number vs id object)
+- **lessons**: another duplicate-identifier collision risk when adding fields to existing functions; always pass ids as primitives and String()-compare lookups
+- **tags**: badges, allergens, orders, admin, whatsapp-reply, p3
