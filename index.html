@@ -91,7 +91,9 @@
     .controls{
       position:fixed;inset-inline-end:14px;top:14px;z-index:60;
       display:flex;gap:8px;
+      transition:opacity .22s ease,transform .22s ease;
     }
+    .controls.fade{opacity:0;pointer-events:none;transform:translateY(-10px)}
     .ctl{
       width:40px;height:40px;border-radius:50%;
       display:flex;align-items:center;justify-content:center;
@@ -549,7 +551,7 @@
   </div>
 
   <!-- Controls -->
-  <div class="controls">
+  <div class="controls" id="floating-controls">
     <button class="ctl view" id="view-btn" onclick="toggleView()" title="View" aria-label="Toggle view mode" aria-pressed="false"><i class="fa-solid fa-table-cells-large"></i></button>
     <button class="ctl" id="theme-btn" onclick="toggleTheme()" title="Theme" aria-label="Toggle theme"><i class="fa-solid fa-sun"></i></button>
     <button class="ctl cur" id="currency-btn" onclick="cycleCurrency()" title="Currency" aria-label="Currency" style="display:none">SYP</button>
@@ -771,6 +773,24 @@
         showInstallBanner(false);
       });
     }
+    // Floating controls (theme/lang/search/info): hide while scrolling down so
+    // they never stack over the sticky category rail; reappear on scroll-up or near top.
+    (function setupFloatControls() {
+      const ctl = document.getElementById('floating-controls');
+      if (!ctl) return;
+      let lastY = window.scrollY;
+      let ticking = false;
+      const update = () => {
+        const y = window.scrollY;
+        if (y > 160 && y > lastY) ctl.classList.add('fade');
+        else if (y < lastY || y <= 160) ctl.classList.remove('fade');
+        lastY = y;
+        ticking = false;
+      };
+      window.addEventListener('scroll', () => {
+        if (!ticking) { ticking = true; requestAnimationFrame(update); }
+      }, { passive: true });
+    })();
     function showInstallBanner(show) {
       const b = document.getElementById('install-banner');
       if (!b) return;
