@@ -489,3 +489,41 @@
 - **errors**: one edit accidentally removed `if (!list || list.length === 0) {` from outletsEditorRows -> SyntaxError "Illegal return statement" + loginWithEmail not defined; fixed by restoring the guard (validated all inline scripts with `node --check` before reloading).
 - **lessons**: after any multi-edit session, run node --check on each inline `<script>` block before browser testing; never save auto-filled reverse-geocode test addresses into production rows — reset after testing.
 - **tags**: location, map, leaflet, osm, nominatim, delivery, geo, admin, orders, whatsapp, directions, p3.1
+
+## EVT-20260909-0003
+
+- **timestamp**: 2026-09-09
+- **mode**: BUILD / DEPLOY
+- **action**: Deploy P3.1 (store location + customer delivery + directions button)
+- **summary**: User approved deploy. Committed 1021dd6 "feat: store location map + customer delivery location + directions button (P3.1)" (4 files, +304/-7) and pushed origin main. GitHub Pages build status=built (2026-09-09T19:15:43Z). Live-verified 11/11 markers on amworx.github.io/qr-menu: index leaflet css+js, delivery mode button, dl-map, dlInit, dir-btn, fa-truck-fast; admin leaflet css, shop-map, shopLocInit, dl-inline.
+- **result**: Live. Remember: shop pin + address fields are empty in DB (test values reset) - owner must set the real pin via Shop Settings > Store Location for the Directions button to show coordinates.
+- **files**: index.html, admin.html, docs/schema.sql, memory/events.md
+- **errors**: none
+- **lessons**: none new
+- **tags**: deploy, pages, p3.1, live
+
+## EVT-20260909-0004
+
+- **timestamp**: 2026-09-09
+- **mode**: BUILD
+- **action**: Fix offer "0 value" bug + admin deal price-after-discount preview
+- **summary**: Public order sheet: each offer line now renders a positive "price after discount" instead of blank/0. New dealAfterValue(d) in index.html: bundle -> bundle_price (deal currency), bogo -> buy_qty x unit, percent/fixed -> scopeSubtotal - savings, min_order -> subtotal - savings; returns null when not determinable -> the line shows a muted dash (no more 0). computeOrder() adds value to each offer; totals math untouched (offers still discount lines). Admin deal modal: added live "Price Preview" block (Price Preview / Original price / New price after discount / savings chip / hint). New updateDealPreview() + adminItemPrice() + pfmt() + dealPreviewPair(): bundle uses real sum of selected item prices vs bundle price; bogo uses real item price (buy+get -> buy); percent/fixed show example on 100,000 basis; min_order uses its threshold basis. Recomputes on type switch + every field input/change (percent/fixed values, buy/get, item select, bundle checkboxes, bundle price, currencies, min/reward). AR + EN labels.
+- **result**: Verified locally (AR + EN, mobile 375 + desktop): fixed deal alone -> dash (not 0); fixed with 1 Arabic Coffee -> line shows 14,900 SYP (15,000-100); BOGO 2x25,000 -> 50,000; percent 10% on 65,000 scope -> 58,500; min_order (60,000/10% -> 58,500, fixed 500 -> 64,500); bundle with 2x15,000 items -> 30,000 -> 20,000 (-10,000). Admin preview: percent 10 -> 100,000->90,000, fixed 5,000 -> 100,000->95,000, bogo 45,000->30,000, bundle 30,000->20,000, min 50,000->45,000/46,000; empty states show hint; AR text verified (?????? ????? etc.). node --check passed on all inline scripts. Console clean both pages (favicon 404 only). Percent deal "Mega Offer" is expired (ends_at 2026-09-09 00:00) so hidden from the public deals wall - expected.
+- **files**: index.html, admin.html, memory/events.md
+- **errors**: test selector used Arabic name on bundle chips which display English names (admin item.name) - selector bug only, app fine
+- **lessons**: admin bundle chip labels use English item names; deal offers are discount lines, so "price after discount" per deal is a display value only - never change the totals math; percent/fixed/min deals that don't yet qualify for the cart show a muted dash, not 0
+- **tags**: deal, offer, price, discount, order-sheet, admin, preview, bugfix
+
+
+## EVT-20260909-0005
+
+- **timestamp**: 2026-09-09
+- **mode**: BUILD
+- **action**: Theme-aware scrollbar design (public + admin)
+- **summary**: Vertical scrollbars on the page body, order/product/search/info sheets (index.html) and admin main content/modals/table wraps (admin.html) were browser-default gray and clashed with the dark coffee/slate themes. Added thin pill scrollbars: WebKit via *::-webkit-scrollbar (9px, transparent track, rounded thumb with 2px inner border via background-clip:padding-box, hover state) and Firefox via *{scrollbar-width:thin;scrollbar-color:thumb transparent}. Public page defines --scr-thumb/--scr-thumb-hover per theme (:root[data-theme=dark] warm cream rgba(245,239,230,.18/.34); light coffee rgba(41,29,18,.18/.34)). Admin uses slate --text2 tone rgba(148,163,184,.35/.6). Horizontal rails (.cat-tabs/.deals-scroll/.fav-track/.similar-track and admin .mobile-tabs) keep scrollbar-width:none + edge fade - unchanged.
+- **result**: Verified computed styles: public dark thumb rgba(245,239,230,.18) transparent, light rgba(41,29,18,.18), admin rgba(148,163,184,.35); scrollbar-width thin everywhere, rails still 'none'; no horizontal overflow (0px at 375 and 1280); all inline scripts pass node --check. Screenshots saved: qm_scrollbar_dark_desktop.png, qm_scrollbar_light_desktop.png, qm_admin_scrollbar_mobile.png.
+- **files**: index.html, admin.html, memory/events.md
+- **errors**: none
+- **lessons**: on non-overlay desktop browsers the 9px pill scrollbar reserves width - verified zero layout shift; keep horizontal rails hidden (edge fade) so only real vertical/horizontal scroll containers get styled thumbs
+- **tags**: ui, scrollbar, theme, webkit, firefox, dark-mode, light-mode, admin, polish
+

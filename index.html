@@ -56,6 +56,16 @@
       --surface-grad:linear-gradient(180deg,#fffdf8 0%,#faf5ee 100%);
     }
 
+    /* Scrollbars — theme-aware, thin pill design (WebKit + Firefox) */
+    :root[data-theme="dark"]{--scr-thumb:rgba(245,239,230,.18);--scr-thumb-hover:rgba(245,239,230,.34)}
+    :root[data-theme="light"]{--scr-thumb:rgba(41,29,18,.18);--scr-thumb-hover:rgba(41,29,18,.34)}
+    *{scrollbar-width:thin;scrollbar-color:var(--scr-thumb) transparent}
+    *::-webkit-scrollbar{width:9px;height:9px}
+    *::-webkit-scrollbar-track{background:transparent}
+    *::-webkit-scrollbar-thumb{background:var(--scr-thumb);border-radius:999px;border:2px solid transparent;background-clip:padding-box}
+    *::-webkit-scrollbar-thumb:hover{background:var(--scr-thumb-hover);border:2px solid transparent;background-clip:padding-box}
+    *::-webkit-scrollbar-corner{background:transparent}
+
     html{-webkit-text-size-adjust:100%}
     body{
       font-family:'Inter',system-ui,sans-serif;
@@ -333,6 +343,7 @@
     .order-disc-row .disc-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .order-disc-row .disc-amt{white-space:nowrap}
     .ol-save{color:#10b981}
+    .ol-muted{color:var(--text3);font-weight:600;opacity:.8}
     .order-note{width:100%;margin-top:12px;padding:12px 14px;border:1px solid var(--border2);border-radius:14px;background:var(--card2);font-size:13px;resize:none;min-height:64px;color:var(--text)}
     .order-note::placeholder{color:var(--text3)}
     .order-phone{margin-top:10px;min-height:46px;font-family:inherit}
@@ -1777,6 +1788,28 @@
       }
       return 0;
     }
+    // Price the customer pays for a deal after discount (null when not determinable for the current cart)
+    function dealAfterValue(d) {
+      if (!d) return null;
+      const dt = d.deal_type || d.discount_type || 'percent';
+      const subtotal = cartSubtotal();
+      if (dt === 'bundle') {
+        if (d.currency && d.currency !== activeCurrency) return null;
+        const bp = Number(d.bundle_price) || 0;
+        return bp > 0 ? bp : null;
+      }
+      if (dt === 'bogo') {
+        if (!d.item_id) return null;
+        const u = itemUnitPrice(d.item_id);
+        if (!u) return null;
+        return (Number(d.buy_qty) || 1) * u;
+      }
+      const s = dealSavings(d);
+      if (s <= 0) return null;
+      if (dt === 'percent' || dt === 'fixed') return Math.max(scopeSubtotalValue(d) - s, 0);
+      if (dt === 'min_order') return Math.max(subtotal - s, 0);
+      return null;
+    }
     // Full order snapshot used by the FAB, the sheet and the WhatsApp message
     function computeOrder() {
       const itemsList = [], offers = [];
@@ -1790,7 +1823,8 @@
       for (const id of Object.keys(cartOffers)) {
         const d = deals.find(x => x.id === id);
         if (!d) continue;
-        offers.push({ id, title: d.title || '', title_ar: d.title_ar || '', summary: dealSummary(d), savings: Math.round(dealSavings(d) * 100) / 100 });
+        const av = dealAfterValue(d);
+        offers.push({ id, title: d.title || '', title_ar: d.title_ar || '', summary: dealSummary(d), savings: Math.round(dealSavings(d) * 100) / 100, value: av == null ? null : Math.round(av * 100) / 100 });
       }
       const subtotal = cartSubtotal();
       const discountLines = offers.filter(o => o.savings > 0)
@@ -1970,13 +2004,16 @@
         if (!d) continue;
         const title = lang === 'ar' ? (d.title_ar || d.title) : d.title;
         const off = o.offers.find(x => x.id === id);
-        const savingsHtml = off && off.savings > 0
-          ? `<div class="ol-price ol-save">−${formatPrice(off.savings, activeCurrency)}</div>`
-          : '';
+        const hasValue = off && off.value != null && off.value > 0;
+        const priceHtml = hasValue
+          ? `<div class="ol-price">${formatPrice(off.value, activeCurrency)}</div>`
+          : (off && off.savings > 0
+              ? `<div class="ol-price ol-save">−${formatPrice(off.savings, activeCurrency)}</div>`
+              : `<div class="ol-price ol-muted">—</div>`);
         offerRows += `
           <div class="order-line offer-line">
             <div class="ol-name">🎁 ${esc(title)}<small>${esc(dealSummary(d))}</small></div>
-            ${savingsHtml}
+            ${priceHtml}
             <button class="ol-remove" onclick="removeOffer('${id}')" aria-label="${lang === 'ar' ? 'إزالة العرض' : 'Remove offer'}"><i class="fa-solid fa-xmark"></i></button>
           </div>`;
       }

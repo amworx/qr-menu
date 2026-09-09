@@ -16,6 +16,13 @@
       --line:#334155;--radius:10px;
       --header-h:70px;
     }
+    /* Scrollbars — thin pill design matching the slate theme */
+    *{scrollbar-width:thin;scrollbar-color:rgba(148,163,184,.35) transparent}
+    *::-webkit-scrollbar{width:9px;height:9px}
+    *::-webkit-scrollbar-track{background:transparent}
+    *::-webkit-scrollbar-thumb{background:rgba(148,163,184,.35);border-radius:999px;border:2px solid transparent;background-clip:padding-box}
+    *::-webkit-scrollbar-thumb:hover{background:rgba(148,163,184,.6);border:2px solid transparent;background-clip:padding-box}
+    *::-webkit-scrollbar-corner{background:transparent}
     body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
     a{color:var(--accent);text-decoration:none}
     button{cursor:pointer;font-family:inherit}
@@ -128,6 +135,15 @@
     .bundle-pick label.chip input{width:auto}
     .bundle-pick label.chip:has(input:checked){background:var(--accent);color:#000;border-color:var(--accent)}
     .deal-note{font-size:12px;color:var(--text2);margin:-6px 0 10px}
+    .deal-preview{margin:12px 0 4px;padding:10px 12px;border:1px dashed var(--line);border-radius:12px;background:var(--bg);display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px}
+    .deal-preview.muted{color:var(--text2);border-style:solid}
+    .deal-preview .dp-ex{font-size:11px;color:var(--text2);width:100%}
+    .deal-preview .dp-cell{display:flex;flex-direction:column;gap:2px}
+    .deal-preview .dp-cell small{font-size:10.5px;color:var(--text2)}
+    .deal-preview .dp-strike{text-decoration:line-through;color:var(--text2);font-weight:600}
+    .deal-preview .dp-new b{color:var(--accent2);font-size:15px}
+    .deal-preview .dp-arrow{color:var(--text3)}
+    .deal-preview .dp-save{background:rgba(16,185,129,.12);color:#10b981;font-weight:800;border-radius:10px;padding:3px 8px}
 
     /* Language toggle */
     .auth-lang-row{display:flex;justify-content:flex-end;margin-bottom:8px}
@@ -529,6 +545,11 @@ const I18N = {
   reward_value:     { en: 'Reward Value', ar: 'قيمة المكافأة' },
   percent_off:      { en: 'Percent off', ar: 'نسبة مئوية (%)' },
   fixed_off:        { en: 'Fixed amount off', ar: 'مبلغ ثابت' },
+  price_preview:    { en: 'Price Preview', ar: 'معاينة السعر' },
+  orig_price:       { en: 'Original price', ar: 'السعر الأصلي' },
+  new_price:        { en: 'New price after discount', ar: 'السعر الجديد بعد الخصم' },
+  preview_example:  { en: 'Example', ar: 'مثال' },
+  preview_hint:     { en: 'Fill the offer fields to see the price after discount', ar: 'املأ حقول العرض لمشاهدة السعر بعد الخصم' },
   currency:         { en: 'Currency', ar: 'العملة' },
   allergens:        { en: 'Allergens', ar: 'مسببات الحساسية' },
   none:             { en: 'None', ar: 'لا يوجد' },
@@ -1708,43 +1729,43 @@ function dealFieldsHTML(deal) {
   const catOpts = allCategories.map(c => `<option value="${c.id}" ${d.category_id===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
   const bundleChecked = ids => (d.bundle_items || []).includes(ids) ? 'checked' : '';
   const bundleItems = allItems.length ? allItems.map(i => `
-      <label class="chip"><input type="checkbox" value="${i.id}" ${bundleChecked(i.id)}> ${esc(i.name)}</label>`
+      <label class="chip"><input type="checkbox" value="${i.id}" ${bundleChecked(i.id)} onchange="updateDealPreview()"> ${esc(i.name)}</label>`
     ).join('') : `<div class="deal-note">${t('no_items')}</div>`;
 
   return `
     ${/* percent */ ''}
     <div class="deal-fields" data-dt="percent">
-      <div class="field"><label>${t('percent_off')}</label><input type="number" step="0.01" min="0" max="100" id="m-deal-percent-value" value="${d.deal_type==='percent' ? d.discount_value : ''}"></div>
+      <div class="field"><label>${t('percent_off')}</label><input type="number" step="0.01" min="0" max="100" id="m-deal-percent-value" value="${d.deal_type==='percent' ? d.discount_value : ''}" oninput="updateDealPreview()"></div>
     </div>
     ${/* fixed */ ''}
     <div class="deal-fields" data-dt="fixed">
       <div class="card-row-3">
-        <div class="field"><label>${t('fixed_off')}</label><input type="number" step="0.01" min="0" id="m-deal-fixed-value" value="${d.deal_type==='fixed' ? d.discount_value : ''}"></div>
-        <div class="field"><label>${t('currency')}</label><select id="m-deal-fixed-currency">${currencies}</select></div>
+        <div class="field"><label>${t('fixed_off')}</label><input type="number" step="0.01" min="0" id="m-deal-fixed-value" value="${d.deal_type==='fixed' ? d.discount_value : ''}" oninput="updateDealPreview()"></div>
+        <div class="field"><label>${t('currency')}</label><select id="m-deal-fixed-currency" onchange="updateDealPreview()">${currencies}</select></div>
       </div>
     </div>
     ${/* bogo */ ''}
     <div class="deal-fields" data-dt="bogo">
       <div class="card-row">
-        <div class="field"><label>${t('buy_qty')}</label><input type="number" min="1" id="m-deal-buy" value="${d.deal_type==='bogo' ? (d.buy_qty || 2) : 2}"></div>
-        <div class="field"><label>${t('get_qty')}</label><input type="number" min="1" id="m-deal-get" value="${d.deal_type==='bogo' ? (d.get_qty || 1) : 1}"></div>
+        <div class="field"><label>${t('buy_qty')}</label><input type="number" min="1" id="m-deal-buy" value="${d.deal_type==='bogo' ? (d.buy_qty || 2) : 2}" oninput="updateDealPreview()"></div>
+        <div class="field"><label>${t('get_qty')}</label><input type="number" min="1" id="m-deal-get" value="${d.deal_type==='bogo' ? (d.get_qty || 1) : 1}" oninput="updateDealPreview()"></div>
       </div>
-      <div class="field"><label>${t('select_item')}</label><select id="m-deal-item-list"><option value="">—</option>${itemOpts}</select></div>
+      <div class="field"><label>${t('select_item')}</label><select id="m-deal-item-list" onchange="updateDealPreview()"><option value="">—</option>${itemOpts}</select></div>
     </div>
     ${/* bundle */ ''}
     <div class="deal-fields" data-dt="bundle">
       <div class="field"><label>${t('bundle_items')}</label><div class="bundle-pick">${bundleItems}</div></div>
       <div class="card-row-3">
-        <div class="field"><label>${t('bundle_price')}</label><input type="number" step="0.01" min="0" id="m-deal-bundle-price" value="${d.deal_type==='bundle' ? d.bundle_price : ''}"></div>
-        <div class="field"><label>${t('currency')}</label><select id="m-deal-bundle-currency">${currencies}</select></div>
+        <div class="field"><label>${t('bundle_price')}</label><input type="number" step="0.01" min="0" id="m-deal-bundle-price" value="${d.deal_type==='bundle' ? d.bundle_price : ''}" oninput="updateDealPreview()"></div>
+        <div class="field"><label>${t('currency')}</label><select id="m-deal-bundle-currency" onchange="updateDealPreview()">${currencies}</select></div>
       </div>
     </div>
     ${/* min_order */ ''}
     <div class="deal-fields" data-dt="min_order">
       <div class="card-row-3">
-        <div class="field"><label>${t('min_total')}</label><input type="number" step="0.01" min="0" id="m-deal-min" value="${d.deal_type==='min_order' ? d.min_total : ''}"></div>
-        <div class="field"><label>${t('reward_type')}</label><select id="m-deal-reward-type"><option value="percent" ${d.reward_type!=='fixed'?'selected':''}>${t('percent_off')}</option><option value="fixed" ${d.reward_type==='fixed'?'selected':''}>${t('fixed_off')}</option></select></div>
-        <div class="field"><label>${t('reward_value')}</label><input type="number" step="0.01" min="0" id="m-deal-reward-value" value="${d.deal_type==='min_order' ? d.discount_value : ''}"></div>
+        <div class="field"><label>${t('min_total')}</label><input type="number" step="0.01" min="0" id="m-deal-min" value="${d.deal_type==='min_order' ? d.min_total : ''}" oninput="updateDealPreview()"></div>
+        <div class="field"><label>${t('reward_type')}</label><select id="m-deal-reward-type" onchange="updateDealPreview()"><option value="percent" ${d.reward_type!=='fixed'?'selected':''}>${t('percent_off')}</option><option value="fixed" ${d.reward_type==='fixed'?'selected':''}>${t('fixed_off')}</option></select></div>
+        <div class="field"><label>${t('reward_value')}</label><input type="number" step="0.01" min="0" id="m-deal-reward-value" value="${d.deal_type==='min_order' ? d.discount_value : ''}" oninput="updateDealPreview()"></div>
       </div>
     </div>
     <div class="deal-fields" data-dt="scope">
@@ -1795,6 +1816,7 @@ async function openDealModal(id) {
       </select>
     </div>
     <div id="m-deal-fields">${dealFieldsHTML(deal)}</div>
+    <div class="field" style="margin-top:12px"><label>${t('price_preview')}</label><div id="m-deal-preview"></div></div>
     <div class="card-row">
       <div class="field"><label>${t('starts_at')}</label><input type="date" id="m-deal-start" value="${deal?.starts_at ? deal.starts_at.split('T')[0] : ''}"></div>
       <div class="field"><label>${t('ends_at')}</label><input type="date" id="m-deal-end" value="${deal?.ends_at ? deal.ends_at.split('T')[0] : ''}"></div>
@@ -1818,12 +1840,69 @@ function dealTypeChanged() {
     const show = fields[type] && fields[type].includes(el.dataset.dt);
     el.style.display = show ? 'block' : 'none';
   });
+  updateDealPreview();
 }
 
 function dealScopeChanged() {
   const scope = gv('m-deal-scope');
   document.getElementById('m-deal-item-wrap').style.display = scope === 'item' ? 'block' : 'none';
   document.getElementById('m-deal-cat-wrap').style.display = scope === 'category' ? 'block' : 'none';
+}
+
+// ─── DEAL PRICE PREVIEW (price after discount) ────────────
+function adminItemPrice(id, cur) {
+  const it = allItems.find(i => i.id === id);
+  if (!it) return 0;
+  const p = (it.item_prices || []).find(p => p.currency === cur && p.is_visible);
+  return p ? (Number(p.price) || 0) : 0;
+}
+function pfmt(n) {
+  return (Math.round(Number(n) * 100) / 100).toLocaleString('en-US', { maximumFractionDigits: 0 });
+}
+function dealPreviewPair(t, orig, np, cur, ok, example) {
+  if (!ok) return `<div class="deal-preview muted">${t('preview_hint')}</div>`;
+  const o = Number(orig) || 0, n = Number(np) || 0;
+  const save = Math.max(o - n, 0);
+  return `
+    <div class="deal-preview">
+      ${example ? `<span class="dp-ex">${t('preview_example')}</span>` : ''}
+      <span class="dp-cell"><small>${t('orig_price')}</small><b class="dp-strike">${pfmt(o)} ${cur}</b></span>
+      <span class="dp-arrow">→</span>
+      <span class="dp-cell dp-new"><small>${t('new_price')}</small><b>${pfmt(n)} ${cur}</b></span>
+      ${save > 0 ? `<span class="dp-save">−${pfmt(save)} ${cur}</span>` : ''}
+    </div>`;
+}
+function updateDealPreview() {
+  const el = document.getElementById('m-deal-preview');
+  if (!el) return;
+  const dt = gv('m-deal-type') || 'percent';
+  const defCur = currentShop.currency_default || 'SYP';
+  if (dt === 'bundle') {
+    const cur = gv('m-deal-bundle-currency') || defCur;
+    const ids = dealBundleItems();
+    const orig = ids.reduce((s, id) => s + adminItemPrice(id, cur), 0);
+    const np = parseFloat(gv('m-deal-bundle-price')) || 0;
+    el.innerHTML = dealPreviewPair(t, orig, np, cur, ids.length > 0 && np > 0, false);
+  } else if (dt === 'bogo') {
+    const u = adminItemPrice(gv('m-deal-item-list'), defCur);
+    const buy = parseInt(gv('m-deal-buy')) || 1, get = parseInt(gv('m-deal-get')) || 1;
+    el.innerHTML = dealPreviewPair(t, (buy + get) * u, buy * u, defCur, !!gv('m-deal-item-list') && u > 0, false);
+  } else if (dt === 'percent') {
+    const v = Math.min(parseFloat(gv('m-deal-percent-value')) || 0, 100);
+    const orig = 100000;
+    el.innerHTML = dealPreviewPair(t, orig, orig * (1 - v / 100), defCur, v > 0, true);
+  } else if (dt === 'fixed') {
+    const cur = gv('m-deal-fixed-currency') || defCur;
+    const v = parseFloat(gv('m-deal-fixed-value')) || 0;
+    const orig = 100000;
+    el.innerHTML = dealPreviewPair(t, orig, Math.max(orig - v, 0), cur, v > 0, true);
+  } else if (dt === 'min_order') {
+    const base = parseFloat(gv('m-deal-min')) || 0;
+    const v = parseFloat(gv('m-deal-reward-value')) || 0;
+    const pct = gv('m-deal-reward-type') !== 'fixed';
+    const np = pct ? base * (1 - Math.min(v, 100) / 100) : Math.max(base - v, 0);
+    el.innerHTML = dealPreviewPair(t, base, np, defCur, base > 0 && v > 0, true);
+  }
 }
 
 function dealBundleItems() {
