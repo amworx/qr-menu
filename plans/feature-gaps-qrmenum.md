@@ -112,8 +112,8 @@ Legend: L/M/H = effort. Value: how much it improves professionalism/usability.
 | P2.6 | Takeaway/dine-in order mode toggle (affects WhatsApp message) | takeaway module | Med-High | M |
 | P2.7 | Table/QR per-table attribution (query param → order note) | industry norm | Med | M |
 | P2.8 | Multi-outlet selector (shop → outlets) | outlet-picker module | Med-High | H |
-| P2.9 | Satisfaction survey (rate + comment → edge function → DB) | survey module | Med | M |
-| P2.10 | Campaign/promo landing modal (one-time) | campaign module | Low | M |
+| P2.9 | Satisfaction survey (rate + comment → edge function → DB) | survey module | Med | M — ✅ DONE (EVT-2026-09-08-0036, ae23d1d) |
+| P2.10 | Campaign/promo landing modal (one-time) | campaign module | Low | M — ✅ DONE (EVT-2026-09-08-0037, eb721f4) |
 
 ### PHASE 3 — platform / large (defer or explicit request)
 
