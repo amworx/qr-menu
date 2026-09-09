@@ -42,6 +42,8 @@
       --shadow:0 8px 30px rgba(0,0,0,.45);
       --hero-grad:radial-gradient(120% 90% at 50% 0%, rgba(224,138,46,.16) 0%, rgba(13,10,7,0) 60%);
       --surface-grad:linear-gradient(180deg,#1a140d 0%,#151009 100%);
+      --hero-util-bg:rgba(255,255,255,.14); --hero-util-bg-hover:rgba(255,255,255,.26); --hero-util-bg-on:rgba(255,255,255,.32);
+      --hero-util-border:rgba(255,255,255,.28); --hero-util-color:#fff;
     }
     :root[data-theme="light"]{
       --bg:#faf5ee; --bg-soft:#f3ead9; --card:#fffdf8; --card2:#f8f0e2;
@@ -54,6 +56,8 @@
       --shadow:0 8px 30px rgba(120,80,30,.12);
       --hero-grad:radial-gradient(120% 90% at 50% 0%, rgba(224,138,46,.14) 0%, rgba(250,245,238,0) 60%);
       --surface-grad:linear-gradient(180deg,#fffdf8 0%,#faf5ee 100%);
+      --hero-util-bg:rgba(41,29,18,.14); --hero-util-bg-hover:rgba(41,29,18,.24); --hero-util-bg-on:rgba(41,29,18,.3);
+      --hero-util-border:rgba(41,29,18,.22); --hero-util-color:#291d12;
     }
 
     /* Scrollbars — theme-aware, thin pill design (WebKit + Firefox) */
@@ -91,15 +95,15 @@
     .hero-util{
       position:absolute;top:14px;inset-inline-start:14px;z-index:2;
       width:40px;height:40px;border-radius:50%;
-      background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:#fff;
+      background:var(--hero-util-bg);border:1px solid var(--hero-util-border);color:var(--hero-util-color);
       backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
       display:flex;align-items:center;justify-content:center;
       font-size:16px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18);
       transition:background .2s ease,transform .2s ease;
     }
-    .hero-util:hover{background:rgba(255,255,255,.26)}
+    .hero-util:hover{background:var(--hero-util-bg-hover)}
     .hero-util:active{transform:scale(.94)}
-    .hero-util.on{background:rgba(255,255,255,.32)}
+    .hero-util.on{background:var(--hero-util-bg-on)}
     .util-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:none;align-items:flex-end;justify-content:center}
     .util-modal.visible{display:flex}
     .util-sheet{
@@ -179,7 +183,7 @@
     .deals-scroll{display:flex;gap:10px;padding:10px 16px;overflow-x:auto;scrollbar-width:none}
     .deals-scroll::-webkit-scrollbar{display:none}
     .deal-card{
-      flex:0 0 auto;width:196px;border-radius:16px;padding:12px 14px;
+      flex:0 0 auto;width:196px;border-radius:16px;padding:26px 14px 12px;
       background:linear-gradient(135deg,var(--primary),var(--primary-2));
       color:#fff;position:relative;overflow:hidden;
       box-shadow:0 6px 18px var(--primary-glow);
@@ -189,9 +193,13 @@
     .deal-card:active{transform:scale(.97)}
     .deal-card.added{outline:2px solid #fff;outline-offset:2px;box-shadow:0 0 0 4px var(--primary-glow), 0 6px 18px var(--primary-glow)}
     .deal-ribbon{position:absolute;top:0;inset-inline-start:12px;background:rgba(0,0,0,.22);color:#fff;font-size:9.5px;font-weight:800;padding:4px 9px;border-radius:0 0 10px 10px;letter-spacing:.5px}
-    .deal-card h3{font-size:13.5px;font-weight:800;margin:10px 0 2px;line-height:1.3}
-    .deal-card p{font-size:11px;opacity:.95;line-height:1.45;margin:0 0 6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-    .deal-badge{align-self:flex-start;display:inline-block;font-size:10px;font-weight:800;background:rgba(255,255,255,.2);padding:3px 9px;border-radius:12px;margin:6px 0 10px}
+    .deal-card h3{font-size:13.5px;font-weight:800;margin:2px 0 4px;line-height:1.3}
+    .deal-card p{font-size:11px;opacity:.95;line-height:1.45;margin:0 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .deal-scope{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;background:rgba(255,255,255,.12);padding:5px 9px;border-radius:10px;margin:2px 0 9px;line-height:1.3;min-width:0}
+    .deal-scope i{font-size:10px;opacity:.9;flex:0 0 auto}
+    .deal-scope span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+    .deal-badge{align-self:flex-start;display:inline-block;font-size:10px;font-weight:800;background:rgba(255,255,255,.2);padding:3px 9px;border-radius:12px;margin:2px 0 12px}
+    .deal-grow{flex:1;min-height:9px}
     .deal-add{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;margin-top:auto;font-size:11.5px;font-weight:800;background:rgba(255,255,255,.28);padding:6px 15px;border-radius:20px;letter-spacing:.3px;transition:.15s ease}
     .deal-card.added .deal-add{background:rgba(255,255,255,.95);color:var(--primary)}
 
@@ -1067,6 +1075,7 @@
         const addLabel = added
           ? (lang === 'ar' ? '✓ أُضيف إلى الطلب' : '✓ Added to order')
           : (lang === 'ar' ? 'أضف +' : '+ Add');
+        const scope = dealScopeLabel(d);
         return `
           <div class="deal-card ${added ? 'added' : ''}" role="button" tabindex="0"
                onclick="toggleOffer('${d.id}')"
@@ -1074,10 +1083,48 @@
             <span class="deal-ribbon">${ribbon}</span>
             <h3>${esc(title)}</h3>
             ${desc ? `<p>${esc(desc)}</p>` : ''}
+            <div class="deal-scope"><i class="fa-solid fa-tag"></i><span>${esc(scope)}</span></div>
             <span class="deal-badge"><i class="fa-solid fa-fire"></i> ${esc(dealSummary(d))}</span>
+            <div class="deal-grow"></div>
             <span class="deal-add">${addLabel}</span>
           </div>`;
       }).join('');
+    }
+    // Localized "applies to" text for a deal card — which item(s)/category/order the offer targets
+    function dealScopeLabel(d) {
+      if (!d) return '';
+      const ar = lang === 'ar';
+      const nameOf = id => {
+        const it = items.find(i => i.id === id);
+        return it ? (ar ? (it.name_ar || it.name) : it.name) : '';
+      };
+      const joinN = (a, b) => ar ? `${a}، ${b}` : `${a}, ${b}`;
+      const dt = d.deal_type || d.discount_type || 'percent';
+      if (dt === 'bundle') {
+        const ids = (d.bundle_items || []).map(x => (typeof x === 'string' ? x : (x.id || x)));
+        const names = ids.map(nameOf).filter(Boolean);
+        if (names.length === 0) return ar ? 'يطبّق على الأصناف المختارة' : 'Applies to selected items';
+        if (names.length === 1) return ar ? `يطبّق على: ${names[0]}` : `Applies to: ${names[0]}`;
+        const first = names.slice(0, 2).reduce((a, n) => a ? joinN(a, n) : n, '');
+        return names.length > 2
+          ? (ar ? `يطبّق على: ${first} +${names.length - 2}` : `Applies to: ${first} +${names.length - 2}`)
+          : (ar ? `يطبّق على: ${first}` : `Applies to: ${first}`);
+      }
+      if (dt === 'bogo') {
+        const n = nameOf(d.item_id);
+        return n ? (ar ? `يطبّق على: ${n}` : `Applies to: ${n}`) : (ar ? 'يطبّق على نفس الصنف' : 'Applies to the same item');
+      }
+      if (dt === 'min_order') return ar ? 'يطبّق على كامل الطلب' : 'Applies to the whole order';
+      if (d.applies_to === 'item') {
+        const n = nameOf(d.item_id);
+        return n ? (ar ? `يطبّق على: ${n}` : `Applies to: ${n}`) : (ar ? 'يطبّق على صنف واحد' : 'Applies to a single item');
+      }
+      if (d.applies_to === 'category') {
+        const c = categories.find(x => x.id === d.category_id);
+        const cn = c ? (ar ? (c.name_ar || c.name) : c.name) : '';
+        return cn ? (ar ? `يطبّق على فئة: ${cn}` : `Applies to category: ${cn}`) : (ar ? 'يطبّق على الفئة' : 'Applies to a category');
+      }
+      return ar ? 'يطبّق على كل الأصناف' : 'Applies to all items';
     }
 
     function renderItems() {
