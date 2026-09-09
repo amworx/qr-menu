@@ -310,6 +310,7 @@
     .cart-count-wrap{display:flex;align-items:center;gap:8px}
     .cart-badge{background:var(--primary);color:#fff;font-weight:800;font-size:12px;min-width:26px;height:26px;border-radius:26px;display:flex;align-items:center;justify-content:center;padding:0 7px}
     .cart-total{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .cart-total-hint{font-size:12px;font-weight:700;opacity:.72}
     .cart-review{background:var(--primary);color:#fff;padding:12px 20px;border-radius:18px;font-size:13px;font-weight:800;display:flex;align-items:center;gap:6px;transition:.15s ease;white-space:nowrap}
     .cart-review:hover{background:var(--primary-2)}
     .cart-review:active{transform:scale(.96)}
@@ -1840,8 +1841,25 @@
       const totalItems = Object.values(cart).reduce((s, q) => s + q, 0);
       const offerCount = Object.values(cartOffers).length;
       if (totalItems === 0 && offerCount === 0) { fab.classList.remove('visible'); document.getElementById('cart-count').textContent = '0'; document.getElementById('cart-total').textContent = '0'; return; }
-      document.getElementById('cart-count').textContent = totalItems + offerCount;
-      document.getElementById('cart-total').textContent = formatPrice(o.total, activeCurrency);
+      const countEl = document.getElementById('cart-count');
+      const totalEl = document.getElementById('cart-total');
+      countEl.textContent = totalItems + offerCount;
+      if (totalItems === 0 && offerCount > 0) {
+        // Offers-only cart: show the determinable after-discount value (bundle/BOGO),
+        // otherwise guide the customer to add items — never a misleading 0.
+        let standalone = 0;
+        for (const off of o.offers) { if (off.value != null && off.value > 0) standalone += off.value; }
+        if (standalone > 0) {
+          totalEl.classList.remove('cart-total-hint');
+          totalEl.textContent = formatPrice(standalone, activeCurrency);
+        } else {
+          totalEl.classList.add('cart-total-hint');
+          totalEl.textContent = lang === 'ar' ? 'أضف أصنافاً' : 'Add items';
+        }
+      } else {
+        totalEl.classList.remove('cart-total-hint');
+        totalEl.textContent = formatPrice(o.total, activeCurrency);
+      }
       fab.classList.add('visible');
     }
 
