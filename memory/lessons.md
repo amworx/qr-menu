@@ -166,12 +166,18 @@
 - **Fix**: Deleted the corrupted attempt and re-ran the same UPDATE with a payload JSON file created by the **Write tool** (clean UTF-8) → value restored byte-perfect.
 - **Lesson**: The "never Set-Content payloads for repo files" rule extends to ANY Arabic-containing payload — even throwaway temp files. If the payload contains Arabic (or any UTF-8 beyond ASCII), it must be authored with the Write tool and sent with `curl.exe --data-binary @file`; PowerShell 5.1 Polish/Latin-1 console + `.NET` string handling corrupts Arabic at the command-line stage. Verified by fetch → Read shows correct text.
 
-(End of file - total 139 lines)
+## LSSN-20260910-001 — uiverse component adaptation: CSS selectors must match the FINAL DOM you ship
+- **Problem**: Integrating uiverse plastic-moth-91 (animated heart) as the favorite icon initially didn't animate; clicking the badge toggled the favorite (state logic worked) but the SVG filled/celebrate animations never ran.
+- **Root cause**: The uiverse markup wraps everything in `<label class="heart-container">`, but the adaptation placed the checkbox + `.svg-container` directly inside the app's existing `.fav-heart` label and dropped the `.heart-container` wrapper div. All selectors were scoped `.heart-container ...`, so none matched the live DOM (`.svg-filled` computed as UA-default `inline` instead of `none`/`block`).
+- **Fix**: Re-scoped every rule to `.fav-heart .checkbox`, `.fav-heart .svg-container`, etc. (plus `.pd-fav` for the product sheet) directly on the labels actually rendered.
+- **Lesson**: When adapting a uiverse/third-party component, first write the exact final markup your app will render, then rewrite the component's CSS selectors against THAT structure. Verify in-browser via getComputedStyle on a state transition (checked → filled display/anim) — a component can be fully wired functionally yet visually dead if its CSS hooks don't exist.
 
-(End of file - total 125 lines)
+## LSSN-20260910-002 — Same-document hash navigation does not re-run app init; testing a locale needs a real reload
+- **Problem**: Navigating from `index.html#en` to `index.html#ar` (same URL, different hash) in Chrome is same-document navigation — the QR-Menu init IIFE does not re-run, so `lang` stays `en` even though the URL shows `#ar`; the page appeared to "ignore" the hash.
+- **Fix/verification**: after changing the hash, force a real document load (chrome navigate `type=reload`, or append a query param) so the init block re-reads `location.hash` on a fresh boot.
+- **Lesson**: Never conclude a hash-based locale switch "doesn't work" on the first attempt; confirm the document actually reloaded (check the `lang` global, not just the URL). For automated AR/EN testing, drive a hard reload with the target hash.
 
-(End of file - total 101 lines)
-
-(End of file - total 77 lines)
-
-(End of file - total 75 lines)
+## LSSN-20260910-003 — Splash loader shapes on dark themes need theme ink, not the uiverse default
+- **Problem**: massive-falcon-52's pills are hardcoded `#000`; on the app's near-black dark theme they'd be invisible.
+- **Fix**: `.splash .Strich1/.Strich2` use `var(--text)` (cream on dark, cocoa on light), keeping the original colorful bubble gradients untouched (they pop on both themes).
+- **Lesson**: Before porting a light-theme uiverse component into a dark-first app, audit every hardcoded luminance (pill/ball/text colors) against both theme blocks; brightly-colored accents usually survive, base shapes often need a theme var.

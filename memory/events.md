@@ -618,3 +618,26 @@
 - **lessons**: margin-top:auto in a flex column only absorbs leftover space; when sibling cards size to their own content (equal height), leftover is 0 and the CTA isn't pinned — a flex:1 spacer div is the deterministic fix. Ribbon overlays need top padding >= ribbon height, not just breathing-room assumptions.
 - **tags**: deals, offer-cards, layout, scope, i18n, deploy
 
+## EVT-20260910-0004
+
+- **timestamp**: 2026-09-10
+- **mode**: BUILD / UI / DEPLOY
+- **action**: uiverse splash loader + animated favorite heart
+- **summary**: Replaced the `.cup` spinner loading screen with uiverse massive-falcon-52: `.splash` container (150x150) with two crossed pills (.Strich1 rotate 45 / .Strich2 rotate -90, 130x50, radius 25) + 5 colored bubbles dancing on `dropAndShift` (4-7s, translate 0/80/40px + vertical hop). Pills use var(--text) so they read on both themes (dark cream / light cocoa); colorful radial gradients kept from source. #loading/#loading-text contract preserved (no-shop error path + AR/EN localization). Replaced FA-heart favorite buttons with uiverse plastic-moth-91 animated heart on item cards (`favBtnHTML` now renders `<label class="fav-heart">` with hidden checkbox + outline/filled/celebrate SVGs) and the product sheet (`pd-fav` label, keeps sheet-close/pd-close styles). `toggleFav` untouched; `syncFavHearts` now syncs `checkbox.checked` + aria-label instead of innerHTML (fav rail + toasts + AR/EN/RTL intact). First CSS-scope attempt was dead (selectors `.heart-container ...` matched nothing because the wrapper div was dropped; `.svg-filled` computed `inline`); re-scoped to `.fav-heart/.pd-fav ...`.
+- **result**: Verified localhost: filled/celebrate animation names + display flip on toggle, theme-ink pills (dark rgb(245,239,230) / light rgb(41,29,18)), mobile 375px heart-bounds inside card, AR dir=rtl heart at inline-end, product-sheet heart, toast text; `node --check` OK. Committed 40235c2 (`feat: uiverse splash loader + animated favorite heart`) and pushed; live fresh page (SW cleared) verified: 5 splash bubbles, heart label animates, AR toast.
+- **files**: index.html, docs/screenshots/2026-09-10-splash-new-loader.png, docs/screenshots/2026-09-10-heart-in-card.png, docs/screenshots/2026-09-10-heart-in-product-sheet.png, docs/screenshots/2026-09-10-heart-ar-rtl-mobile.png, docs/screenshots/2026-09-10-splash-mobile-ar.png
+- **errors**: initial heart CSS selectors matched no DOM (dropped .heart-container wrapper) — fixed by re-scoping; splash pill transform computed "none" while loading screen display:none (correct matrix when visible — assertion must render first).
+- **lessons**: LSSN-20260910-001 (adapt CSS selectors to the final DOM you ship), LSSN-20260910-002 (hash navigation isn't a reload — hard reload to test locales), LSSN-20260910-003 (loader shapes need theme ink on dark themes)
+- **tags**: uiverse, splash, loader, favorites, animation, ui, deploy
+
+## EVT-20260910-0005
+
+- **timestamp**: 2026-09-10
+- **mode**: DESIGN / MOCK
+- **action**: Temp category-switcher mock using uiverse soft-baboon-75 (do NOT apply to app)
+- **summary**: User asked for a test mock design only. Built self-contained `docs/mocks/category-switcher-mock.html` (TEMP, untracked): 390px AR/RTL phone frame using app dark tokens, uiverse glass channel + sliding ball radio as the category switcher with 5 rows (الكل، مشروبات ساخنة، مشروبات باردة، حلويات، ساندويشات), small mock dataset with emoji/price cards filtered below. Glass height auto (align-items:stretch) instead of the source's fixed 210px so it fits 3-5 rows; translateX(-72px) for the ball pool; ball kept original #e8e8e8 with the 0.8s cubic-bezier(1,-0.4,0,1.4) overshoot.
+- **result**: Verified in browser: ball slides -72px→0 on selection with correct transition params, mid-flight transform observed (-75.34px at 120ms), item list filters (حلويات → 3 items). Screenshot saved. Nothing applied to the app.
+- **files**: docs/mocks/category-switcher-mock.html (untracked/temp), docs/screenshots/2026-09-10-mock-category-switcher.png
+- **errors**: none
+- **tags**: mock, uiverse, category-switcher, radio, glassmorphism, design-only
+
