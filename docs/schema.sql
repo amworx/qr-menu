@@ -383,5 +383,28 @@ end $$;
 --   (exists (select 1 from shops where shops.id = shop_id and shops.owner_email = auth.email()));
 -- create policy outlets_owner_delete on outlets for delete using
 --   (exists (select 1 from shops where shops.id = shop_id and shops.owner_email = auth.email()));
--- alter table orders add column if not exists outlet_id uuid references outlets(id);
--- alter table orders add column if not exists outlet_label text default '';
+--   alter table orders add column if not exists outlet_id uuid references outlets(id);
+--   alter table orders add column if not exists outlet_label text default '';
+
+-- P2.9 (2026-09-08): satisfaction survey — `surveys` table + edge function
+--   submit-survey (deployed --no-verify-jwt, public). The public app shows a
+--   star-rating modal ~1s after an order is sent; the edge function validates
+--   (uuid shop_id, integer 1..5, comment <= 500 chars) and inserts via the
+--   service role. RLS: anon insert allowed (server-side validation), owner can
+--   select (used with the Management API / dashboard for now; a Surveys tab in
+--   the admin can read owner-only later).
+-- create table if not exists surveys (
+--   id bigserial primary key,
+--   shop_id uuid not null references shops(id) on delete cascade,
+--   rating int not null check (rating between 1 and 5),
+--   comment text default '',
+--   created_at timestamptz not null default now()
+-- );
+-- create index if not exists surveys_shop_id_idx on surveys(shop_id);
+-- alter table surveys enable row level security;
+-- create policy surveys_insert on surveys for insert with check
+--   (rating between 1 and 5 and comment is null or comment = '' or length(comment) <= 500);
+-- create policy surveys_owner_select on surveys for select using
+--   (exists (select 1 from shops where shops.id = shop_id and shops.owner_email = auth.email()));
+-- Edge function: supabase/functions/submit-survey/index.ts
+--   supabase functions deploy submit-survey --project-ref pxgwxcurhzphmtvowdri --no-verify-jwt

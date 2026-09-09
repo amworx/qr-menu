@@ -336,6 +336,18 @@
     .om-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
     .table-chip{flex:1;padding:10px 14px;border-radius:12px;border:1px dashed var(--border2);background:var(--card2);color:var(--text1);font-size:13px;font-weight:800}
     .om-select{flex:1;padding:10px 12px;border-radius:12px;border:1px solid var(--border2);background:var(--card2);color:var(--text1);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;min-width:0}
+    .survey-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:120;display:none;align-items:center;justify-content:center;padding:20px}
+    .survey-modal.visible{display:flex}
+    .survey-card{width:100%;max-width:340px;background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:22px 18px;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+    .survey-head{font-size:16px;font-weight:800;margin-bottom:6px}
+    .survey-sub{font-size:12px;color:var(--text3);margin-bottom:14px}
+    .survey-stars{display:flex;justify-content:center;gap:6px;margin-bottom:14px}
+    .survey-star{font-size:30px;line-height:1;background:none;border:none;cursor:pointer;color:var(--border2);padding:2px;transition:color .12s ease, transform .12s ease}
+    .survey-star.on{color:#f5b301}
+    .survey-star:active{transform:scale(1.25)}
+    .survey-comment{width:100%;min-height:64px;border:1px solid var(--border2);border-radius:12px;background:var(--card2);color:var(--text1);padding:10px;font-family:inherit;font-size:13px;resize:vertical;margin-bottom:12px;box-sizing:border-box}
+    .survey-submit{width:100%;padding:12px;border:none;border-radius:12px;background:var(--primary);color:#fff;font-size:14px;font-weight:800;cursor:pointer}
+    .survey-skip{display:inline-block;margin-top:10px;background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;text-decoration:underline}
 
     /* ═══ PRODUCT DETAIL SHEET (P1.2) ═══ */
     .product-sheet{background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;height:92vh;display:flex;flex-direction:column;overflow:hidden;animation:slideUp .3s ease}
@@ -543,6 +555,11 @@
   <!-- Info modal (P1.9): about, hours, address+directions, phone, socials, legal note -->
   <div class="order-modal" id="info-modal" onclick="if(event.target===this)closeInfo()">
     <div class="info-sheet" id="info-sheet"></div>
+  </div>
+
+  <!-- Satisfaction survey modal (P2.9) -->
+  <div class="survey-modal" id="survey-modal" onclick="if(event.target===this)closeSurvey()">
+    <div class="survey-card" id="survey-card"></div>
   </div>
 
   <div class="shop-footer" id="shop-footer" style="display:none"></div>
@@ -1898,6 +1915,62 @@
       toast(orderNo
         ? (lang === 'ar' ? `تم إنشاء الطلب رقم #${orderNo}` : `Order #${orderNo} placed`)
         : (lang === 'ar' ? 'تم فتح واتساب' : 'WhatsApp opened'));
+      // P2.9: ask for a rating shortly after the order leaves
+      setTimeout(showSurvey, 900);
+    }
+
+    // ─── SURVEY (P2.9) ────────────────────────────────────────
+    let surveyRating = 0;
+    function showSurvey() {
+      surveyRating = 0;
+      renderSurvey();
+      document.getElementById('survey-modal').classList.add('visible');
+    }
+    function closeSurvey() { document.getElementById('survey-modal').classList.remove('visible'); }
+    function renderSurvey() {
+      const card = document.getElementById('survey-card');
+      const head = lang === 'ar' ? 'كيف كانت تجربتك؟' : 'How was your experience?';
+      const sub = lang === 'ar' ? 'قيّم زيارتك — رأيك يساعدنا على التحسّن' : 'Rate your visit — your feedback helps us improve';
+      const commentPh = lang === 'ar' ? 'ملاحظات (اختياري)' : 'Comment (optional)';
+      const submit = lang === 'ar' ? 'إرسال التقييم' : 'Submit rating';
+      const skip = lang === 'ar' ? 'لاحقاً' : 'Later';
+      const stars = [1,2,3,4,5].map(n => `<button class="survey-star" onclick="setSurveyRating(${n})" aria-label="${n} star" aria-pressed="${n <= surveyRating}">★</button>`).join('');
+      card.innerHTML = `
+        <button class="sheet-close" style="position:absolute;top:10px;inset-inline-end:10px" onclick="closeSurvey()" aria-label="Close">✕</button>
+        <div class="survey-head">${head}</div>
+        <div class="survey-sub">${sub}</div>
+        <div class="survey-stars">${stars}</div>
+        <textarea class="survey-comment" id="survey-comment" placeholder="${commentPh}"></textarea>
+        <button class="survey-submit" onclick="submitSurvey()">${submit}</button>
+        <button class="survey-skip" onclick="closeSurvey()">${skip}</button>`;
+      document.getElementById('survey-card').style.position = 'relative';
+    }
+    function setSurveyRating(n) {
+      surveyRating = n;
+      document.querySelectorAll('.survey-star').forEach((b, i) => {
+        b.classList.toggle('on', i < n); b.setAttribute('aria-pressed', i < n ? 'true' : 'false');
+      });
+    }
+    async function submitSurvey() {
+      const rating = surveyRating;
+      if (!rating) { toast(lang === 'ar' ? 'اختر عدد النجوم أولاً' : 'Pick a star rating first'); return; }
+      const comment = document.getElementById('survey-comment')?.value?.trim() || '';
+      const btn = document.querySelector('.survey-submit');
+      if (btn) { btn.disabled = true; btn.textContent = lang === 'ar' ? 'جارٍ الإرسال…' : 'Sending…'; }
+      try {
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/submit-survey`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+          body: JSON.stringify({ shop_id: shop.id, rating, comment })
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.ok) throw new Error(j.error || r.status);
+        closeSurvey();
+        toast(lang === 'ar' ? 'شكراً لتقييمك! 💛' : 'Thanks for your feedback! 💛');
+      } catch (e) {
+        if (btn) { btn.disabled = false; btn.textContent = lang === 'ar' ? 'إرسال التقييم' : 'Submit rating'; }
+        toast(lang === 'ar' ? 'تعذّر الإرسال، حاول مجدداً' : 'Could not send — try again', true);
+      }
     }
 
     // ─── HELPERS ────────────────────────────────────────────
