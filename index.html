@@ -348,6 +348,11 @@
     .survey-comment{width:100%;min-height:64px;border:1px solid var(--border2);border-radius:12px;background:var(--card2);color:var(--text1);padding:10px;font-family:inherit;font-size:13px;resize:vertical;margin-bottom:12px;box-sizing:border-box}
     .survey-submit{width:100%;padding:12px;border:none;border-radius:12px;background:var(--primary);color:#fff;font-size:14px;font-weight:800;cursor:pointer}
     .survey-skip{display:inline-block;margin-top:10px;background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;text-decoration:underline}
+    .promo-badge{font-size:44px;line-height:1;margin:2px 0 4px}
+    .promo-eyebrow{font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--primary);margin-bottom:8px}
+    .promo-title{font-size:17px;font-weight:800;margin-bottom:8px}
+    .promo-desc{font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.55}
+    .promo-foot{margin-top:8px;font-size:11px;color:var(--text3)}
 
     /* ═══ PRODUCT DETAIL SHEET (P1.2) ═══ */
     .product-sheet{background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;height:92vh;display:flex;flex-direction:column;overflow:hidden;animation:slideUp .3s ease}
@@ -562,6 +567,11 @@
     <div class="survey-card" id="survey-card"></div>
   </div>
 
+  <!-- Campaign/promo landing modal (P2.10, one-time per campaign) -->
+  <div class="survey-modal" id="campaign-modal" onclick="if(event.target===this)closeCampaign()">
+    <div class="survey-card" id="campaign-card"></div>
+  </div>
+
   <div class="shop-footer" id="shop-footer" style="display:none"></div>
 
   <!-- Install banner (P2.4, beforeinstallprompt) -->
@@ -646,6 +656,9 @@
       const deepItem = new URLSearchParams(window.location.search).get('item');
       if (deepItem && items.some(i => i.id === deepItem)) {
         setTimeout(() => openProductSheet(deepItem), 400);
+      } else {
+        // Campaign landing (P2.10): one-time promo modal after first paint
+        setTimeout(showCampaign, 1100);
       }
       // Table attribution (P2.7): ?table=<id> (rendered in order sheet + WhatsApp)
       const tabParam = new URLSearchParams(window.location.search).get('table');
@@ -1980,6 +1993,45 @@
       return `${formatted} ${currency}`;
     }
     let toastTimer;
+    // ─── CAMPAIGN (P2.10) ────────────────────────────────────
+    // One-time promo landing modal per campaign. 'qm_campaign_seen' stores the
+    // featured deal id so the same campaign never re-opens on this device,
+    // while a NEW campaign (different featured deal) is shown again once.
+    function showCampaign() {
+      if (!deals.length) return;
+      const d = deals[0];
+      if (localStorage.getItem('qm_campaign_seen') === d.id) return;
+      localStorage.setItem('qm_campaign_seen', d.id);
+      renderCampaign(d);
+      document.getElementById('campaign-modal').classList.add('visible');
+    }
+    function closeCampaign() { document.getElementById('campaign-modal').classList.remove('visible'); }
+    function renderCampaign(d) {
+      const card = document.getElementById('campaign-card');
+      const title = lang === 'ar' ? (d.title_ar || d.title) : d.title;
+      const desc = lang === 'ar' ? (d.description_ar || d.description) : d.description;
+      const summary = dealSummary(d);
+      const eyebrow = lang === 'ar' ? 'عرض خاص 🔥' : 'SPECIAL 🔥';
+      const cta = lang === 'ar' ? 'اطلب الآن' : 'Order now';
+      const skip = lang === 'ar' ? 'لاحقاً' : 'Later';
+      const foot = lang === 'ar' ? 'يُضاف العرض تلقائياً إلى طلبك' : 'Tapping adds the offer to your order';
+      card.innerHTML = `
+        <button class="sheet-close" style="position:absolute;top:10px;inset-inline-end:10px" onclick="closeCampaign()" aria-label="Close">✕</button>
+        <div class="promo-badge">🔥</div>
+        <div class="promo-eyebrow">${eyebrow}</div>
+        <div class="promo-title">${esc(title)}</div>
+        ${desc ? `<div class="promo-desc">${esc(desc)}</div>` : ''}
+        <span class="deal-badge">🔥 ${esc(summary)}</span>
+        <button class="survey-submit" style="margin-top:14px" onclick="useCampaign('${d.id}')">${cta}</button>
+        <button class="survey-skip" onclick="closeCampaign()">${skip}</button>
+        <div class="promo-foot">${foot}</div>`;
+      card.style.position = 'relative';
+    }
+    function useCampaign(id) {
+      closeCampaign();
+      toggleOffer(id); // toasts + re-renders the deals section + cart bar
+    }
+
     function toast(msg) {
       const t = document.getElementById('toast');
       t.textContent = msg; t.classList.add('show');

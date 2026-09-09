@@ -429,3 +429,15 @@
 - **errors**: 1) raw fetch from browser failed → gateway requires JWT on preflight; redeployed --no-verify-jwt. 2) Then preflight still failed: `new Response('ok', {status:204})` is invalid (204 must have no body) → Edge Runtime 500 EDGE_FUNCTION_ERROR; fixed with `new Response(null, ...)`.
 - **lessons**: in Supabase edge functions keep 204 preflight bodies empty (runtime rejects bodyful 204 with a 500); for public endpoints use --no-verify-jwt + server-side validation instead of fighting the gateway's JWT-enforced preflight. Deploy works without Docker from Windows (falls back to API deploy).
 - **tags**: p2.9, survey, rating, edge-function, deno, cors, no-verify-jwt, db-migration, rls, i18n, mobile-375, local-verify, pending-commit
+
+## EVT-20260908-0037
+
+- **timestamp**: 2026-09-08
+- **mode**: BUILD / I18N / LOCAL-VERIFY
+- **action**: P2.10 — Campaign/promo landing modal (one-time per campaign)
+- **summary**: Full `#campaign-modal` center dialog (reuses `.survey-modal`/`.survey-card` styles) shown ~1.1s after first paint unless a product deep-link (`?item=`) is active. Features `deals[0]` (first active deal): 🔥 badge, eyebrow «عرض خاص 🔥 / SPECIAL 🔥», localized title/desc, `dealSummary(d)` badge, CTA «اطلب الآن / Order now» → `useCampaign(id)` closes + `toggleOffer(id)` (adds to order, re-renders deals/cart) + skip «لاحقاً / Later». One-time via `localStorage 'qm_campaign_seen' = <deal id>` (set before showing) — same campaign never re-opens; a new featured deal re-shows once. `showCampaign/closeCampaign/renderCampaign/useCampaign` + `.promo-*` CSS.
+- **result**: Success — AR 375px: modal «العرض #1», CTA «اطلب الآن», badge «اشترِ 2 واحصل على 1 مجاناً», no overflow; CTA closes + adds offer + deal card shows added + toast; reload with seen flag → modal does NOT re-open (one-time works); EN 375px: "SPECIAL 🔥 / Offer #1 / Order now / Later", no overflow. Console clean except pre-existing favicon 404.
+- **files**: `index.html` (campaign modal markup, `.promo-*` CSS, trigger in init, campaign JS block), memory/events.md. No DB changes.
+- **errors**: none.
+- **lessons**: one-time promo = compare `localStorage 'qm_campaign_seen'` against the CURRENT featured deal id (not a boolean) so a new campaign naturally shows again; seed the flag before showing the modal to avoid re-open on reload. Reuse existing modal CSS classes rather than duplicating overlay styles.
+- **tags**: p2.10, campaign, promo, landing, one-time, localStorage, deals, i18n, rtl, mobile-375, local-verify, pending-commit
