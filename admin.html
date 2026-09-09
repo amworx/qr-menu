@@ -207,6 +207,7 @@
       .item-count{margin-inline-start:0}
     }
   </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 </head>
 <body>
 
@@ -891,7 +892,7 @@ function outletsEditorRows(list) {
       <div class="field"><label>${t('outlet_active')}</label>
         <label class="toggle" style="margin-top:4px"><input type="checkbox" class="o-active" ${o.is_active ? 'checked' : ''}><span class="slider"></span></label>
       </div>
-      <button class="btn btn-danger outlet-del" type="button" onclick="removeOutletRow(this)" title="${t('outlet_remove')}">✕</button>
+      <button class="btn btn-danger outlet-del" type="button" onclick="removeOutletRow(this)" title="${t('outlet_remove')}"><i class="fa-solid fa-xmark"></i></button>
     </div>`).join('');
 }
 function addOutletRow() {
@@ -1413,7 +1414,7 @@ function variantRowHTML(v) {
   return `<div class="var-row">
     <input class="mv-en" placeholder="${t('variant_name_en')}" value="${v ? esc(v.name || '') : ''}">
     <input class="mv-ar" dir="rtl" placeholder="${t('variant_name_ar')}" value="${v ? esc(v.name_ar || '') : ''}">
-    <button type="button" class="mv-del" title="${t('remove_variant') || 'Remove'}" onclick="this.closest('.var-row').remove()">✕</button>
+    <button type="button" class="mv-del" title="${t('remove_variant') || 'Remove'}" onclick="this.closest('.var-row').remove()"><i class="fa-solid fa-xmark"></i></button>
     <div class="var-prices">
       <input class="mv-SYP" type="number" step="0.01" placeholder="SYP" value="${val('SYP')}">
       <input class="mv-USD" type="number" step="0.01" placeholder="USD" value="${val('USD')}">

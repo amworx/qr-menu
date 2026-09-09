@@ -95,9 +95,9 @@
     .ctl.lang{font-size:12px;font-weight:700;color:var(--text);padding:0 12px;width:auto;border-radius:20px}
     .ctl.cur{font-size:11px;font-weight:800;color:var(--text);padding:0 11px;width:auto;border-radius:20px;letter-spacing:.4px;font-variant-numeric:tabular-nums}
 
-    /* ═══ HERO ═══ */
+    /* ═══ HERO (compact) ═══ */
     .hero{
-      text-align:center;padding:56px 20px 30px;
+      text-align:center;padding:48px 20px 18px;
       background:var(--surface-grad),var(--hero-grad);
       border-bottom:1px solid var(--border);
       position:relative;overflow:hidden;
@@ -108,29 +108,31 @@
       background-size:26px 26px;opacity:.18;
     }
     .hero-inner{position:relative}
-    .hero .logo{width:76px;height:76px;border-radius:50%;object-fit:cover;margin:0 auto 14px;border:3px solid var(--primary);box-shadow:0 0 0 6px var(--primary-glow)}
-    .hero h1{font-size:28px;font-weight:800;letter-spacing:-.3px;margin-bottom:6px}
-    .hero .tagline{color:var(--text2);font-size:14.5px}
-    .hero .contact-row{display:flex;justify-content:center;gap:14px;margin-top:14px;font-size:12.5px;color:var(--text2);flex-wrap:wrap}
-    .hero .contact-row a,.hero .contact-row span{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);border-radius:20px;background:color-mix(in srgb,var(--card) 70%,transparent);color:var(--text);font-weight:600;font-size:12px}
+    .hero .logo{width:54px;height:54px;border-radius:50%;object-fit:cover;margin:0 auto 10px;border:2px solid var(--primary);box-shadow:0 0 0 5px var(--primary-glow)}
+    .hero h1{font-size:20px;font-weight:800;letter-spacing:-.3px;margin-bottom:4px}
+    .hero .tagline{color:var(--text2);font-size:12.5px}
+    .hero .contact-row{display:flex;justify-content:center;gap:8px;margin-top:10px;font-size:12.5px;color:var(--text2);flex-wrap:wrap}
+    .hero .contact-row a,.hero .contact-row span{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid var(--border);border-radius:20px;background:color-mix(in srgb,var(--card) 70%,transparent);color:var(--text);font-weight:600;font-size:11px}
     .hero .contact-row a:hover{border-color:var(--primary)}
 
     /* ═══ STICKY RAIL (categories) ═══ */
     .rail-wrap{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
-    .cat-tabs{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+    .rail-wrap::after{content:'';position:absolute;top:0;bottom:0;right:0;width:28px;z-index:2;pointer-events:none;background:linear-gradient(to left,var(--bg) 4%,transparent 100%)}
+    html[dir="rtl"] .rail-wrap::after{right:auto;left:0;background:linear-gradient(to right,var(--bg) 4%,transparent 100%)}
+    .cat-tabs{display:flex;gap:8px;padding:10px 16px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
     .cat-tabs::-webkit-scrollbar{display:none}
     .cat-tab{
-      padding:8px 18px;border-radius:20px;border:1px solid var(--border);
-      background:var(--card);color:var(--text2);font-size:13px;font-weight:600;white-space:nowrap;
+      flex:0 0 auto;padding:11px 16px;border-radius:16px;border:1px solid var(--border);
+      background:var(--card);color:var(--text2);font-size:13.5px;font-weight:700;white-space:nowrap;
       transition:.18s ease;
     }
     .cat-tab:active{transform:scale(.96)}
-    .cat-tab.active{background:var(--text);color:var(--bg);border-color:var(--text);font-weight:700}
+    .cat-tab.active{background:var(--text);color:var(--bg);border-color:var(--text);font-weight:800}
 
     /* ═══ CATEGORY HERO (P1.7) ═══ */
     .cat-hero{
-      position:relative;border-radius:20px;overflow:hidden;margin:14px 4px 2px;
-      min-height:150px;display:flex;align-items:flex-end;isolation:isolate;
+      position:relative;border-radius:18px;overflow:hidden;margin:10px 4px 0;
+      min-height:128px;display:flex;align-items:flex-end;isolation:isolate;
       background:linear-gradient(180deg,var(--primary) 0%,var(--primary-2) 100%);
     }
     .cat-hero img.cat-hero-bg{
@@ -150,29 +152,29 @@
     .cat-hero-inner h2{margin:10px 0 0;font-size:24px;line-height:1.2}
     .cat-hero-inner p{margin:6px 0 0;font-size:13px;line-height:1.5;opacity:.94;max-width:46ch}
 
-    /* ═══ DEALS ═══ */
-    .deals-scroll{display:flex;gap:12px;padding:16px;overflow-x:auto;scrollbar-width:none}
+    /* ═══ DEALS (slim strip) ═══ */
+    .deals-scroll{display:flex;gap:10px;padding:10px 16px;overflow-x:auto;scrollbar-width:none}
     .deals-scroll::-webkit-scrollbar{display:none}
     .deal-card{
-      flex:0 0 auto;width:230px;border-radius:18px;padding:16px;
+      flex:0 0 auto;width:196px;border-radius:16px;padding:12px 14px;
       background:linear-gradient(135deg,var(--primary),var(--primary-2));
       color:#fff;position:relative;overflow:hidden;
-      box-shadow:0 8px 24px var(--primary-glow);
+      box-shadow:0 6px 18px var(--primary-glow);
       cursor:pointer;transition:transform .12s ease, box-shadow .12s ease;-webkit-tap-highlight-color:transparent;
       display:flex;flex-direction:column;
     }
     .deal-card:active{transform:scale(.97)}
-    .deal-card.added{outline:2px solid #fff;outline-offset:2px;box-shadow:0 0 0 4px var(--primary-glow), 0 8px 24px var(--primary-glow)}
-    .deal-ribbon{position:absolute;top:0;inset-inline-start:12px;background:rgba(0,0,0,.22);color:#fff;font-size:10px;font-weight:800;padding:5px 10px;border-radius:0 0 10px 10px;letter-spacing:.5px}
-    .deal-card h3{font-size:15px;font-weight:800;margin:12px 0 4px}
-    .deal-card p{font-size:12px;opacity:.95;line-height:1.5;margin:0 0 8px}
-    .deal-badge{align-self:flex-start;display:inline-block;font-size:11px;font-weight:800;background:rgba(255,255,255,.2);padding:3px 10px;border-radius:12px;margin:8px 0 14px}
-    .deal-add{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;margin-top:auto;font-size:12px;font-weight:800;background:rgba(255,255,255,.28);padding:7px 16px;border-radius:20px;letter-spacing:.3px;transition:.15s ease}
+    .deal-card.added{outline:2px solid #fff;outline-offset:2px;box-shadow:0 0 0 4px var(--primary-glow), 0 6px 18px var(--primary-glow)}
+    .deal-ribbon{position:absolute;top:0;inset-inline-start:12px;background:rgba(0,0,0,.22);color:#fff;font-size:9.5px;font-weight:800;padding:4px 9px;border-radius:0 0 10px 10px;letter-spacing:.5px}
+    .deal-card h3{font-size:13.5px;font-weight:800;margin:10px 0 2px;line-height:1.3}
+    .deal-card p{font-size:11px;opacity:.95;line-height:1.45;margin:0 0 6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .deal-badge{align-self:flex-start;display:inline-block;font-size:10px;font-weight:800;background:rgba(255,255,255,.2);padding:3px 9px;border-radius:12px;margin:6px 0 10px}
+    .deal-add{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;margin-top:auto;font-size:11.5px;font-weight:800;background:rgba(255,255,255,.28);padding:6px 15px;border-radius:20px;letter-spacing:.3px;transition:.15s ease}
     .deal-card.added .deal-add{background:rgba(255,255,255,.95);color:var(--primary)}
 
     /* ═══ MENU (editorial tickets) ═══ */
-    .menu-wrap{max-width:640px;margin:0 auto;padding:8px 14px}
-    .section-label{display:flex;align-items:center;gap:10px;margin:14px 4px 10px;color:var(--text3);font-size:12px;font-weight:700;letter-spacing:1px}
+    .menu-wrap{max-width:1080px;margin:0 auto;padding:8px 14px}
+    .section-label{display:flex;align-items:center;gap:10px;margin:10px 4px 8px;color:var(--text3);font-size:12px;font-weight:700;letter-spacing:1px}
     .section-label::after{content:'';flex:1;height:1px;background:var(--border)}
     .item-card{
       background:var(--card);border:1px solid var(--border);border-radius:20px;
@@ -182,7 +184,7 @@
     }
     .item-card:hover{transform:translateY(-2px);border-color:var(--border2);box-shadow:var(--shadow)}
     .item-card.featured{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary),0 8px 24px var(--primary-glow)}
-    .item-card.featured::before{content:'✦';position:absolute;top:8px;inset-inline-end:10px;color:var(--accent);font-size:13px}
+    .item-card.featured::before{content:"\f005";font-family:"Font Awesome 6 Free";font-weight:900;position:absolute;top:8px;inset-inline-end:10px;color:var(--accent);font-size:12px}
 
     .item-media{flex-shrink:0;background:none;border:none;padding:0;cursor:pointer;border-radius:18px;line-height:0}
     .item-media:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
@@ -195,17 +197,19 @@
     .fav-heart.on{background:rgba(190,24,93,.72)}
 
     /* Favorites rail (P2.1) */
-    .fav-rail{display:none;padding:4px 16px 10px}
+    .fav-rail{display:none;padding:2px 16px 8px}
     .fav-rail.show{display:block}
-    .fav-head{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:800;color:var(--text2);margin-bottom:8px}
-    .fav-head .clear-favs{margin-inline-start:auto;background:none;border:none;color:var(--text3);font-size:11.5px;cursor:pointer;font-weight:700}
-    .fav-track{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+    .fav-head{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:var(--text2);margin-bottom:6px}
+    .fav-head .clear-favs{margin-inline-start:auto;background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;font-weight:700}
+    .fav-track{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
     .fav-track::-webkit-scrollbar{display:none}
-    .fav-card{flex:0 0 auto;width:132px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:8px;text-align:start;cursor:pointer;position:relative;transition:border-color .18s ease}
+    .fav-card{flex:0 0 auto;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:5px 8px 5px 5px;text-align:start;cursor:pointer;transition:border-color .18s ease}
     .fav-card:hover{border-color:var(--border2)}
-    .fav-thumb{width:100%;height:56px;border-radius:10px;object-fit:cover;background:linear-gradient(135deg,var(--card2),var(--border));display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text3);margin-bottom:6px;line-height:1}
-    .fav-name{font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
-    .fav-price{font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+    .fav-thumb{width:40px;height:40px;border-radius:10px;object-fit:cover;flex-shrink:0;background:linear-gradient(135deg,var(--card2),var(--border));display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text3);line-height:1}
+    .fav-txt{min-width:0;display:flex;flex-direction:column}
+    .fav-name{font-size:11.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:110px}
+    .fav-price{font-size:10.5px;color:var(--text2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+    .fav-del{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;border:none;font-size:10px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-inline-start:2px}
     .fav-del{position:absolute;top:4px;inset-inline-end:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;border:none;font-size:10px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
 
     /* Similar products rail (P2.3) */
@@ -269,32 +273,37 @@
     .add-btn span{font-size:16px;line-height:1}
 
     /* ═══ VIEW TOGGLE (grid view) ═══ */
-    .items-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .items-col .item-card{flex-direction:column;align-items:stretch;gap:10px;padding:12px}
+    .items-col{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .items-col .item-card{flex-direction:column;align-items:stretch;gap:9px;padding:10px 12px 12px;margin-bottom:0;border-radius:16px}
     .items-col .item-media{width:100%}
-    .items-col .item-img,.items-col .item-img.ph{width:100%;height:auto;aspect-ratio:4/3;border-radius:14px}
-    .items-col .item-top{flex-wrap:wrap}
-    .items-col .item-desc{-webkit-line-clamp:1}
-    .items-col .add-btn{width:100%;justify-content:center}
-    .items-col .stepper{width:100%;justify-content:center}
+    .items-col .item-img,.items-col .item-img.ph{width:100%;height:auto;aspect-ratio:1/1;border-radius:14px;font-size:30px}
+    .items-col .item-top{flex-wrap:wrap;gap:4px 8px}
+    .items-col .item-name{font-size:14px}
+    .items-col .item-desc{-webkit-line-clamp:2;font-size:11.5px;margin-top:3px}
+    .items-col .item-sub{margin-top:2px}
+    .items-col .item-name-ar{font-size:11px}
+    .items-col .item-body{display:flex;flex-direction:column}
+    .items-col .item-card .add-btn,.items-col .stepper{margin-top:auto;width:100%;justify-content:center}
+    .items-col .add-btn{height:40px;border-radius:14px;font-size:12.5px;margin-top:8px}
+    .items-col .stepper{margin-top:8px}
     .items-col .badge-feat{display:none}
     .items-col .item-card.featured::before{display:none}
     .ctl.view{font-size:15px}
 
-    /* ═══ FLOATING CART ═══ */
-    .cart-fab{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:55;display:none;filter:drop-shadow(var(--shadow));animation:pop .25s ease}
-    .cart-fab.visible{display:block}
+    /* ═══ FLOATING CART (bottom bar mobile / centered pill desktop) ═══ */
+    .cart-fab{position:fixed;bottom:14px;left:12px;right:12px;z-index:55;display:none;filter:drop-shadow(var(--shadow));transform-origin:50% 100%}
+    .cart-fab.visible{display:flex;justify-content:center;animation:pop .25s ease}
     .cart-pill{
-      display:flex;align-items:center;gap:14px;background:var(--text);color:var(--bg);
-      padding:10px 12px 10px 18px;border-radius:50px;max-width:calc(100vw - 40px);
+      display:flex;align-items:center;justify-content:center;gap:14px;width:100%;max-width:560px;
+      background:var(--text);color:var(--bg);padding:10px 12px 10px 18px;border-radius:26px;
     }
     .cart-count-wrap{display:flex;align-items:center;gap:8px}
     .cart-badge{background:var(--primary);color:#fff;font-weight:800;font-size:12px;min-width:26px;height:26px;border-radius:26px;display:flex;align-items:center;justify-content:center;padding:0 7px}
     .cart-total{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
-    .cart-review{background:var(--primary);color:#fff;padding:11px 18px;border-radius:40px;font-size:13px;font-weight:800;display:flex;align-items:center;gap:6px;transition:.15s ease;white-space:nowrap}
+    .cart-review{background:var(--primary);color:#fff;padding:12px 20px;border-radius:18px;font-size:13px;font-weight:800;display:flex;align-items:center;gap:6px;transition:.15s ease;white-space:nowrap}
     .cart-review:hover{background:var(--primary-2)}
     .cart-review:active{transform:scale(.96)}
-    @keyframes pop{from{transform:translateX(-50%) scale(.8);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
+    @keyframes pop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
 
     /* ═══ ORDER MODAL ═══ */
     .order-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:none;align-items:flex-end;justify-content:center}
@@ -474,17 +483,39 @@
     .ib-btn{background:var(--primary);color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:12.5px;font-weight:800;cursor:pointer}
 
     @media (max-width:420px){
-      .hero{padding:48px 14px 24px}
+      .hero{padding:44px 14px 16px}
       .item-img,.item-img.ph{width:60px;height:60px;border-radius:14px}
       .menu-wrap{padding:8px 10px}
       .item-card{padding:12px 13px}
-      .deals-scroll{padding:12px}
+      .deals-scroll{padding:10px 12px}
     }
-    @media (min-width:760px){
-      .menu-wrap{max-width:760px}
-      .item-card{margin-bottom:0}
+    @media (min-width:720px){
+      .menu-wrap{padding:10px 20px}
+      .hero{padding:52px 20px 22px}
+      .hero .logo{width:62px;height:62px}
+      .hero h1{font-size:24px}
+      .hero .tagline{font-size:14px}
+      .items-col{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+      .cart-pill{justify-content:space-between}
+      .cart-review{margin-inline-start:auto}
     }
+    @media (min-width:1080px){
+      .items-col{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+    }
+
+    /* FA icon sizing */
+    .ctl i{font-size:16px;line-height:1;pointer-events:none}
+    .fav-heart i{font-size:15px;line-height:1}
+    .sheet-close i{pointer-events:none}
+    .hero .contact-row i{font-size:12px;width:15px;text-align:center}
+    .item-meta i{font-size:11px;margin-inline-end:2px}
+    .deal-badge i,.promo-badge i{font-size:11px;margin-inline-end:2px}
+    .empty-msg .big i{font-size:32px;line-height:1}
+    .order-whatsapp i{font-size:15px;margin-inline-end:4px}
+    .wifi-ico i{font-size:16px}
+    .info-logo.ph i{font-size:32px}
   </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 </head>
 <body>
   <!-- Loading -->
@@ -495,11 +526,11 @@
 
   <!-- Controls -->
   <div class="controls">
-    <button class="ctl view" id="view-btn" onclick="toggleView()" title="View" aria-label="Toggle view mode" aria-pressed="false">☰</button>
-    <button class="ctl" id="theme-btn" onclick="toggleTheme()" title="Theme" aria-label="Toggle theme">☀️</button>
+    <button class="ctl view" id="view-btn" onclick="toggleView()" title="View" aria-label="Toggle view mode" aria-pressed="false"><i class="fa-solid fa-table-cells-large"></i></button>
+    <button class="ctl" id="theme-btn" onclick="toggleTheme()" title="Theme" aria-label="Toggle theme"><i class="fa-solid fa-sun"></i></button>
     <button class="ctl cur" id="currency-btn" onclick="cycleCurrency()" title="Currency" aria-label="Currency" style="display:none">SYP</button>
-    <button class="ctl" id="search-btn" onclick="openSearch()" title="Search" aria-label="Search">🔍</button>
-    <button class="ctl" id="info-btn" onclick="openInfo()" title="Info" aria-label="Info">ⓘ</button>
+    <button class="ctl" id="search-btn" onclick="openSearch()" title="Search" aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
+    <button class="ctl" id="info-btn" onclick="openInfo()" title="Info" aria-label="Info"><i class="fa-solid fa-circle-info"></i></button>
     <button class="ctl lang" id="lang-btn" onclick="toggleLang()">EN</button>
   </div>
 
@@ -511,7 +542,7 @@
 
   <!-- Favorites rail (P2.1, localStorage) -->
   <div class="fav-rail" id="fav-rail">
-    <div class="fav-head"><span id="fav-head-label">♥ المفضلة</span><button class="clear-favs" onclick="clearFavs()"></button></div>
+    <div class="fav-head"><span id="fav-head-label"><i class="fa-solid fa-heart"></i> المفضلة</span><button class="clear-favs" onclick="clearFavs()"></button></div>
     <div class="fav-track" id="fav-track"></div>
   </div>
 
@@ -551,8 +582,8 @@
     <div class="search-sheet" id="search-sheet">
       <div class="search-head">
         <input class="search-input" id="search-input" autocomplete="off" enterkeyhint="search" spellcheck="false" oninput="searchRender(this.value)" aria-label="Search">
-        <button class="voice-btn" id="voice-btn" onclick="toggleVoice()" title="Voice search" aria-label="Voice search" style="display:none">🎤</button>
-        <button class="sheet-close" onclick="closeSearch()" aria-label="Close">✕</button>
+        <button class="voice-btn" id="voice-btn" onclick="toggleVoice()" title="Voice search" aria-label="Voice search" style="display:none"><i class="fa-solid fa-microphone"></i></button>
+        <button class="sheet-close" onclick="closeSearch()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="search-body" id="search-body"></div>
     </div>
@@ -750,17 +781,17 @@
     }
     function favBtnHTML(item) {
       const on = isFav(item.id);
-      return `<button class="fav-heart ${on ? 'on' : ''}" data-id="${item.id}" onclick="event.stopPropagation();toggleFav('${item.id}')" aria-label="${lang === 'ar' ? (on ? 'إزالة من المفضلة' : 'أضف إلى المفضلة') : (on ? 'Remove from favorites' : 'Add to favorites')}">${on ? '♥' : '♡'}</button>`;
+      return `<button class="fav-heart ${on ? 'on' : ''}" data-id="${item.id}" onclick="event.stopPropagation();toggleFav('${item.id}')" aria-label="${lang === 'ar' ? (on ? 'إزالة من المفضلة' : 'أضف إلى المفضلة') : (on ? 'Remove from favorites' : 'Add to favorites')}">${on ? '<i class="fa-solid fa-heart"></i>' : '<i class="fa-regular fa-heart"></i>'}</button>`;
     }
     function syncFavHearts() {
       document.querySelectorAll('.fav-heart').forEach(b => {
         const on = isFav(b.dataset.id);
         b.classList.toggle('on', on);
-        b.textContent = on ? '♥' : '♡';
+        b.innerHTML = on ? '<i class="fa-solid fa-heart"></i>' : '<i class="fa-regular fa-heart"></i>';
         b.setAttribute('aria-label', lang === 'ar' ? (on ? 'إزالة من المفضلة' : 'أضف إلى المفضلة') : (on ? 'Remove from favorites' : 'Add to favorites'));
       });
       const sf = document.getElementById('pd-fav-btn');
-      if (sf) { const on = isFav(sf.dataset.id); sf.classList.toggle('on', on); sf.textContent = on ? '♥' : '♡'; }
+      if (sf) { const on = isFav(sf.dataset.id); sf.classList.toggle('on', on); sf.innerHTML = on ? '<i class="fa-solid fa-heart"></i>' : '<i class="fa-regular fa-heart"></i>'; }
     }
     function renderFavRail() {
       const rail = document.getElementById('fav-rail');
@@ -768,7 +799,7 @@
       const list = favs.map(id => items.find(i => i.id === id)).filter(Boolean);
       if (!list.length) { rail.classList.remove('show'); return; }
       rail.classList.add('show');
-      document.getElementById('fav-head-label').textContent = lang === 'ar' ? '♥ المفضلة' : '♥ Favorites';
+      document.getElementById('fav-head-label').innerHTML = lang === 'ar' ? '<i class="fa-solid fa-heart"></i> المفضلة' : '<i class="fa-solid fa-heart"></i> Favorites';
       const clearLabel = lang === 'ar' ? 'مسح الكل' : 'Clear';
       rail.querySelector('.clear-favs').textContent = clearLabel;
       document.getElementById('fav-track').innerHTML = list.map(it => {
@@ -778,9 +809,11 @@
           : `<div class="fav-thumb">${emojiFor(it)}</div>`;
         return `<div class="fav-card" role="button" tabindex="0" onclick="openProductSheet('${it.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openProductSheet('${it.id}')}">
           ${thumb}
-          <button class="fav-del" onclick="event.stopPropagation();toggleFav('${it.id}')" aria-label="${lang === 'ar' ? 'إزالة' : 'Remove'}">✕</button>
-          <span class="fav-name">${esc(name)}</span>
-          <span class="fav-price">${cardPriceHTML(it)}</span>
+          <span class="fav-txt">
+            <span class="fav-name">${esc(name)}</span>
+            <span class="fav-price">${cardPriceHTML(it)}</span>
+          </span>
+          <button class="fav-del" onclick="event.stopPropagation();toggleFav('${it.id}')" aria-label="${lang === 'ar' ? 'إزالة' : 'Remove'}"><i class="fa-solid fa-xmark"></i></button>
         </div>`;
       }).join('');
     }
@@ -866,9 +899,9 @@
       const name = lang === 'ar' ? (shop.name_ar || shop.name) : shop.name;
       const tagline = lang === 'ar' ? (shop.tagline_ar || shop.tagline) : shop.tagline;
       const contactParts = [];
-      if (shop.whatsapp) contactParts.push(`<a href="https://wa.me/${esc(shop.whatsapp)}"><span>✆</span> WhatsApp</a>`);
-      if (shop.phone) contactParts.push(`<span>📞 ${esc(shop.phone)}</span>`);
-      if (shop.email) contactParts.push(`<a href="mailto:${esc(shop.email)}"><span>✉</span> ${esc(shop.email)}</a>`);
+      if (shop.whatsapp) contactParts.push(`<a href="https://wa.me/${esc(shop.whatsapp)}"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>`);
+      if (shop.phone) contactParts.push(`<span><i class="fa-solid fa-phone"></i> ${esc(shop.phone)}</span>`);
+      if (shop.email) contactParts.push(`<a href="mailto:${esc(shop.email)}"><i class="fa-solid fa-envelope"></i> ${esc(shop.email)}</a>`);
 
       h.innerHTML = `
         ${logo}
@@ -948,7 +981,7 @@
             <span class="deal-ribbon">${ribbon}</span>
             <h3>${esc(title)}</h3>
             ${desc ? `<p>${esc(desc)}</p>` : ''}
-            <span class="deal-badge">🔥 ${esc(dealSummary(d))}</span>
+            <span class="deal-badge"><i class="fa-solid fa-fire"></i> ${esc(dealSummary(d))}</span>
             <span class="deal-add">${addLabel}</span>
           </div>`;
       }).join('');
@@ -960,7 +993,7 @@
       document.getElementById('section-label').style.display = filtered.length ? 'block' : 'none';
       if (filtered.length === 0) {
         grid.style.display = 'block';
-        grid.innerHTML = `<div class="empty-msg"><span class="big">🍽️</span>${lang === 'ar' ? 'لا عناصر بعد' : 'No items yet'}</div>`;
+        grid.innerHTML = `<div class="empty-msg"><span class="big"><i class="fa-solid fa-utensils"></i></span>${lang === 'ar' ? 'لا عناصر بعد' : 'No items yet'}</div>`;
         return;
       }
       document.querySelector('#items-grid').classList.toggle('items-col', viewMode === 'grid');
@@ -1033,8 +1066,8 @@
     function itemMetaHTML(item) {
       if (!item || (item.kcal == null && item.prep_time_min == null)) return '';
       const parts = [];
-      if (item.kcal != null) parts.push(`<span class="meta-kcal">🔥 ${item.kcal} kcal</span>`);
-      if (item.prep_time_min != null) parts.push(`<span class="meta-prep">⏱ ${lang === 'ar' ? `~${item.prep_time_min} دقيقة` : `~${item.prep_time_min} min`}</span>`);
+      if (item.kcal != null) parts.push(`<span class="meta-kcal"><i class="fa-solid fa-fire"></i> ${item.kcal} kcal</span>`);
+      if (item.prep_time_min != null) parts.push(`<span class="meta-prep"><i class="fa-regular fa-clock"></i> ${lang === 'ar' ? `~${item.prep_time_min} دقيقة` : `~${item.prep_time_min} min`}</span>`);
       return `<div class="item-meta">${parts.join('')}</div>`;
     }
 
@@ -1104,7 +1137,7 @@
     function renderViewBtn() {
       const b = document.getElementById('view-btn');
       const listMode = viewMode === 'list';
-      b.textContent = listMode ? '▦' : '☰';
+      b.innerHTML = listMode ? '<i class="fa-solid fa-list-ul"></i>' : '<i class="fa-solid fa-table-cells-large"></i>';
       b.setAttribute('aria-pressed', viewMode === 'grid');
       b.title = lang === 'ar' ? (listMode ? 'عرض شبكة' : 'عرض قائمة') : (listMode ? 'Grid view' : 'List view');
     }
@@ -1115,7 +1148,7 @@
       updateThemeBtn();
     }
     function updateThemeBtn() {
-      document.getElementById('theme-btn').textContent = theme === 'dark' ? '☀️' : '🌙';
+      document.getElementById('theme-btn').innerHTML = theme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
     }
 
     // ─── ACTIONS ────────────────────────────────────────────
@@ -1186,11 +1219,11 @@
         )) }))
         .filter(g => g.found.length > 0);
       if (!qn) {
-        body.innerHTML = `<div class="sr-empty"><span style="display:block;font-size:30px;margin-bottom:8px">🔍</span>${lang === 'ar' ? 'ابدأ الكتابة للبحث في القائمة…' : 'Start typing to search the menu…'}</div>`;
+        body.innerHTML = `<div class="sr-empty"><span style="display:block;font-size:30px;margin-bottom:8px"><i class="fa-solid fa-magnifying-glass"></i></span>${lang === 'ar' ? 'ابدأ الكتابة للبحث في القائمة…' : 'Start typing to search the menu…'}</div>`;
         return;
       }
       if (groups.length === 0) {
-        body.innerHTML = `<div class="sr-empty"><span style="display:block;font-size:30px;margin-bottom:8px">🔍</span>${lang === 'ar' ? `لا توجد نتائج لـ «${esc(q)}»` : `No results for “${esc(q)}”`}</div>`;
+        body.innerHTML = `<div class="sr-empty"><span style="display:block;font-size:30px;margin-bottom:8px"><i class="fa-solid fa-magnifying-glass"></i></span>${lang === 'ar' ? `لا توجد نتائج لـ «${esc(q)}»` : `No results for “${esc(q)}”`}</div>`;
         return;
       }
       body.innerHTML = groups.map(g => {
@@ -1349,7 +1382,7 @@
       const legal = lang === 'ar' ? (shop.legal_note_ar || shop.legal_note || '') : (shop.legal_note || '');
       const logo = shop.logo_url
         ? `<img class="info-logo" src="${esc(shop.logo_url)}" alt="">`
-        : `<div class="info-logo ph">🍽️</div>`;
+        : `<div class="info-logo ph"><i class="fa-solid fa-utensils"></i></div>`;
       const aboutSection = about
         ? `<div class="info-section"><div class="info-label">${lang === 'ar' ? 'نبذة عنا' : 'About'}</div><p class="info-text">${esc(about)}</p></div>`
         : '';
@@ -1358,18 +1391,18 @@
       const addressSection = address
         ? `<div class="info-section"><div class="info-label">${lang === 'ar' ? 'العنوان' : 'Address'}</div>
             <p class="info-text">${esc(address)}</p>
-            <a class="info-link" href="https://www.google.com/maps/search/?api=1&query=${dirQuery}" target="_blank" rel="noopener">🧭 ${lang === 'ar' ? 'الاتجاهات' : 'Get Directions'}</a>
+            <a class="info-link" href="https://www.google.com/maps/search/?api=1&query=${dirQuery}" target="_blank" rel="noopener"><i class="fa-solid fa-location-dot"></i> ${lang === 'ar' ? 'الاتجاهات' : 'Get Directions'}</a>
           </div>`
         : '';
       const phoneRow = shop.phone
-        ? `<a class="info-link ghost" href="tel:${esc(shop.phone)}">📞 ${esc(shop.phone)}</a>`
+        ? `<a class="info-link ghost" href="tel:${esc(shop.phone)}"><i class="fa-solid fa-phone"></i> ${esc(shop.phone)}</a>`
         : '';
       const waRow = shop.whatsapp
-        ? `<a class="info-link ghost" href="https://wa.me/${esc(shop.whatsapp)}">✆ ${lang === 'ar' ? 'واتساب' : 'WhatsApp'}</a>`
+        ? `<a class="info-link ghost" href="https://wa.me/${esc(shop.whatsapp)}"><i class="fa-brands fa-whatsapp"></i> ${lang === 'ar' ? 'واتساب' : 'WhatsApp'}</a>`
         : '';
-      const socials = [['instagram', '📸', shop.instagram], ['facebook', '👍', shop.facebook], ['tripadvisor', '🦉', shop.tripadvisor]]
+      const socials = [['instagram','fa-brands fa-instagram', shop.instagram], ['facebook','fa-brands fa-facebook', shop.facebook], ['tripadvisor','fa-brands fa-tripadvisor', shop.tripadvisor]]
         .filter(s => s[2])
-        .map(s => `<a class="info-social" href="${esc(s[2])}" target="_blank" rel="noopener">${s[1]} ${s[0] === 'tripadvisor' ? 'Tripadvisor' : s[0][0].toUpperCase() + s[0].slice(1)}</a>`)
+        .map(s => `<a class="info-social" href="${esc(s[2])}" target="_blank" rel="noopener"><i class="${s[1]}"></i> ${s[0] === 'tripadvisor' ? 'Tripadvisor' : s[0][0].toUpperCase() + s[0].slice(1)}</a>`)
         .join('');
       const socialSection = socials
         ? `<div class="info-section"><div class="info-label">${lang === 'ar' ? 'تابعنا' : 'Follow us'}</div><div class="info-socials">${socials}</div></div>`
@@ -1377,8 +1410,8 @@
       const wifiSection = shop.wifi_name
         ? `<div class="info-section"><div class="info-label">${lang === 'ar' ? 'واي فاي' : 'WiFi'}</div>
             <div class="wifi-block">
-              <div class="wifi-row"><span class="wifi-ico">📶</span><div class="wifi-meta"><span class="wifi-cap">${lang === 'ar' ? 'الشبكة' : 'Network'}</span><span class="wifi-val" dir="ltr">${esc(shop.wifi_name)}</span></div></div>
-              ${shop.wifi_pass ? `<div class="wifi-row"><span class="wifi-ico">🔑</span><div class="wifi-meta"><span class="wifi-cap">${lang === 'ar' ? 'كلمة المرور' : 'Password'}</span><span class="wifi-val"><span class="wifi-pass" id="wifi-pass" dir="ltr">${esc(shop.wifi_pass)}</span><button class="wifi-act" onclick="copyWifiPass()" aria-label="${lang === 'ar' ? 'نسخ كلمة المرور' : 'Copy password'}" title="${lang === 'ar' ? 'نسخ' : 'Copy'}">📋</button></span></div></div>` : ''}
+              <div class="wifi-row"><span class="wifi-ico"><i class="fa-solid fa-wifi"></i></span><div class="wifi-meta"><span class="wifi-cap">${lang === 'ar' ? 'الشبكة' : 'Network'}</span><span class="wifi-val" dir="ltr">${esc(shop.wifi_name)}</span></div></div>
+              ${shop.wifi_pass ? `<div class="wifi-row"><span class="wifi-ico"><i class="fa-solid fa-key"></i></span><div class="wifi-meta"><span class="wifi-cap">${lang === 'ar' ? 'كلمة المرور' : 'Password'}</span><span class="wifi-val"><span class="wifi-pass" id="wifi-pass" dir="ltr">${esc(shop.wifi_pass)}</span><button class="wifi-act" onclick="copyWifiPass()" aria-label="${lang === 'ar' ? 'نسخ كلمة المرور' : 'Copy password'}" title="${lang === 'ar' ? 'نسخ' : 'Copy'}"><i class="fa-regular fa-clipboard"></i></button></span></div></div>` : ''}
             </div>
           </div>`
         : '';
@@ -1392,7 +1425,7 @@
             <h3 class="info-title">${esc(name)}</h3>
             ${name2 ? `<div class="info-sub">${esc(name2)}</div>` : ''}
           </div>
-          <button class="sheet-close" onclick="closeInfo()" aria-label="${lang === 'ar' ? 'إغلاق' : 'Close'}">✕</button>
+          <button class="sheet-close" onclick="closeInfo()" aria-label="${lang === 'ar' ? 'إغلاق' : 'Close'}"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="info-body">
           ${aboutSection}
@@ -1540,10 +1573,10 @@
       sheet.innerHTML = `
         <div class="pd-hero">
           ${img}
-          <button class="sheet-close pd-close pd-fav ${isFav(item.id) ? 'on' : ''}" id="pd-fav-btn" data-id="${item.id}" onclick="toggleFav('${item.id}')" aria-label="${lang === 'ar' ? (isFav(item.id) ? 'إزالة من المفضلة' : 'أضف إلى المفضلة') : (isFav(item.id) ? 'Remove from favorites' : 'Add to favorites')}">${isFav(item.id) ? '♥' : '♡'}</button>
-          <button class="sheet-close pd-close pd-copy" onclick="copyProductLink()" aria-label="${lang === 'ar' ? 'نسخ الرابط' : 'Copy link'}">🔗</button>
-          <button class="sheet-close pd-close pd-share" onclick="shareProduct()" aria-label="${lang === 'ar' ? 'مشاركة' : 'Share'}">📤</button>
-          <button class="sheet-close pd-close" onclick="closeProductSheet()" aria-label="${lang === 'ar' ? 'إغلاق' : 'Close'}">✕</button>
+          <button class="sheet-close pd-close pd-fav ${isFav(item.id) ? 'on' : ''}" id="pd-fav-btn" data-id="${item.id}" onclick="toggleFav('${item.id}')" aria-label="${lang === 'ar' ? (isFav(item.id) ? 'إزالة من المفضلة' : 'أضف إلى المفضلة') : (isFav(item.id) ? 'Remove from favorites' : 'Add to favorites')}">${isFav(item.id) ? '<i class="fa-solid fa-heart"></i>' : '<i class="fa-regular fa-heart"></i>'}</button>
+          <button class="sheet-close pd-close pd-copy" onclick="copyProductLink()" aria-label="${lang === 'ar' ? 'نسخ الرابط' : 'Copy link'}"><i class="fa-solid fa-link"></i></button>
+          <button class="sheet-close pd-close pd-share" onclick="shareProduct()" aria-label="${lang === 'ar' ? 'مشاركة' : 'Share'}"><i class="fa-solid fa-share-nodes"></i></button>
+          <button class="sheet-close pd-close" onclick="closeProductSheet()" aria-label="${lang === 'ar' ? 'إغلاق' : 'Close'}"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="pd-body">
           ${badges}
@@ -1781,8 +1814,8 @@
       if (totalItems === 0 && offerCount === 0) {
         sheet.innerHTML = `
           <div class="sheet-head"><h3>${lang === 'ar' ? 'سلة الطلب' : 'Your Order'}</h3>
-          <button class="sheet-close" onclick="closeOrderSheet()">✕</button></div>
-          <div class="empty-msg"><span class="big">🛒</span>${lang === 'ar' ? 'السلة فارغة — أضف عناصر من القائمة' : 'Cart is empty — add items from the menu'}</div>`;
+          <button class="sheet-close" onclick="closeOrderSheet()"><i class="fa-solid fa-xmark"></i></button></div>
+          <div class="empty-msg"><span class="big"><i class="fa-solid fa-cart-shopping"></i></span>${lang === 'ar' ? 'السلة فارغة — أضف عناصر من القائمة' : 'Cart is empty — add items from the menu'}</div>`;
         return;
       }
       const o = computeOrder();
@@ -1790,7 +1823,7 @@
       // Order mode toggle (P2.6)
       const modeLabel = lang === 'ar' ? 'نوع الطلب' : 'Order type';
       const tableRow = tableLabel
-        ? `<div class="om-row"><span class="om-label">${lang === 'ar' ? 'الطاولة' : 'Table'}</span><span class="table-chip">🪑 ${esc(tableLabel)}</span></div>`
+        ? `<div class="om-row"><span class="om-label">${lang === 'ar' ? 'الطاولة' : 'Table'}</span><span class="table-chip"><i class="fa-solid fa-chair"></i> ${esc(tableLabel)}</span></div>`
         : '';
       const branchRow = outlets.length >= 2
         ? `<div class="om-row"><span class="om-label">${lang === 'ar' ? 'الفرع' : 'Branch'}</span>
@@ -1801,8 +1834,8 @@
       const modeHtml = `<div class="om-row">
         <span class="om-label">${modeLabel}</span>
         <div class="om-toggle" role="group" aria-label="${modeLabel}">
-          <button class="om-btn ${orderMode === 'dinein' ? 'active' : ''}" onclick="setOrderMode('dinein')" aria-pressed="${orderMode === 'dinein'}">🍽️ ${lang === 'ar' ? 'في المكان' : 'Dine-in'}</button>
-          <button class="om-btn ${orderMode === 'takeaway' ? 'active' : ''}" onclick="setOrderMode('takeaway')" aria-pressed="${orderMode === 'takeaway'}">🥡 ${lang === 'ar' ? 'سفري' : 'Takeaway'}</button>
+          <button class="om-btn ${orderMode === 'dinein' ? 'active' : ''}" onclick="setOrderMode('dinein')" aria-pressed="${orderMode === 'dinein'}"><i class="fa-solid fa-utensils"></i> ${lang === 'ar' ? 'في المكان' : 'Dine-in'}</button>
+          <button class="om-btn ${orderMode === 'takeaway' ? 'active' : ''}" onclick="setOrderMode('takeaway')" aria-pressed="${orderMode === 'takeaway'}"><i class="fa-solid fa-bag-shopping"></i> ${lang === 'ar' ? 'سفري' : 'Takeaway'}</button>
         </div>
       </div>`;
 
@@ -1820,7 +1853,7 @@
             <div class="ol-name">${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ''}${vName ? `<small class="ol-variant">${esc(vName)}</small>` : ''}</div>
             <div class="ol-price">${formatPrice(unit * qty, activeCurrency)}</div>
             ${stepperHTML(id, qty)}
-            <button class="ol-remove" onclick="removeItem('${id}')" aria-label="${lang === 'ar' ? 'إزالة العنصر' : 'Remove item'}">✕</button>
+            <button class="ol-remove" onclick="removeItem('${id}')" aria-label="${lang === 'ar' ? 'إزالة العنصر' : 'Remove item'}"><i class="fa-solid fa-xmark"></i></button>
           </div>`;
       }
 
@@ -1842,7 +1875,7 @@
           <div class="order-line offer-line">
             <div class="ol-name">🎁 ${esc(title)}<small>${esc(dealSummary(d))}</small></div>
             ${savingsHtml}
-            <button class="ol-remove" onclick="removeOffer('${id}')" aria-label="${lang === 'ar' ? 'إزالة العرض' : 'Remove offer'}">✕</button>
+            <button class="ol-remove" onclick="removeOffer('${id}')" aria-label="${lang === 'ar' ? 'إزالة العرض' : 'Remove offer'}"><i class="fa-solid fa-xmark"></i></button>
           </div>`;
       }
 
@@ -1859,14 +1892,14 @@
 
       sheet.innerHTML = `
         <div class="sheet-head"><h3>${lang === 'ar' ? 'مراجعة الطلب' : 'Review Order'}</h3>
-        <button class="sheet-close" onclick="closeOrderSheet()">✕</button></div>
+        <button class="sheet-close" onclick="closeOrderSheet()"><i class="fa-solid fa-xmark"></i></button></div>
         ${rows}
         ${offerRows}
         ${totalHtml}
         <div class="om-foot">${branchRow}${tableRow}${modeHtml}</div>
         <input class="order-note order-phone" id="order-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="${lang === 'ar' ? 'رقم هاتفك (اختياري)' : 'Your phone (optional)'}" value="${esc(customerPhone)}">
         <textarea class="order-note" id="order-note" placeholder="${noteLabel}"></textarea>
-        <button class="order-whatsapp" onclick="sendWhatsApp()">🟢 ${waLabel}</button>`;
+        <button class="order-whatsapp" onclick="sendWhatsApp()"><i class="fa-brands fa-whatsapp"></i> ${waLabel}</button>`;
     }
 
     // WhatsApp + order record
@@ -1877,7 +1910,7 @@
       if (totalItems === 0 && offerCount === 0) return;
       const btn = document.querySelector('.order-whatsapp');
       const waLabel = lang === 'ar' ? 'إرسال الطلب عبر واتساب' : 'Send Order via WhatsApp';
-      if (btn) { btn.disabled = true; btn.textContent = '⏳ ' + (lang === 'ar' ? 'جارٍ تجهيز الطلب...' : 'Preparing order...'); }
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ' + (lang === 'ar' ? 'جارٍ تجهيز الطلب...' : 'Preparing order...'); }
 
       let orderNo = null;
       const note = document.getElementById('order-note')?.value?.trim() || '';
@@ -1902,7 +1935,7 @@
         }).select('id').single();
         if (!error && data && data.id) orderNo = data.id;
       } catch (e) { /* keep client-only fallback below */ }
-      if (btn) { btn.disabled = false; btn.textContent = '🟢 ' + waLabel; }
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-brands fa-whatsapp"></i> ' + waLabel; }
 
       const displayNo = orderNo || ('T' + String(Date.now()).slice(-6));
       const lines = [];
@@ -1977,7 +2010,7 @@
       const skip = lang === 'ar' ? 'لاحقاً' : 'Later';
       const stars = [1,2,3,4,5].map(n => `<button class="survey-star" onclick="setSurveyRating(${n})" aria-label="${n} star" aria-pressed="${n <= surveyRating}">★</button>`).join('');
       card.innerHTML = `
-        <button class="sheet-close" style="position:absolute;top:10px;inset-inline-end:10px" onclick="closeSurvey()" aria-label="Close">✕</button>
+        <button class="sheet-close" style="position:absolute;top:10px;inset-inline-end:10px" onclick="closeSurvey()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
         <div class="survey-head">${head}</div>
         <div class="survey-sub">${sub}</div>
         <div class="survey-stars">${stars}</div>
@@ -2039,17 +2072,17 @@
       const title = lang === 'ar' ? (d.title_ar || d.title) : d.title;
       const desc = lang === 'ar' ? (d.description_ar || d.description) : d.description;
       const summary = dealSummary(d);
-      const eyebrow = lang === 'ar' ? 'عرض خاص 🔥' : 'SPECIAL 🔥';
+      const eyebrow = lang === 'ar' ? 'عرض خاص <i class="fa-solid fa-fire"></i>' : 'SPECIAL <i class="fa-solid fa-fire"></i>';
       const cta = lang === 'ar' ? 'اطلب الآن' : 'Order now';
       const skip = lang === 'ar' ? 'لاحقاً' : 'Later';
       const foot = lang === 'ar' ? 'يُضاف العرض تلقائياً إلى طلبك' : 'Tapping adds the offer to your order';
       card.innerHTML = `
-        <button class="sheet-close" style="position:absolute;top:10px;inset-inline-end:10px" onclick="closeCampaign()" aria-label="Close">✕</button>
-        <div class="promo-badge">🔥</div>
+        <button class="sheet-close" style="position:absolute;top:10px;inset-inline-end:10px" onclick="closeCampaign()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+        <div class="promo-badge"><i class="fa-solid fa-fire"></i></div>
         <div class="promo-eyebrow">${eyebrow}</div>
         <div class="promo-title">${esc(title)}</div>
         ${desc ? `<div class="promo-desc">${esc(desc)}</div>` : ''}
-        <span class="deal-badge">🔥 ${esc(summary)}</span>
+        <span class="deal-badge"><i class="fa-solid fa-fire"></i> ${esc(summary)}</span>
         <button class="survey-submit" style="margin-top:14px" onclick="useCampaign('${d.id}')">${cta}</button>
         <button class="survey-skip" onclick="closeCampaign()">${skip}</button>
         <div class="promo-foot">${foot}</div>`;
