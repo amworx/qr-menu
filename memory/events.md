@@ -566,3 +566,16 @@
 - **lessons**: The favorites rail X was a per-item removal affordance, but users found it cluttered; removal keeps management via sheet heart + clear-all. Check both main-card hearts (fav-heart) and rail X (fav-del) when tuning favorite toggles.
 - **tags**: ui, favorites, rail, deploy
 
+
+## EVT-20260909-0009
+
+- **timestamp**: 2026-09-09
+- **mode**: BUILD / DEPLOY
+- **action**: Fix top controls stacking over sticky category rail on scroll
+- **summary**: User reported "top icons and categories stack on each other when scrolling down". Reproduced: .controls (fixed top:14, z-index 60: view/theme/currency/search/info/lang) overlapped .rail-wrap (sticky top:0, z-index 50) once scrolled (measured overlap: true at scrollY 900, RTL). Fix: added id="floating-controls" on .controls, .controls.fade CSS (opacity 0, pointer-events none, translateY -10, .22s transition), and setupFloatControls() scroll listener (rAF-throttled, passive): hide when scrollY > 160 and scrolling down; show on scroll-up or near top. Verified locally: scroll to 900 -> faded (opacity 0), rail top 0; scroll up to 400 -> visible; top -> no overlap (rail not stuck). Deployed e7751f3 "fix: hide floating top controls while scrolling so they never cover the category rail" (1 file, +21/-1), Pages built, 3/3 live markers.
+- **result**: Live. No stacking while scrolling down; controls reappear on scroll-up.
+- **files**: index.html, memory/events.md
+- **errors**: none
+- **lessons**: Fixed floating controls over a sticky bar collide visually; rAF-throttled scroll-hide is the lightweight standard fix. Keep pointer-events:none so hidden controls never block taps.
+- **tags**: ui, sticky, scroll, controls, deploy
+
