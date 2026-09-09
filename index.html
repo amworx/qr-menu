@@ -87,25 +87,36 @@
     .loading-screen p{color:var(--text2);font-size:14px;letter-spacing:.3px}
     @keyframes spin{to{transform:rotate(360deg)}}
 
-    /* ═══ FLOATING CONTROLS (theme + lang) ═══ */
-    .controls{
-      position:fixed;inset-inline-end:14px;top:14px;z-index:60;
-      display:flex;gap:8px;
-      transition:opacity .22s ease,transform .22s ease;
-    }
-    .controls.fade{opacity:0;pointer-events:none;transform:translateY(-10px)}
-    .ctl{
+    /* ═══ HERO UTILITY BUTTON + SHEET ═══ */
+    .hero-util{
+      position:absolute;top:14px;inset-inline-start:14px;z-index:2;
       width:40px;height:40px;border-radius:50%;
+      background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:#fff;
+      backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
       display:flex;align-items:center;justify-content:center;
-      background:color-mix(in srgb,var(--card) 88%,transparent);
-      border:1px solid var(--border2);
-      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-      font-size:17px;transition:transform .15s ease,background .2s ease;
-      box-shadow:var(--shadow);
+      font-size:16px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18);
+      transition:background .2s ease,transform .2s ease;
     }
-    .ctl:hover{transform:scale(1.08)}
-    .ctl.lang{font-size:12px;font-weight:700;color:var(--text);padding:0 12px;width:auto;border-radius:20px}
-    .ctl.cur{font-size:11px;font-weight:800;color:var(--text);padding:0 11px;width:auto;border-radius:20px;letter-spacing:.4px;font-variant-numeric:tabular-nums}
+    .hero-util:hover{background:rgba(255,255,255,.26)}
+    .hero-util:active{transform:scale(.94)}
+    .hero-util.on{background:rgba(255,255,255,.32)}
+    .util-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:none;align-items:flex-end;justify-content:center}
+    .util-modal.visible{display:flex}
+    .util-sheet{
+      background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;
+      padding:12px 16px calc(18px + env(safe-area-inset-bottom));
+      animation:slideUp .3s ease;border:1px solid var(--border);
+      outline:none;
+    }
+    .util-grab{width:44px;height:5px;border-radius:4px;background:var(--border2);margin:0 auto 12px}
+    .util-head{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 8px}
+    .util-head h3{font-size:16px;font-weight:800}
+    .util-row{display:flex;align-items:center;gap:14px;padding:13px 8px;border-bottom:1px solid var(--border);font-size:14px;font-weight:700;color:var(--text);cursor:pointer;border-radius:10px;transition:background .15s}
+    .util-row:last-of-type{border-bottom:none}
+    .util-row:active{background:var(--card2)}
+    .util-row i{width:22px;color:var(--primary);font-size:17px;text-align:center;flex-shrink:0}
+    .util-row .val{margin-inline-start:auto;color:var(--text2);font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
+    .util-row .chev{margin-inline-start:auto;color:var(--text3);font-size:12px}
 
     /* ═══ HERO (compact) ═══ */
     .hero{
@@ -550,18 +561,11 @@
     <p id="loading-text">جارٍ تحميل القائمة...</p>
   </div>
 
-  <!-- Controls -->
-  <div class="controls" id="floating-controls">
-    <button class="ctl view" id="view-btn" onclick="toggleView()" title="View" aria-label="Toggle view mode" aria-pressed="false"><i class="fa-solid fa-table-cells-large"></i></button>
-    <button class="ctl" id="theme-btn" onclick="toggleTheme()" title="Theme" aria-label="Toggle theme"><i class="fa-solid fa-sun"></i></button>
-    <button class="ctl cur" id="currency-btn" onclick="cycleCurrency()" title="Currency" aria-label="Currency" style="display:none">SYP</button>
-    <button class="ctl" id="search-btn" onclick="openSearch()" title="Search" aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
-    <button class="ctl" id="info-btn" onclick="openInfo()" title="Info" aria-label="Info"><i class="fa-solid fa-circle-info"></i></button>
-    <button class="ctl lang" id="lang-btn" onclick="toggleLang()">EN</button>
-  </div>
-
-  <!-- Shop header (injected) -->
-  <header class="hero" id="shop-header" style="display:none"><div class="hero-inner" id="hero-inner"></div></header>
+  <!-- Shop header (injected) + hero utility button -->
+  <header class="hero" id="shop-header" style="display:none">
+    <button class="hero-util" id="hero-util-btn" onclick="toggleUtilitySheet()" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false"><i class="fa-solid fa-sliders"></i></button>
+    <div class="hero-inner" id="hero-inner"></div>
+  </header>
 
   <!-- Category rail (injected) -->
   <div class="rail-wrap" id="rail-wrap" style="display:none"><div class="cat-tabs" id="cat-tabs"></div></div>
@@ -618,6 +622,23 @@
   <!-- Info modal (P1.9): about, hours, address+directions, phone, socials, legal note -->
   <div class="order-modal" id="info-modal" onclick="if(event.target===this)closeInfo()">
     <div class="info-sheet" id="info-sheet"></div>
+  </div>
+
+  <!-- Utility sheet: theme / language / currency / view / search / info -->
+  <div class="util-modal" id="util-modal" onclick="if(event.target===this)closeUtilitySheet()">
+    <div class="util-sheet" id="util-sheet" role="dialog" aria-modal="true" tabindex="-1">
+      <div class="util-grab"></div>
+      <div class="util-head">
+        <h3 id="util-title">الإعدادات</h3>
+        <button class="sheet-close" onclick="closeUtilitySheet()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="util-row" onclick="toggleTheme()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleTheme()}"><i class="fa-solid fa-sun" id="util-theme-ico"></i><span id="util-theme-lbl">المظهر</span><span class="val" id="util-theme-val"></span></div>
+      <div class="util-row" onclick="toggleLang()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleLang()}"><i class="fa-solid fa-globe"></i><span id="util-lang-lbl">اللغة</span><span class="val" id="util-lang-val"></span></div>
+      <div class="util-row" id="util-currency-row" onclick="cycleCurrency()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();cycleCurrency()}" style="display:none"><i class="fa-solid fa-coins"></i><span id="util-currency-lbl">العملة</span><span class="val" id="util-currency-val"></span></div>
+      <div class="util-row" onclick="toggleView()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleView()}"><i class="fa-solid fa-table-cells-large" id="util-view-ico"></i><span id="util-view-lbl">وضع العرض</span><span class="val" id="util-view-val"></span></div>
+      <div class="util-row" onclick="utilSearch()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();utilSearch()}"><i class="fa-solid fa-magnifying-glass"></i><span id="util-search-lbl">بحث</span><span class="chev"><i class="fa-solid fa-chevron-right"></i></span></div>
+      <div class="util-row" onclick="utilInfo()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();utilInfo()}"><i class="fa-solid fa-circle-info"></i><span id="util-info-lbl">المعلومات</span><span class="chev"><i class="fa-solid fa-chevron-right"></i></span></div>
+    </div>
   </div>
 
   <!-- Satisfaction survey modal (P2.9) -->
@@ -773,24 +794,53 @@
         showInstallBanner(false);
       });
     }
-    // Floating controls (theme/lang/search/info): hide while scrolling down so
-    // they never stack over the sticky category rail; reappear on scroll-up or near top.
-    (function setupFloatControls() {
-      const ctl = document.getElementById('floating-controls');
-      if (!ctl) return;
-      let lastY = window.scrollY;
-      let ticking = false;
-      const update = () => {
-        const y = window.scrollY;
-        if (y > 160 && y > lastY) ctl.classList.add('fade');
-        else if (y < lastY || y <= 160) ctl.classList.remove('fade');
-        lastY = y;
-        ticking = false;
-      };
-      window.addEventListener('scroll', () => {
-        if (!ticking) { ticking = true; requestAnimationFrame(update); }
-      }, { passive: true });
-    })();
+    // ─── UTILITY SHEET (theme/lang/currency/view/search/info) ─────────────
+    let utilOpen = false;
+    function toggleUtilitySheet() { utilOpen ? closeUtilitySheet() : openUtilitySheet(); }
+    function openUtilitySheet() {
+      utilOpen = true;
+      const m = document.getElementById('util-modal');
+      if (!m) return;
+      renderUtilitySheet();
+      m.classList.add('visible');
+      const b = document.getElementById('hero-util-btn');
+      if (b) { b.classList.add('on'); b.setAttribute('aria-expanded', 'true'); }
+      setTimeout(() => { const s = document.getElementById('util-sheet'); if (s) s.focus({ preventScroll: true }); }, 60);
+    }
+    function closeUtilitySheet() {
+      utilOpen = false;
+      const m = document.getElementById('util-modal');
+      if (m) m.classList.remove('visible');
+      const b = document.getElementById('hero-util-btn');
+      if (b) { b.classList.remove('on'); b.setAttribute('aria-expanded', 'false'); }
+    }
+    function renderUtilitySheet() {
+      const ar = lang === 'ar';
+      const t = document.getElementById('util-title'); if (t) t.textContent = ar ? 'الإعدادات' : 'Settings';
+      const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+      setTxt('util-theme-lbl', ar ? 'المظهر' : 'Appearance');
+      setTxt('util-lang-lbl', ar ? 'اللغة' : 'Language');
+      setTxt('util-currency-lbl', ar ? 'العملة' : 'Currency');
+      setTxt('util-view-lbl', ar ? 'وضع العرض' : 'View mode');
+      setTxt('util-search-lbl', ar ? 'بحث' : 'Search');
+      setTxt('util-info-lbl', ar ? 'المعلومات' : 'Info');
+      setTxt('util-theme-val', ar ? (theme === 'dark' ? 'داكن' : 'فاتح') : (theme === 'dark' ? 'Dark' : 'Light'));
+      setTxt('util-lang-val', ar ? 'العربية' : 'English');
+      const ico = document.getElementById('util-theme-ico');
+      if (ico) ico.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+      setTxt('util-view-val', ar ? (viewMode === 'grid' ? 'شبكة' : 'قائمة') : (viewMode === 'grid' ? 'Grid' : 'List'));
+      const vico = document.getElementById('util-view-ico');
+      if (vico) vico.className = viewMode === 'list' ? 'fa-solid fa-list-ul' : 'fa-solid fa-table-cells-large';
+      const currencies = shop?.currencies || ['SYP'];
+      const showCur = shop?.show_currency_selector !== false && currencies.length > 1;
+      const row = document.getElementById('util-currency-row');
+      if (row) row.style.display = showCur ? 'flex' : 'none';
+      if (showCur) setTxt('util-currency-val', activeCurrency);
+      const hb = document.getElementById('hero-util-btn');
+      if (hb) hb.setAttribute('aria-label', ar ? 'الإعدادات' : 'Settings');
+    }
+    function utilSearch() { closeUtilitySheet(); openSearch(); }
+    function utilInfo() { closeUtilitySheet(); openInfo(); }
     function showInstallBanner(show) {
       const b = document.getElementById('install-banner');
       if (!b) return;
@@ -864,7 +914,7 @@
     function applyLang() {
       document.documentElement.lang = lang;
       document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-      document.getElementById('lang-btn').textContent = lang === 'en' ? 'AR' : 'EN';
+      renderUtilitySheet();
       document.title = lang === 'ar' ? (shop?.name_ar || shop?.name || 'QR Menu') : (shop?.name || 'QR Menu');
       document.getElementById('loading-text').textContent = lang === 'ar' ? 'جارٍ تحميل القائمة...' : 'Loading menu...';
       document.getElementById('cart-review-text').textContent = lang === 'ar' ? 'الطلب' : 'Order';
@@ -1178,11 +1228,10 @@
       if (document.getElementById('order-modal')?.classList.contains('visible')) renderOrderSheet();
     }
     function renderViewBtn() {
-      const b = document.getElementById('view-btn');
-      const listMode = viewMode === 'list';
-      b.innerHTML = listMode ? '<i class="fa-solid fa-list-ul"></i>' : '<i class="fa-solid fa-table-cells-large"></i>';
-      b.setAttribute('aria-pressed', viewMode === 'grid');
-      b.title = lang === 'ar' ? (listMode ? 'عرض شبكة' : 'عرض قائمة') : (listMode ? 'Grid view' : 'List view');
+      const ico = document.getElementById('util-view-ico');
+      if (ico) ico.className = viewMode === 'list' ? 'fa-solid fa-list-ul' : 'fa-solid fa-table-cells-large';
+      const v = document.getElementById('util-view-val');
+      if (v) v.textContent = lang === 'ar' ? (viewMode === 'grid' ? 'شبكة' : 'قائمة') : (viewMode === 'grid' ? 'Grid' : 'List');
     }
     function toggleTheme() {
       theme = theme === 'dark' ? 'light' : 'dark';
@@ -1191,7 +1240,10 @@
       updateThemeBtn();
     }
     function updateThemeBtn() {
-      document.getElementById('theme-btn').innerHTML = theme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+      const ico = document.getElementById('util-theme-ico');
+      if (ico) ico.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+      const v = document.getElementById('util-theme-val');
+      if (v) v.textContent = lang === 'ar' ? (theme === 'dark' ? 'داكن' : 'فاتح') : (theme === 'dark' ? 'Dark' : 'Light');
     }
 
     // ─── ACTIONS ────────────────────────────────────────────
@@ -1210,11 +1262,15 @@
       updateCartBar();
     }
     function renderCurrencyBtn() {
-      const btn = document.getElementById('currency-btn');
+      const row = document.getElementById('util-currency-row');
+      if (!row) return;
       const currencies = shop?.currencies || ['SYP'];
       const show = shop?.show_currency_selector !== false && currencies.length > 1;
-      btn.style.display = show ? 'flex' : 'none';
-      if (show) btn.textContent = activeCurrency;
+      row.style.display = show ? 'flex' : 'none';
+      if (show) {
+        const v = document.getElementById('util-currency-val');
+        if (v) v.textContent = activeCurrency;
+      }
     }
     function cycleCurrency() {
       const list = shop?.currencies || ['SYP'];
@@ -2291,7 +2347,7 @@
     }
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
-      closeProductSheet(); closeOrderSheet(); closeSearch(); closeInfo();
+      closeUtilitySheet(); closeProductSheet(); closeOrderSheet(); closeSearch(); closeInfo();
     });
   </script>
 </body>
