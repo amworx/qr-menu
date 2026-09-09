@@ -61,6 +61,19 @@
     .allergen-cell{padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--bg2)}
     @media (max-width:520px){.allergen-grid{grid-template-columns:1fr}}
 
+    /* Store location (P3.1) */
+    .loc-tools{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-bottom:10px}
+    .loc-tools input{min-width:0}
+    .shop-map{height:320px;border-radius:12px;border:1px solid var(--line);overflow:hidden;position:relative;z-index:0}
+    .shop-map .leaflet-container{font-family:'Inter',system-ui,sans-serif}
+    .shop-map .leaflet-control-attribution{font-size:9px}
+    .loc-pin-row{display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap}
+    .loc-pin-coord{font-size:12px;color:var(--text2)}
+    .loc-pin-coord b{color:var(--text);font-family:ui-monospace,monospace}
+    .loc-fallback{padding:20px;text-align:center;color:var(--text2);font-size:13px}
+    .dl-inline{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+    @media (max-width:520px){.loc-tools{grid-template-columns:1fr}}
+
     /* Variant editor (P1.6) */
     .var-list{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
     .var-row{display:grid;grid-template-columns:1fr 1fr 30px;gap:6px;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px}
@@ -208,6 +221,8 @@
     }
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
 </head>
 <body>
 
@@ -347,6 +362,25 @@ const I18N = {
   discount:         { en: 'Discount', ar: 'الخصم' },
   valid:            { en: 'Valid', ar: 'الصلاحية' },
   actions:          { en: 'Actions', ar: 'إجراءات' },
+
+  // Store location (P3.1)
+  location_block:   { en: 'Store Location', ar: 'موقع المتجر' },
+  location_hint:    { en: 'Set the store pin on the map — customers use it for directions and as the default delivery origin.', ar: 'حدّد موقع المتجر على الخريطة — يستخدمه الزبائن للاتجاهات وكنقطة مرجع للتوصيل.' },
+  location_search_ph:{ en: 'Search an address or place…', ar: 'ابحث عن عنوان أو مكان…' },
+  location_search:  { en: 'Search', ar: 'بحث' },
+  my_location:      { en: 'My location', ar: 'موقعي الحالي' },
+  remove_pin:       { en: 'Remove pin', ar: 'إزالة المؤشر' },
+  lat:              { en: 'Lat', ar: 'خط العرض' },
+  lng:              { en: 'Lng', ar: 'خط الطول' },
+  pin_not_set:      { en: 'Not set', ar: 'غير محدد' },
+  map_pin_hint:     { en: 'Click the map or drag the pin to set the location', ar: 'انقر على الخريطة أو اسحب المؤشر لتحديد الموقع' },
+  geo_denied:       { en: 'Location permission denied', ar: 'تم رفض إذن الموقع' },
+  geo_fail:         { en: 'Could not get your location', ar: 'تعذّر تحديد موقعك' },
+  no_results:       { en: 'No results', ar: 'لا توجد نتائج' },
+  map_unavailable:  { en: 'Map could not be loaded (no internet?)', ar: 'تعذّر تحميل الخريطة (لا يوجد إنترنت؟)' },
+  // Delivery (P3.1)
+  delivery:         { en: 'Delivery', ar: 'توصيل' },
+  map:              { en: 'Map', ar: 'الخريطة' },
 
   // Orders tab
   loading_orders:   { en: 'Loading orders…', ar: 'جارٍ تحميل الطلبات…' },
@@ -743,7 +777,7 @@ function showTab(tab) {
   if (header && header.getBoundingClientRect().height > 0)
     document.documentElement.style.setProperty('--header-h', (Math.round(header.getBoundingClientRect().height) + 1) + 'px');
   switch(tab) {
-    case 'shop': c.innerHTML = renderShopTab(); break;
+    case 'shop': c.innerHTML = renderShopTab(); shopLocInit(); break;
     case 'categories': c.innerHTML = renderCategoriesTab(); break;
     case 'items': c.innerHTML = renderItemsTab(); renderItemRows(); break;
     case 'deals': c.innerHTML = `<div class="empty">${t('loading_deals')}</div>`; renderDealsTab().then(html => { c.innerHTML = html; }); break;
@@ -815,6 +849,24 @@ function renderShopTab() {
       <button class="btn" type="button" style="margin-top:10px" onclick="addOutletRow()">${t('outlet_add')}</button>
     </div>
     <div class="card">
+      <h4>${t('location_block')}</h4>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:10px">${t('location_hint')}</p>
+      <div class="loc-tools">
+        <input id="s-loc-search" placeholder="${t('location_search_ph')}" aria-label="${t('location_search_ph')}">
+        <button class="btn" type="button" onclick="shopLocSearch()"><i class="fa-solid fa-magnifying-glass"></i> ${t('location_search')}</button>
+        <button class="btn" type="button" onclick="shopLocGeolocate()"><i class="fa-solid fa-location-crosshairs"></i> ${t('my_location')}</button>
+      </div>
+      <div id="shop-map" class="shop-map" dir="ltr"></div>
+      <p style="font-size:11px;color:var(--text3);margin-top:6px">${t('map_pin_hint')}</p>
+      <div class="loc-pin-row">
+        <span class="loc-pin-coord">${t('lat')}: <b id="s-lat-txt">${s.location_lat != null ? s.location_lat.toFixed(5) : t('pin_not_set')}</b></span>
+        <span class="loc-pin-coord">${t('lng')}: <b id="s-lng-txt">${s.location_lng != null ? s.location_lng.toFixed(5) : t('pin_not_set')}</b></span>
+        <button class="btn btn-ghost btn-sm" type="button" onclick="shopLocClear()"><i class="fa-solid fa-eraser"></i> ${t('remove_pin')}</button>
+      </div>
+      <input type="hidden" id="s-lat" value="${s.location_lat != null ? s.location_lat : ''}">
+      <input type="hidden" id="s-lng" value="${s.location_lng != null ? s.location_lng : ''}">
+    </div>
+    <div class="card">
       <h4>${t('hours')}</h4>
       <p style="font-size:12px;color:var(--text2);margin-bottom:10px">${t('hours_hint')}</p>
       <div class="hours-list" id="s-hours">
@@ -854,12 +906,16 @@ function renderShopTab() {
 }
 
 async function saveShop() {
+  const latRaw = (document.getElementById('s-lat')?.value || '').trim();
+  const lngRaw = (document.getElementById('s-lng')?.value || '').trim();
   const updates = {
     name: gv('s-name'), name_ar: gv('s-name-ar'),
     tagline: gv('s-tagline'), tagline_ar: gv('s-tagline-ar'),
     logo_url: gv('s-logo'),
     whatsapp: gv('s-whatsapp'), phone: gv('s-phone'), email: gv('s-email'),
     address: gv('s-address'), address_ar: gv('s-address-ar'),
+    location_lat: latRaw ? parseFloat(latRaw) : null,
+    location_lng: lngRaw ? parseFloat(lngRaw) : null,
     about: gv('s-about'), about_ar: gv('s-about-ar'),
     instagram: gv('s-instagram'), facebook: gv('s-facebook'), tripadvisor: gv('s-tripadvisor'),
     legal_note: gv('s-legal-note'), legal_note_ar: gv('s-legal-note-ar'),
@@ -877,6 +933,87 @@ async function saveShop() {
   const outErr = await saveOutlets();
   if (outErr) return toast(t('error') + ': ' + outErr.message, true);
   toast(t('shop_settings_saved'));
+}
+
+// P3.1 — store location map (Leaflet + OSM tiles + Nominatim)
+let shopMap = null, shopMarker = null;
+
+function shopLocInit() {
+  const el = document.getElementById('shop-map');
+  if (!el) return;
+  if (shopMap) { shopMap.remove(); shopMap = null; shopMarker = null; }
+  const lat = parseFloat(document.getElementById('s-lat')?.value) || 33.5138;
+  const lng = parseFloat(document.getElementById('s-lng')?.value) || 36.2765;
+  if (!window.L) { el.innerHTML = `<div class="loc-fallback">${t('map_unavailable')}</div>`; return; }
+  shopMap = L.map(el, { attributionControl: true }).setView([lat, lng], 16);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(shopMap);
+  if (document.getElementById('s-lat').value) {
+    shopMarker = L.marker([lat, lng], { draggable: true }).addTo(shopMap);
+    shopMarker.on('dragend', () => shopLocPicked(shopMarker.getLatLng()));
+  }
+  shopMap.on('click', e => shopLocPicked(e.latlng));
+  setTimeout(() => { if (shopMap) shopMap.invalidateSize(); }, 250);
+}
+
+function shopLocPicked(ll) {
+  const latEl = document.getElementById('s-lat'), lngEl = document.getElementById('s-lng');
+  if (!latEl || !lngEl || !shopMap || !window.L) return;
+  latEl.value = ll.lat.toFixed(6); lngEl.value = ll.lng.toFixed(6);
+  const latTxt = document.getElementById('s-lat-txt'), lngTxt = document.getElementById('s-lng-txt');
+  if (latTxt) latTxt.textContent = ll.lat.toFixed(5);
+  if (lngTxt) lngTxt.textContent = ll.lng.toFixed(5);
+  if (!shopMarker) {
+    shopMarker = L.marker(ll, { draggable: true }).addTo(shopMap);
+    shopMarker.on('dragend', () => shopLocPicked(shopMarker.getLatLng()));
+  } else {
+    shopMarker.setLatLng(ll);
+  }
+  shopLocReverse(ll.lat, ll.lng);
+}
+
+async function shopLocReverse(lat, lng) {
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=ar,en`);
+    const j = await r.json();
+    const nm = j.display_name || '';
+    if (!nm) return;
+    const a = document.getElementById('s-address'), ar = document.getElementById('s-address-ar');
+    if (a && !a.value.trim()) a.value = nm;
+    if (ar && !ar.value.trim()) ar.value = nm;
+  } catch (e) { /* reverse geocode is non-critical */ }
+}
+
+async function shopLocSearch() {
+  const q = (document.getElementById('s-loc-search')?.value || '').trim();
+  if (!q || !window.L) return;
+  try {
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q));
+    const j = await r.json();
+    if (j && j[0]) shopLocPicked({ lat: parseFloat(j[0].lat), lng: parseFloat(j[0].lon) });
+    else toast(t('no_results'), true);
+  } catch (e) { toast(t('geo_fail'), true); }
+}
+
+function shopLocGeolocate() {
+  if (!window.L) return;
+  if (!navigator.geolocation) return toast(t('geo_fail'), true);
+  navigator.geolocation.getCurrentPosition(
+    p => shopLocPicked({ lat: p.coords.latitude, lng: p.coords.longitude }),
+    () => toast(t('geo_denied'), true),
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+function shopLocClear() {
+  document.getElementById('s-lat').value = '';
+  document.getElementById('s-lng').value = '';
+  const latTxt = document.getElementById('s-lat-txt'), lngTxt = document.getElementById('s-lng-txt');
+  if (latTxt) latTxt.textContent = t('pin_not_set');
+  if (lngTxt) lngTxt.textContent = t('pin_not_set');
+  if (shopMarker && shopMap) { shopMap.removeLayer(shopMarker); shopMarker = null; }
 }
 
 // P2.8 — outlets editor (branches): name EN/AR, per-outlet WhatsApp, active toggle
@@ -1909,6 +2046,9 @@ function orderRowHTML(o) {
     return `<div class="ln off"><span class="lname">${esc(nm)}</span><span class="neg">−${esc(off.savings)} ${cur}</span></div>`;
   }).join('');
   const noteHtml = o.note ? `<div class="order-note-inline">${t('note')}: ${esc(o.note)}</div>` : '';
+  const dlHtml = o.order_mode === 'delivery' && (o.delivery_lat != null || (o.delivery_address || '').trim())
+    ? `<div class="order-note-inline dl-inline"><i class="fa-solid fa-location-dot"></i> ${t('delivery')}: ${esc(o.delivery_address || '')}${(o.delivery_lat != null && o.delivery_lng != null) ? ` <a href="https://www.google.com/maps?q=${o.delivery_lat},${o.delivery_lng}" target="_blank" rel="noopener">${t('map')}</a>` : ''}</div>`
+    : '';
   return `
     <tr>
       <td data-label="${t('order_no')}"><span class="order-id">#${o.id}</span></td>
@@ -1921,7 +2061,7 @@ function orderRowHTML(o) {
           </select>
         </div>
       </td>
-      <td data-label="${t('items_label')}"><div class="order-lines">${items}${noteHtml}</div></td>
+      <td data-label="${t('items_label')}"><div class="order-lines">${items}${noteHtml}${dlHtml}</div></td>
       <td data-label="${t('offers')}">${offers ? `<div class="order-lines">${offers}</div>` : '<span style="color:var(--text3)">—</span>'}</td>
       <td data-label="${t('subtotal')}">${esc(o.subtotal)} ${cur}</td>
       <td data-label="${t('discount')}"><span class="neg">−${esc(o.discount)} ${cur}</span></td>

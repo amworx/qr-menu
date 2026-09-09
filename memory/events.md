@@ -465,3 +465,27 @@
 - **errors**: duplicate const phone -> SyntaxError; undefined order id in reply modal (Number vs id object)
 - **lessons**: another duplicate-identifier collision risk when adding fields to existing functions; always pass ids as primitives and String()-compare lookups
 - **tags**: badges, allergens, orders, admin, whatsapp-reply, p3
+
+## EVT-20260909-0001
+
+- **timestamp**: 2026-09-09
+- **mode**: BUILD
+- **action**: Public menu UX redesign + switch UI chrome icons to Font Awesome Free
+- **summary**: Redesigned the public app layout for better first-paint content and desktop usage: compact hero (223→~169px), taller 49px category pills with RTL-aware edge fade, slim deals wall (212→170px, 2-line clamp), favorites rail converted to inline pills (157→100px), menu wrap max-width 640→1080px centered with auto-fill item grid (2-col mobile → up to 4-col desktop), square 1:1 card images + uniform rows + CTA pinned to card bottom, cart FAB reworked to full-width bottom bar on mobile (351x62) / centered pill <=560px on desktop. Then replaced UI chrome emojis with Font Awesome Free 6.7.2 (CDN css link in index.html + admin.html): controls (grid/list, sun/moon, search, info), hearts (solid/regular swap), contact row (brand whatsapp/phone/envelope), deal+meta fire/clock, sheets closes/xmark, link, share-nodes, location-dot, wifi/key/clipboard, socials brands, order mode utensils/bag-shopping, chair, whatsapp button + spinner, cart-shopping, utensils empty states. Kept content emojis (allergen chips, emojiFor thumbs, status dots, WA message ★/♥ markers, toasts). User chose "free set" after Jelly required Pro (no kit code).
+- **result**: Verified locally via DOM measurement: no horizontal overflow (375==375, desktop 1265==1265), first item y=469→458 (was 735), tabs 49px, uniform card rows, cart bar + order/product sheets + search + dark mode + RTL + list/grid toggle all intact, console only favicon 404. Commit f752092 pushed, GitHub Pages built, 10/10 live markers verified (index: FA css, controls, contact-wa, order-wa, grid-1080, item-col-square, rail-fade, heart-swap; admin: FA css, xmark). Screenshots saved to temp: qm_redesign_ar_mobile.png, qm_redesign_desktop.png, qm_icons_ar_mobile.png.
+- **files**: index.html, admin.html, memory/events.md
+- **errors**: none
+- **lessons**: horizontal scroll strips need edge fading; icons-in-buttons need pointer-events:none so clicks don't hit the <i>; when swapping textContent→innerHTML for icons keep aria-labels; PowerShell -match on curl array output returns elements not boolean - join to string first
+- **tags**: ux, redesign, responsive, grid, cart-bar, font-awesome, icons, cdn, rtl, dark-mode, mobile-375, desktop, live-verify
+
+## EVT-20260909-0002
+
+- **timestamp**: 2026-09-09
+- **mode**: BUILD
+- **action**: Store location (admin map) + customer delivery location (public map) + Info Directions button
+- **summary**: Owner sets the store pin in Shop Settings via an interactive Leaflet map (OSM tiles + Nominatim search/reverse-geocode + geolocate + drag/click pin + clear). DB: shops.location_lat/lng; public order sheet gains third order mode Delivery with an interactive location picker (same map, pin persisted per device qm-dlat/qm-dlng/qm-dladdr, reverse geocode fills the editable address field, must-have-pin validation before send); orders gains delivery_address/lat/lng + order_mode CHECK constraint extended to include delivery. WhatsApp message adds Delivery label + address + Google Maps q=lat,lng link; admin Orders rows show delivery address + Map link. Info modal "Directions" is now a prominent .dir-btn using shop pin (falls back to address search when no pin). Applied migration live via Management API.
+- **result**: Local verification passed: admin pin save -> DB (33.5138,36.2765), search box -> real Afrin coords with auto address (not saved), clear pin; public AR/EN/375/desktop: 3 mode buttons, delivery block + Leaflet map, reverse geocode fills address, validation toast blocks send without pin, WA message contains Delivery + address + maps link, real order #9 inserted with delivery fields then deleted; admin order row shows delivery address + link. After testing, reset stored pin + auto-filled address fields to NULL/' ' because test coords were Damascus while the shop is in Afrin (about says عفرين) — owner must set the real pin via the new UI. Screenshots: qm_delivery_map_ar_mobile.png, qm_admin_location_card.png.
+- **files**: admin.html, index.html, docs/schema.sql, memory/events.md
+- **errors**: one edit accidentally removed `if (!list || list.length === 0) {` from outletsEditorRows -> SyntaxError "Illegal return statement" + loginWithEmail not defined; fixed by restoring the guard (validated all inline scripts with `node --check` before reloading).
+- **lessons**: after any multi-edit session, run node --check on each inline `<script>` block before browser testing; never save auto-filled reverse-geocode test addresses into production rows — reset after testing.
+- **tags**: location, map, leaflet, osm, nominatim, delivery, geo, admin, orders, whatsapp, directions, p3.1

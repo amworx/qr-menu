@@ -471,3 +471,17 @@ end $$;
 --   Note: an `item_allergens` junction table was created during the first
 --   migration attempt then dropped — items.allergens (jsonb codes) is the
 --   source of truth, no junction table is used.
+--
+-- ─── P3.1 (2026-09-09): STORE LOCATION + CUSTOMER DELIVERY ─────────
+-- Owner sets the store pin from the Shop Settings "Store location" card
+-- (Leaflet + OSM + Nominatim reverse geocode); public order sheet adds a
+-- third order mode `'delivery'` with a customer pin on the same map.
+-- Directions buttons use the shop pin (Google Maps q=lat,lng) when set.
+-- alter table shops add column if not exists location_lat double precision;
+-- alter table shops add column if not exists location_lng double precision;
+-- alter table orders add column if not exists delivery_address text default '';
+-- alter table orders add column if not exists delivery_lat double precision;
+-- alter table orders add column if not exists delivery_lng double precision;
+-- alter table orders drop constraint if exists orders_order_mode_check;
+-- alter table orders add constraint orders_order_mode_check check
+--   (order_mode in ('dinein','takeaway','delivery'));

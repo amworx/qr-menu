@@ -344,6 +344,18 @@
     .om-toggle{display:flex;gap:8px;flex:1}
     .om-btn{flex:1;padding:10px 8px;border-radius:12px;border:1px solid var(--border2);background:var(--card2);color:var(--text2);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s ease;font-family:inherit;white-space:nowrap}
     .om-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
+    /* Delivery location (P3.1) */
+    .dl-block{margin-top:10px;border:1px solid var(--border2);border-radius:16px;padding:12px;background:var(--card2)}
+    .dl-addr-wrap{display:flex;gap:8px;align-items:center}
+    .dl-addr-wrap input{flex:1;min-width:0}
+    .dl-loc-btn{flex-shrink:0;padding:10px 12px;border-radius:12px;border:1px solid var(--border2);background:var(--card2);color:var(--text2);cursor:pointer;font-size:13px;font-family:inherit}
+    .dl-loc-btn:active{transform:scale(.95)}
+    .dl-map{position:relative;z-index:0;height:200px;border-radius:14px;border:1px solid var(--border2);margin-top:10px;overflow:hidden;direction:ltr}
+    .dl-map .leaflet-control-attribution{font-size:9px}
+    .dl-hint{font-size:11.5px;color:var(--text2);margin-top:8px;display:flex;align-items:center;gap:6px}
+    .dl-fallback{padding:30px 12px;text-align:center;color:var(--text2);font-size:12.5px;border:1px solid var(--border2);border-radius:14px;margin-top:10px}
+    .dir-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:10px;padding:12px 16px;background:var(--primary);color:#fff;border-radius:14px;font-size:14px;font-weight:700;text-decoration:none;transition:transform .15s ease,opacity .15s ease}
+    .dir-btn:active{transform:scale(.97)}
     .table-chip{flex:1;padding:10px 14px;border-radius:12px;border:1px dashed var(--border2);background:var(--card2);color:var(--text1);font-size:13px;font-weight:800}
     .om-select{flex:1;padding:10px 12px;border-radius:12px;border:1px solid var(--border2);background:var(--card2);color:var(--text1);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;min-width:0}
     .survey-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:120;display:none;align-items:center;justify-content:center;padding:20px}
@@ -516,6 +528,8 @@
     .info-logo.ph i{font-size:32px}
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
 </head>
 <body>
   <!-- Loading -->
@@ -1388,10 +1402,15 @@
         : '';
       const hoursSection = infoHoursHTML();
       const dirQuery = encodeURIComponent(address || name);
-      const addressSection = address
+      // P3.1 — directions from the shop pin when set, else search by address
+      const hasCoords = shop.location_lat != null && shop.location_lng != null;
+      const dirUrl = hasCoords
+        ? `https://www.google.com/maps?q=${shop.location_lat},${shop.location_lng}`
+        : `https://www.google.com/maps/search/?api=1&query=${dirQuery}`;
+      const addressSection = (address || hasCoords)
         ? `<div class="info-section"><div class="info-label">${lang === 'ar' ? 'العنوان' : 'Address'}</div>
-            <p class="info-text">${esc(address)}</p>
-            <a class="info-link" href="https://www.google.com/maps/search/?api=1&query=${dirQuery}" target="_blank" rel="noopener"><i class="fa-solid fa-location-dot"></i> ${lang === 'ar' ? 'الاتجاهات' : 'Get Directions'}</a>
+            ${address ? `<p class="info-text">${esc(address)}</p>` : ''}
+            <a class="dir-btn" href="${dirUrl}" target="_blank" rel="noopener"><i class="fa-solid fa-location-dot"></i> ${lang === 'ar' ? 'الاتجاهات' : 'Directions'}</a>
           </div>`
         : '';
       const phoneRow = shop.phone
@@ -1800,6 +1819,76 @@
     function selectedOutlet() { return outlets.find(o => o.id === selectedOutletId) || outlets[0] || null; }
     function outletLabel(o) { if (!o) return ''; return lang === 'ar' ? (o.name_ar || o.name) : (o.name || o.name_ar); }
 
+    // P3.1 — delivery location (map + address)
+    let deliveryLat = null, deliveryLng = null, deliveryAddr = '';
+    let dlMap = null, dlMarker = null;
+    try {
+      deliveryLat = parseFloat(localStorage.getItem('qm-dlat')) || null;
+      deliveryLng = parseFloat(localStorage.getItem('qm-dlng')) || null;
+      deliveryAddr = localStorage.getItem('qm-dladdr') || '';
+    } catch (e) {}
+
+    function dlInit() {
+      const el = document.getElementById('dl-map');
+      if (dlMap) { try { dlMap.remove(); } catch (e) {} dlMap = null; dlMarker = null; }
+      if (!el) return;
+      if (!window.L) {
+        el.outerHTML = `<div class="dl-fallback">${lang === 'ar' ? 'تعذّر تحميل الخريطة — اكتب العنوان في الحقل أعلاه' : 'Map could not load — type the address above instead'}</div>`;
+        return;
+      }
+      const home = (deliveryLat != null)
+        ? [deliveryLat, deliveryLng]
+        : ((shop.location_lat != null && shop.location_lng != null) ? [shop.location_lat, shop.location_lng] : [33.5138, 36.2765]);
+      dlMap = L.map(el, { attributionControl: true }).setView(home, deliveryLat != null ? 16 : 14);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }).addTo(dlMap);
+      if (deliveryLat != null) {
+        dlMarker = L.marker([deliveryLat, deliveryLng], { draggable: true }).addTo(dlMap);
+        dlMarker.on('dragend', () => dlPicked(dlMarker.getLatLng()));
+      }
+      dlMap.on('click', e => dlPicked(e.latlng));
+      setTimeout(() => { if (dlMap) dlMap.invalidateSize(); }, 250);
+    }
+
+    function dlPicked(ll) {
+      deliveryLat = ll.lat; deliveryLng = ll.lng;
+      try {
+        localStorage.setItem('qm-dlat', deliveryLat);
+        localStorage.setItem('qm-dlng', deliveryLng);
+      } catch (e) {}
+      if (!dlMarker) {
+        dlMarker = L.marker(ll, { draggable: true }).addTo(dlMap);
+        dlMarker.on('dragend', () => dlPicked(dlMarker.getLatLng()));
+      } else {
+        dlMarker.setLatLng(ll);
+      }
+      dlReverse(ll.lat, ll.lng);
+    }
+
+    async function dlReverse(lat, lng) {
+      try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=ar,en`);
+        const j = await r.json();
+        const nm = j.display_name || '';
+        const inp = document.getElementById('dl-address');
+        if (nm && inp && !inp.value.trim()) {
+          deliveryAddr = nm; inp.value = nm;
+          try { localStorage.setItem('qm-dladdr', nm); } catch (e) {}
+        }
+      } catch (e) { /* reverse geocode is non-critical */ }
+    }
+
+    function deliveryGeo() {
+      if (!navigator.geolocation) { toast(lang === 'ar' ? 'متصفحك لا يدعم تحديد الموقع' : 'Your browser does not support geolocation', true); return; }
+      navigator.geolocation.getCurrentPosition(
+        p => dlPicked({ lat: p.coords.latitude, lng: p.coords.longitude }),
+        () => toast(lang === 'ar' ? 'تم رفض إذن الموقع' : 'Location permission denied', true),
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
     function openOrderSheet() {
       document.getElementById('order-modal').classList.add('visible');
       renderOrderSheet();
@@ -1836,8 +1925,21 @@
         <div class="om-toggle" role="group" aria-label="${modeLabel}">
           <button class="om-btn ${orderMode === 'dinein' ? 'active' : ''}" onclick="setOrderMode('dinein')" aria-pressed="${orderMode === 'dinein'}"><i class="fa-solid fa-utensils"></i> ${lang === 'ar' ? 'في المكان' : 'Dine-in'}</button>
           <button class="om-btn ${orderMode === 'takeaway' ? 'active' : ''}" onclick="setOrderMode('takeaway')" aria-pressed="${orderMode === 'takeaway'}"><i class="fa-solid fa-bag-shopping"></i> ${lang === 'ar' ? 'سفري' : 'Takeaway'}</button>
+          <button class="om-btn ${orderMode === 'delivery' ? 'active' : ''}" onclick="setOrderMode('delivery')" aria-pressed="${orderMode === 'delivery'}"><i class="fa-solid fa-truck-fast"></i> ${lang === 'ar' ? 'توصيل' : 'Delivery'}</button>
         </div>
       </div>`;
+
+      // P3.1 — delivery location block (map + address). Rendered only when mode==='delivery'.
+      const deliveryBlock = orderMode === 'delivery'
+        ? `<div class="dl-block">
+            <div class="dl-addr-wrap">
+              <input id="dl-address" class="om-select" dir="auto" placeholder="${lang === 'ar' ? 'حدّد الموقع على الخريطة أو اكتب العنوان' : 'Pick the location on the map or type the address'}" value="${esc(deliveryAddr)}" oninput="deliveryAddr=this.value" aria-label="${lang === 'ar' ? 'عنوان التوصيل' : 'Delivery address'}">
+              <button class="dl-loc-btn" type="button" onclick="deliveryGeo()" aria-label="${lang === 'ar' ? 'استخدام موقعي الحالي' : 'Use my current location'}" title="${lang === 'ar' ? 'موقعي الحالي' : 'My location'}"><i class="fa-solid fa-location-crosshairs"></i></button>
+            </div>
+            <div class="dl-map" id="dl-map" dir="ltr"></div>
+            <div class="dl-hint"><i class="fa-solid fa-circle-info"></i> ${lang === 'ar' ? 'انقر على الخريطة أو اسحب المؤشر لتحديد نقطة التوصيل' : 'Tap the map or drag the pin to set the delivery point'}</div>
+          </div>`
+        : '';
 
       let rows = '';
       for (const [id, qty] of Object.entries(cart)) {
@@ -1896,10 +1998,12 @@
         ${rows}
         ${offerRows}
         ${totalHtml}
+        ${deliveryBlock}
         <div class="om-foot">${branchRow}${tableRow}${modeHtml}</div>
         <input class="order-note order-phone" id="order-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="${lang === 'ar' ? 'رقم هاتفك (اختياري)' : 'Your phone (optional)'}" value="${esc(customerPhone)}">
         <textarea class="order-note" id="order-note" placeholder="${noteLabel}"></textarea>
         <button class="order-whatsapp" onclick="sendWhatsApp()"><i class="fa-brands fa-whatsapp"></i> ${waLabel}</button>`;
+      if (orderMode === 'delivery') dlInit();
     }
 
     // WhatsApp + order record
@@ -1916,6 +2020,12 @@
       const note = document.getElementById('order-note')?.value?.trim() || '';
       const customerPhoneInput = document.getElementById('order-phone')?.value?.trim() || '';
       if (customerPhoneInput) { customerPhone = customerPhoneInput; try { localStorage.setItem('qm-phone', customerPhoneInput); } catch (e) {} }
+      // P3.1 — delivery requires a pin on the map
+      if (orderMode === 'delivery' && (deliveryLat == null || deliveryLng == null)) {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-brands fa-whatsapp"></i> ' + waLabel; }
+        toast(lang === 'ar' ? 'حدّد موقع التوصيل على الخريطة أولاً' : 'Set the delivery location on the map first', true);
+        return;
+      }
       try {
         const { data, error } = await sb.from('orders').insert({
           shop_id: shop.id,
@@ -1931,7 +2041,10 @@
           table_label: tableLabel,
           outlet_id: (selectedOutlet() || {}).id || null,
           outlet_label: outletLabel(selectedOutlet()),
-          customer_phone: customerPhoneInput
+          customer_phone: customerPhoneInput,
+          delivery_address: orderMode === 'delivery' ? deliveryAddr : '',
+          delivery_lat: orderMode === 'delivery' ? deliveryLat : null,
+          delivery_lng: orderMode === 'delivery' ? deliveryLng : null
         }).select('id').single();
         if (!error && data && data.id) orderNo = data.id;
       } catch (e) { /* keep client-only fallback below */ }
@@ -1944,7 +2057,13 @@
       if (outlets.length && outl) lines.push(`${lang === 'ar' ? 'الفرع' : 'Branch'}: ${outletLabel(outl)}`);
       lines.push(orderMode === 'takeaway'
         ? (lang === 'ar' ? 'طلب سفري (TAKEAWAY)' : 'Takeaway (TAKEAWAY)')
-        : (lang === 'ar' ? 'في المكان (DINE-IN)' : 'Dine-in (DINE-IN)'));
+        : orderMode === 'delivery'
+          ? (lang === 'ar' ? 'توصيل (DELIVERY)' : 'Delivery (DELIVERY)')
+          : (lang === 'ar' ? 'في المكان (DINE-IN)' : 'Dine-in (DINE-IN)'));
+      if (orderMode === 'delivery') {
+        if (deliveryAddr.trim()) lines.push(`${lang === 'ar' ? 'العنوان' : 'Address'}: ${deliveryAddr}`);
+        if (deliveryLat != null) lines.push(`${lang === 'ar' ? 'الموقع على الخريطة' : 'Map'}: https://www.google.com/maps?q=${deliveryLat},${deliveryLng}`);
+      }
       if (tableLabel) lines.push(`${lang === 'ar' ? 'الطاولة' : 'Table'}: ${tableLabel}`);
       if (customerPhone) lines.push(`${lang === 'ar' ? 'الهاتف' : 'Phone'}: ${customerPhone}`);
       lines.push('');
