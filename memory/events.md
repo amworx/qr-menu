@@ -553,3 +553,16 @@
 - **lessons**: The offer fix surface includes the cart bar (FAB), not just the order sheet; when offers-only, the honest total is the determinable offer value or a guidance label, never 0. PWA: users must refresh (network-first SW) to get the new code.
 - **tags**: deploy, offers, pricing, cart-bar, pwa
 
+
+## EVT-20260909-0008
+
+- **timestamp**: 2026-09-09
+- **mode**: BUILD / DEPLOY
+- **action**: Remove always-visible fav-del (X) button from favorites rail cards
+- **summary**: User reported the `.fav-del` button (fa-xmark, aria-label ?????) is "always there". Reproduced: it is rendered per-card inside the favorites rail (renderFavRail) whenever an item is favorited; on the user''s device Arabic Coffee (e742e7b1) is a favorite, so the X persisted on its rail card. Fix: removed the fav-del markup from renderFavRail() template and deleted the two now-dead .fav-del CSS rules (0 occurrences in file). Rail cards now show thumb + name + price and open the product sheet on tap; favorites remain manageable via product-sheet heart and the rail "??? ????/Clear" header button. Verified locally with a favorited item (rail shows, no fav-del anywhere) and live (0 fav-del occurrences in deployed HTML).
+- **result**: Live. Deployed ee5bbae "fix: remove always-visible fav-del button from favorites rail cards" (1 file, -3) - Pages built.
+- **files**: index.html, memory/events.md
+- **errors**: none
+- **lessons**: The favorites rail X was a per-item removal affordance, but users found it cluttered; removal keeps management via sheet heart + clear-all. Check both main-card hearts (fav-heart) and rail X (fav-del) when tuning favorite toggles.
+- **tags**: ui, favorites, rail, deploy
+
