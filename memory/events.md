@@ -592,3 +592,29 @@
 - **lessons**: Replacing the floating controls with a hero-anchored button + bottom sheet permanently removes the sticky-overlap bug (no fixed top elements left). When a PWA's SW caches index.html, verification of a new deploy must use a fresh page target, not an existing tab (unregister SW + clear caches there).
 - **tags**: ui, redesign, hero, bottom-sheet, controls, i18n, deploy, pwa
 
+
+## EVT-20260910-0002
+
+- **timestamp**: 2026-09-10
+- **mode**: BUILD / UI
+- **action**: Theme-aware hero utility button (light mode fix)
+- **summary**: User reported the hero util button content is white on the light theme (invisible on the cream hero). The button had hardcoded color:#fff, bg rgba(255,255,255,.14), border rgba(255,255,255,.28). Fix: moved all button colors to theme CSS vars — dark keeps white glass; light uses cocoa --hero-util-bg rgba(41,29,18,.14), hover .24, on .3, border rgba(41,29,18,.22), color #291d12. `.hero-util` now reads var(--hero-util-*). Verified computed styles on localhost: dark icon #fff / light icon rgb(41,29,18), bg var resolves per theme (first immediate read raced/flushed incorrectly; adding a 120ms setTimeout before getComputedStyle gives the correct value — CSS var recalc needs a frame).
+- **result**: Verified locally both themes. Screenshot docs/screenshots/hero-util-btn-ar-light.png. Deployed together with EVT-20260910-0003 in commit de8be1a (single Pages rebuild to minimize stale-cache refreshes).
+- **files**: index.html, docs/screenshots/hero-util-btn-ar-light.png
+- **errors**: none
+- **lessons**: When theming a UI element that sits on a gradient hero, define bg/border/color as vars in BOTH theme blocks — don't hardcode white. Reading getComputedStyle immediately after flipping data-theme can return the pre-flip background value; wait one animation frame before asserting.
+- **tags**: theme, light-mode, hero, button, css-vars
+
+
+## EVT-20260910-0003
+
+- **timestamp**: 2026-09-10
+- **mode**: BUILD / UI
+- **action**: Offer card tweaks — layout polish + show the target item the offer applies to
+- **summary**: User asked for offer card alignment/padding/margin tweaks and that the item the offer applies to appears in the card details. Changes in index.html: (1) `.deal-card` padding 12px->26px top so the "عرض خاص/SPECIAL —" ribbon no longer overlaps the title (ribbon height 25.6px); tightened h3/p/badge margins (h3 2px 0 4px, p 0 0 8px, badge 2px 0 12px); (2) new `.deal-scope` row (icon + truncated single-line chip, bg rgba(255,255,255,.12), radius 10) between desc and badge showing localized target: bundle -> first 2 item names +N, bogo -> the buy item, min_order -> whole order, applies_to item/category -> item/category name, else all items; (3) added `.deal-grow{flex:1;min-height:9px}` spacer between badge and the add button so the add button pins to the card bottom uniformly (previously margin-top:auto computed 0px on equal-height cards, so adds sat tight under badges). renderDeals() renders the scope row; new dealScopeLabel(d) helper handles all 5 deal types + AR/EN. Verified: cards equal height 202px, add buttons aligned (21px above / 12px below on both cards), AR text "يطبّق على: مناقيش جبنة" / "يطبّق على كل الأصناف", EN "Applies to: Cheese Manakish" / "Applies to all items", node --check passed.
+- **result**: Deployed commit de8be1a (also carries EVT-20260910-0002) — Pages built, fresh live page verified: scope rows render, hero util themed, spacer present.
+- **files**: index.html, docs/screenshots/deal-cards-scope-ar-dark-mobile.png, docs/screenshots/deal-cards-scope-en-light-mobile.png
+- **errors**: none
+- **lessons**: margin-top:auto in a flex column only absorbs leftover space; when sibling cards size to their own content (equal height), leftover is 0 and the CTA isn't pinned — a flex:1 spacer div is the deterministic fix. Ribbon overlays need top padding >= ribbon height, not just breathing-room assumptions.
+- **tags**: deals, offer-cards, layout, scope, i18n, deploy
+
