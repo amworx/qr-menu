@@ -54,6 +54,8 @@
     .table-wrap table{margin-bottom:0}
     .card-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     .card-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+    .outlet-row{display:grid;grid-template-columns:1fr 1fr 1fr auto auto;gap:10px;align-items:end;padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;background:var(--card)}
+    .outlet-del{align-self:end;height:36px;width:36px;justify-content:center}
     .checkbox{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;user-select:none}
     .allergen-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
     .allergen-cell{padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--bg2)}
@@ -164,6 +166,7 @@
       .dash-body{flex-direction:column}
       .main-content{padding:16px;overflow-x:hidden}
       .card-row,.card-row-3{grid-template-columns:1fr}
+      .outlet-row{grid-template-columns:1fr 1fr}
 
       /* Header wraps to two tidy rows on phones (title on top, actions below) */
       .dash-header{flex-wrap:wrap;gap:6px;padding:10px 16px}
@@ -272,6 +275,8 @@ let currentUser = null;
 let currentShop = null;
 let allCategories = [];
 let allItems = [];
+let allOutlets = []; // P2.8: branches for this shop
+let removedOutletIds = []; // P2.8: outlet rows marked for delete
 let currentTab = 'shop';
 // Items list UX state (search / filter / sort / pagination)
 let itemQuery = '', itemCat = '', itemSort = 'order', itemShown = 50;
@@ -384,6 +389,15 @@ const I18N = {
   wifi_block:       { en: 'WiFi', ar: 'واي فاي' },
   wifi_name:        { en: 'Network name', ar: 'اسم الشبكة' },
   wifi_pass:        { en: 'Password', ar: 'كلمة المرور' },
+  outlets_block:    { en: 'Outlets (branches)', ar: 'الفروع' },
+  outlets_hint:     { en: 'Customers pick a branch when ordering; orders + WhatsApp route there', ar: 'يختار العميل الفرع عند الطلب — تُرسل الطلبات وواتساب إلى الفرع المختار' },
+  outlet_name:      { en: 'Name (EN)', ar: 'الاسم (إنجليزي)' },
+  outlet_name_ar:   { en: 'Name (AR)', ar: 'الاسم (عربي)' },
+  outlet_whatsapp:  { en: 'WhatsApp number', ar: 'رقم واتساب' },
+  outlet_active:    { en: 'Active', ar: 'مفعّل' },
+  outlet_add:       { en: '+ Add outlet', ar: '+ إضافة فرع' },
+  outlet_remove:    { en: 'Remove', ar: 'حذف' },
+  outlets_saved:    { en: 'Outlets saved', ar: 'تم حفظ الفروع' },
   default_currency: { en: 'Default Currency', ar: 'العملة الافتراضية' },
   show_currency_selector: { en: 'Show Currency Selector', ar: 'إظهار محوّل العملات' },
   save_changes:     { en: 'Save Changes', ar: 'حفظ التغييرات' },
@@ -645,6 +659,10 @@ async function showDashboard() {
   const { data: items } = await sb.from('items').select('*, item_prices(*)').eq('shop_id', currentShop.id).order('sort_order');
   allItems = items || [];
 
+  // Load outlets (P2.8)
+  const { data: outs } = await sb.from('outlets').select('*').eq('shop_id', currentShop.id).order('sort_order');
+  allOutlets = outs || [];
+
   showTab('shop');
 }
 
@@ -719,6 +737,14 @@ function renderShopTab() {
       </div>
     </div>
     <div class="card">
+      <h4>${t('outlets_block')}</h4>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:10px">${t('outlets_hint')}</p>
+      <div id="s-outlets">
+        ${outletsEditorRows(allOutlets)}
+      </div>
+      <button class="btn" type="button" style="margin-top:10px" onclick="addOutletRow()">${t('outlet_add')}</button>
+    </div>
+    <div class="card">
       <h4>${t('hours')}</h4>
       <p style="font-size:12px;color:var(--text2);margin-bottom:10px">${t('hours_hint')}</p>
       <div class="hours-list" id="s-hours">
@@ -777,7 +803,74 @@ async function saveShop() {
   const { error } = await sb.from('shops').update(updates).eq('id', currentShop.id);
   if (error) return toast(t('error') + ': ' + error.message, true);
   Object.assign(currentShop, updates);
+  // P2.8: persist outlet rows (insert/update/delete) after the shop row
+  const outErr = await saveOutlets();
+  if (outErr) return toast(t('error') + ': ' + outErr.message, true);
   toast(t('shop_settings_saved'));
+}
+
+// P2.8 — outlets editor (branches): name EN/AR, per-outlet WhatsApp, active toggle
+function outletsEditorRows(list) {
+  if (!list || list.length === 0) {
+    return `<p style="font-size:12px;color:var(--text2)">${t('outlets_hint')}</p>`;
+  }
+  return list.map(o => `
+    <div class="outlet-row" data-oid="${esc(o.id || '')}">
+      <div class="field"><label>${t('outlet_name')}</label><input class="o-name" value="${esc(o.name || '')}" dir="ltr"></div>
+      <div class="field"><label>${t('outlet_name_ar')}</label><input class="o-name-ar" value="${esc(o.name_ar || '')}" dir="rtl"></div>
+      <div class="field"><label>${t('outlet_whatsapp')}</label><input class="o-wa" value="${esc(o.whatsapp || '')}" dir="ltr" placeholder="963..."></div>
+      <div class="field"><label>${t('outlet_active')}</label>
+        <label class="toggle" style="margin-top:4px"><input type="checkbox" class="o-active" ${o.is_active ? 'checked' : ''}><span class="slider"></span></label>
+      </div>
+      <button class="btn btn-danger outlet-del" type="button" onclick="removeOutletRow(this)" title="${t('outlet_remove')}">✕</button>
+    </div>`).join('');
+}
+function addOutletRow() {
+  const wrap = document.getElementById('s-outlets');
+  const empty = document.querySelector('#s-outlets p');
+  if (empty) empty.remove();
+  wrap.insertAdjacentHTML('beforeend', outletsEditorRows([{ id: '', name: '', name_ar: '', whatsapp: '', is_active: true }]));
+}
+function removeOutletRow(btn) {
+  const row = btn.closest('.outlet-row');
+  const oid = row?.dataset?.oid;
+  if (oid) removedOutletIds.push(oid);
+  row?.remove();
+  const wrap = document.getElementById('s-outlets');
+  if (!wrap.querySelector('.outlet-row')) {
+    wrap.innerHTML = `<p style="font-size:12px;color:var(--text2)">${t('outlets_hint')}</p>`;
+  }
+}
+async function saveOutlets() {
+  const rows = [...document.querySelectorAll('#s-outlets .outlet-row')];
+  let idx = 0;
+  for (const row of rows) {
+    const name = row.querySelector('.o-name').value.trim();
+    const name_ar = row.querySelector('.o-name-ar').value.trim();
+    const whatsapp = row.querySelector('.o-wa').value.trim();
+    if (!name && !name_ar) continue; // skip blank rows
+    const payload = { name, name_ar, whatsapp, is_active: row.querySelector('.o-active').checked, sort_order: idx++ };
+    const id = row.dataset.oid || null;
+    if (id) {
+      const { error } = await sb.from('outlets').update(payload).eq('id', id);
+      if (error) return error;
+    } else {
+      const { error } = await sb.from('outlets').insert({ ...payload, shop_id: currentShop.id });
+      if (error) return error;
+    }
+  }
+  for (const oid of removedOutletIds) {
+    const { error } = await sb.from('outlets').delete().eq('id', oid);
+    if (error) return error;
+  }
+  removedOutletIds = [];
+  // Re-render rows so saved rows carry their DB ids (otherwise a later delete
+  // of a just-added row is silently skipped because data-oid is empty).
+  const { data: outs } = await sb.from('outlets').select('*').eq('shop_id', currentShop.id).order('sort_order');
+  allOutlets = outs || [];
+  const wrap = document.getElementById('s-outlets');
+  if (wrap) wrap.innerHTML = outletsEditorRows(allOutlets);
+  return null;
 }
 
 // P1.11 — 7 rows (Mon..Sun) of open/close time inputs from shops.hours jsonb

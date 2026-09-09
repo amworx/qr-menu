@@ -145,6 +145,8 @@ create table if not exists orders (
   note text default '',                          -- customer order note
   order_mode text default 'dinein',              -- P2.6: dinein | takeaway (toggle in order sheet)
   table_label text default '',                    -- P2.7: table/QR attribution from ?table=<id>
+  outlet_id uuid references outlets(id),          -- P2.8: selected outlet (nullable)
+  outlet_label text default '',                   -- P2.8: snapshot of outlet display name at order time
   created_at timestamptz not null default now()
 );
 
@@ -353,3 +355,33 @@ end $$;
 --   the mode line, and into orders.table_label. Post-GA, per-table QR codes are
 --   simply menu URLs with ?table=<id>.
 --   alter table orders add column if not exists table_label text default '';
+
+-- P2.8 (2026-09-08): multi-outlet — `outlets` table (shop → many outlets), public
+--   branch selector in the order sheet, per-outlet WhatsApp routing, orders gets
+--   outlet_id + outlet_label snapshot. RLS: anyone can select; owner (via shops.
+--   owner_email = auth.email()) can insert/update/delete. Applied via Management
+--   API; seeded 2 demo outlets for amworx (Main Branch / الفرع الرئيسي, Branch 2 /
+--   الفرع الثاني, both 963992656853).
+-- create table if not exists outlets (
+--   id uuid primary key default gen_random_uuid(),
+--   shop_id uuid not null references shops(id) on delete cascade,
+--   name text not null default '',
+--   name_ar text not null default '',
+--   whatsapp text default '',
+--   address text default '',
+--   address_ar text default '',
+--   sort_order int not null default 0,
+--   is_active boolean not null default true,
+--   created_at timestamptz not null default now()
+-- );
+-- create index if not exists outlets_shop_id_idx on outlets(shop_id);
+-- alter table outlets enable row level security;
+-- create policy outlets_select on outlets for select using (true);
+-- create policy outlets_owner_insert on outlets for insert with check
+--   (exists (select 1 from shops where shops.id = shop_id and shops.owner_email = auth.email()));
+-- create policy outlets_owner_update on outlets for update using
+--   (exists (select 1 from shops where shops.id = shop_id and shops.owner_email = auth.email()));
+-- create policy outlets_owner_delete on outlets for delete using
+--   (exists (select 1 from shops where shops.id = shop_id and shops.owner_email = auth.email()));
+-- alter table orders add column if not exists outlet_id uuid references outlets(id);
+-- alter table orders add column if not exists outlet_label text default '';

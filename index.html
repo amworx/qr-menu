@@ -335,6 +335,7 @@
     .om-btn{flex:1;padding:10px 8px;border-radius:12px;border:1px solid var(--border2);background:var(--card2);color:var(--text2);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s ease;font-family:inherit;white-space:nowrap}
     .om-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
     .table-chip{flex:1;padding:10px 14px;border-radius:12px;border:1px dashed var(--border2);background:var(--card2);color:var(--text1);font-size:13px;font-weight:800}
+    .om-select{flex:1;padding:10px 12px;border-radius:12px;border:1px solid var(--border2);background:var(--card2);color:var(--text1);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;min-width:0}
 
     /* ═══ PRODUCT DETAIL SHEET (P1.2) ═══ */
     .product-sheet{background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:520px;height:92vh;display:flex;flex-direction:column;overflow:hidden;animation:slideUp .3s ease}
@@ -574,6 +575,8 @@
     let sheetQty = 1;
     let sheetVariant = 0; // chosen variant index while the sheet is open (P1.6)
     let viewMode = localStorage.getItem('qm-view') || 'grid'; // 'grid' | 'list'
+    let outlets = []; // P2.8: active outlets for this shop
+    let selectedOutletId = null; // P2.8: persisted in qm-outlet-id
 
     // ─── INIT ───────────────────────────────────────────────
     (async () => {
@@ -609,6 +612,12 @@
       const { data: dls } = await sb.from('deals').select('*').eq('shop_id', shop.id).eq('is_active', true)
         .or(`starts_at.is.null,starts_at.lte.${now}`).or(`ends_at.is.null,ends_at.gte.${now}`).order('sort_order');
       deals = dls || [];
+
+      // Outlets (P2.8): only shops with >=2 active outlets show the branch selector
+      const { data: outs } = await sb.from('outlets').select('*').eq('shop_id', shop.id).eq('is_active', true).order('sort_order');
+      outlets = outs || [];
+      const savedOut = localStorage.getItem('qm-outlet-id');
+      selectedOutletId = outlets.some(o => o.id === savedOut) ? savedOut : (outlets.length ? outlets[0].id : null);
 
       document.documentElement.style.setProperty('--primary', shop.primary_color || '#e08a2e');
       document.documentElement.style.setProperty('--primary-2', shop.accent_color || shop.primary_color || '#c96a12');
@@ -1701,6 +1710,9 @@
     let orderMode = localStorage.getItem('qm-order-mode') || 'dinein';
     let tableLabel = ''; // P2.7: from ?table=<id>
     function setOrderMode(m) { orderMode = m; try { localStorage.setItem('qm-order-mode', m); } catch (e) {} renderOrderSheet(); }
+    function setOutlet(id) { selectedOutletId = id; try { localStorage.setItem('qm-outlet-id', id); } catch (e) {} }
+    function selectedOutlet() { return outlets.find(o => o.id === selectedOutletId) || outlets[0] || null; }
+    function outletLabel(o) { if (!o) return ''; return lang === 'ar' ? (o.name_ar || o.name) : (o.name || o.name_ar); }
 
     function openOrderSheet() {
       document.getElementById('order-modal').classList.add('visible');
@@ -1726,6 +1738,12 @@
       const modeLabel = lang === 'ar' ? 'نوع الطلب' : 'Order type';
       const tableRow = tableLabel
         ? `<div class="om-row"><span class="om-label">${lang === 'ar' ? 'الطاولة' : 'Table'}</span><span class="table-chip">🪑 ${esc(tableLabel)}</span></div>`
+        : '';
+      const branchRow = outlets.length >= 2
+        ? `<div class="om-row"><span class="om-label">${lang === 'ar' ? 'الفرع' : 'Branch'}</span>
+            <select id="outlet-select" class="om-select" aria-label="${lang === 'ar' ? 'اختر الفرع' : 'Select branch'}" onchange="setOutlet(this.value)">
+              ${outlets.map(o => `<option value="${o.id}" ${o.id === selectedOutletId ? 'selected' : ''}>${esc(lang === 'ar' ? (o.name_ar || o.name) : (o.name || o.name_ar))}</option>`).join('')}
+            </select></div>`
         : '';
       const modeHtml = `<div class="om-row">
         <span class="om-label">${modeLabel}</span>
@@ -1792,7 +1810,7 @@
         ${rows}
         ${offerRows}
         ${totalHtml}
-        <div class="om-foot">${tableRow}${modeHtml}</div>
+        <div class="om-foot">${branchRow}${tableRow}${modeHtml}</div>
         <textarea class="order-note" id="order-note" placeholder="${noteLabel}"></textarea>
         <button class="order-whatsapp" onclick="sendWhatsApp()">🟢 ${waLabel}</button>`;
     }
@@ -1821,7 +1839,9 @@
           discount_lines: o.discountLines,
           note,
           order_mode: orderMode,
-          table_label: tableLabel
+          table_label: tableLabel,
+          outlet_id: (selectedOutlet() || {}).id || null,
+          outlet_label: outletLabel(selectedOutlet())
         }).select('id').single();
         if (!error && data && data.id) orderNo = data.id;
       } catch (e) { /* keep client-only fallback below */ }
@@ -1830,6 +1850,8 @@
       const displayNo = orderNo || ('T' + String(Date.now()).slice(-6));
       const lines = [];
       lines.push(lang === 'ar' ? `*طلب جديد #${displayNo} — ${shop.name}*` : `*New Order #${displayNo} — ${shop.name}*`);
+      const outl = selectedOutlet();
+      if (outlets.length && outl) lines.push(`${lang === 'ar' ? 'الفرع' : 'Branch'}: ${outletLabel(outl)}`);
       lines.push(orderMode === 'takeaway'
         ? (lang === 'ar' ? 'طلب سفري (TAKEAWAY)' : 'Takeaway (TAKEAWAY)')
         : (lang === 'ar' ? 'في المكان (DINE-IN)' : 'Dine-in (DINE-IN)'));
@@ -1871,7 +1893,7 @@
       // WhatsApp's wa.me redirect drops non-BMP (emoji) characters, so strip
       // surrogate pairs from titles/notes but keep a BMP-safe star marker.
       const msg = encodeURIComponent(lines.join('\n').replace(/[\uD800-\uDFFF]/g, ''));
-      const phone = shop.whatsapp?.replace(/[^0-9]/g, '') || '';
+      const phone = (outl && outl.whatsapp ? outl.whatsapp : shop.whatsapp)?.replace(/[^0-9]/g, '') || '';
       window.open(phone ? `https://wa.me/${phone}?text=${msg}` : `https://wa.me/?text=${msg}`, '_blank');
       toast(orderNo
         ? (lang === 'ar' ? `تم إنشاء الطلب رقم #${orderNo}` : `Order #${orderNo} placed`)
