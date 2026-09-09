@@ -84,12 +84,28 @@
     img{display:block}
     input{font-family:inherit}
 
-    /* ═══ LOADING ═══ */
+    /* ═══ LOADING — uiverse massive-falcon-52 loader ═══ */
     .loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:14px}
-    .loading-screen .cup{width:52px;height:52px;border:3px solid var(--border2);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;position:relative}
-    .loading-screen .cup::after{content:'';position:absolute;inset:8px;border:2px solid var(--primary);border-radius:50%;opacity:.35}
     .loading-screen p{color:var(--text2);font-size:14px;letter-spacing:.3px}
-    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .splash{position:relative;width:150px;height:150px}
+    .splash .Strich1{position:absolute;width:130px;height:50px;background:var(--text);border-radius:25px;transform:rotate(45deg);box-shadow:0 4px 10px rgba(0,0,0,.4);z-index:0}
+    .splash .Strich2{position:absolute;width:130px;height:50px;background:var(--text);border-radius:25px;transform:rotate(-90deg);box-shadow:0 4px 10px rgba(0,0,0,.4);z-index:0}
+    .splash .bubble{position:absolute;top:0;left:15px;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#ffb3c1,#e64980,#ff8787);animation:dropAndShift 5s ease-in-out infinite;z-index:1}
+    .splash .bubble1{position:absolute;top:0;left:8px;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#edb3ff,#ac49e6,#fb87ff);animation:dropAndShift 6s ease-in-out infinite;z-index:2}
+    .splash .bubble2{position:absolute;top:0;left:12px;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#b3d8ff,#4963e6,#87a7ff);animation:dropAndShift 4s ease-in-out infinite;z-index:3}
+    .splash .bubble3{position:absolute;top:0;left:10px;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#b3ffbc,#35a32f,#75ba61);animation:dropAndShift 7s ease-in-out infinite;z-index:4}
+    .splash .bubble4{position:absolute;top:0;left:14px;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#ffe3c2,#f08c2e,#ffc987);animation:dropAndShift 5.5s ease-in-out infinite;z-index:5}
+
+    @keyframes dropAndShift{
+      0%{transform:translate(0px,15px)}
+      16.67%{transform:translate(80px,13px)}
+      33.34%{transform:translate(40px,10px)}
+      50.01%{transform:translate(40px,-30px)}
+      66.68%{transform:translate(40px,55px)}
+      83.35%{transform:translate(40px,10px)}
+      100%{transform:translate(0px,15px)}
+    }
 
     /* ═══ HERO UTILITY BUTTON + SHEET ═══ */
     .hero-util{
@@ -222,10 +238,32 @@
     .item-img{width:72px;height:72px;border-radius:18px;object-fit:cover;border:1px solid var(--border)}
     .item-img.ph{width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,var(--card2),var(--border));display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--text3)}
 
-    /* Favorites heart on cards (P2.1) */
-    .fav-heart{position:absolute;top:12px;inset-inline-end:12px;z-index:3;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.42);color:#fff;border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:17px;line-height:1;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);transition:transform .15s ease,background .15s ease}
+    /* Favorites heart on cards (P2.1) — uiverse plastic-moth-91 animation */
+    .fav-heart{position:absolute;top:12px;inset-inline-end:12px;z-index:3;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.42);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);transition:transform .15s ease,background .15s ease}
     .fav-heart:hover{transform:scale(1.12)}
     .fav-heart.on{background:rgba(190,24,93,.72)}
+
+    /* ── Animated heart — uiverse plastic-moth-91 ── */
+    .fav-heart,.pd-fav{--heart-color:rgb(255,91,137)}
+    .fav-heart .checkbox,.pd-fav .checkbox{position:absolute;width:100%;height:100%;opacity:0;z-index:20;margin:0;cursor:pointer;pointer-events:auto}
+    .fav-heart .svg-container,.pd-fav .svg-container{width:24px;height:24px;display:flex;justify-content:center;align-items:center;pointer-events:none;flex:none}
+    .fav-heart .svg-outline,.fav-heart .svg-filled,.pd-fav .svg-outline,.pd-fav .svg-filled{fill:var(--heart-color);position:absolute;width:24px;height:24px}
+    .fav-heart .svg-filled,.pd-fav .svg-filled{animation:keyframes-svg-filled 1s;display:none}
+    .fav-heart .svg-celebrate,.pd-fav .svg-celebrate{position:absolute;width:56px;height:56px;animation:keyframes-svg-celebrate .5s;animation-fill-mode:forwards;display:none;stroke:var(--heart-color);fill:var(--heart-color);stroke-width:2px;pointer-events:none}
+    .fav-heart .checkbox:checked~.svg-container .svg-filled,.pd-fav .checkbox:checked~.svg-container .svg-filled{display:block}
+    .fav-heart .checkbox:checked~.svg-container .svg-celebrate,.pd-fav .checkbox:checked~.svg-container .svg-celebrate{display:block}
+
+    @keyframes keyframes-svg-filled{
+      0%{transform:scale(0)}
+      25%{transform:scale(1.2)}
+      50%{transform:scale(1);filter:brightness(1.5)}
+    }
+
+    @keyframes keyframes-svg-celebrate{
+      0%{transform:scale(0)}
+      50%{opacity:1;filter:brightness(1.5)}
+      100%{transform:scale(1.4);opacity:0;display:none}
+    }
 
     /* Favorites rail (P2.1) */
     .fav-rail{display:none;padding:2px 16px 8px}
@@ -548,7 +586,6 @@
 
     /* FA icon sizing */
     .ctl i{font-size:16px;line-height:1;pointer-events:none}
-    .fav-heart i{font-size:15px;line-height:1}
     .sheet-close i{pointer-events:none}
     .hero .contact-row i{font-size:12px;width:15px;text-align:center}
     .item-meta i{font-size:11px;margin-inline-end:2px}
@@ -565,7 +602,15 @@
 <body>
   <!-- Loading -->
   <div class="loading-screen" id="loading">
-    <div class="cup"></div>
+    <div class="splash" aria-hidden="true">
+      <div class="Strich1"></div>
+      <div class="Strich2"></div>
+      <div class="bubble"></div>
+      <div class="bubble1"></div>
+      <div class="bubble2"></div>
+      <div class="bubble3"></div>
+      <div class="bubble4"></div>
+    </div>
     <p id="loading-text">جارٍ تحميل القائمة...</p>
   </div>
 
@@ -881,19 +926,34 @@
       favs = []; saveFavs(); syncFavHearts(); renderFavRail();
       toast(lang === 'ar' ? 'أُفرغت المفضلة' : 'Favorites cleared');
     }
+    function heartSVGs() {
+      return `<div class="svg-container">
+        <svg viewBox="0 0 24 24" class="svg-outline" xmlns="http://www.w3.org/2000/svg"><path d="M17.5,1.917a6.4,6.4,0,0,0-5.5,3.3,6.4,6.4,0,0,0-5.5-3.3A6.8,6.8,0,0,0,0,8.967c0,4.547,4.786,9.513,8.8,12.88a4.974,4.974,0,0,0,6.4,0C19.214,18.48,24,13.514,24,8.967A6.8,6.8,0,0,0,17.5,1.917Zm-3.585,18.4a2.973,2.973,0,0,1-3.83,0C4.947,16.006,2,11.87,2,8.967a4.8,4.8,0,0,1,4.5-5.05A4.8,4.8,0,0,1,11,8.967a1,1,0,0,0,2,0,4.8,4.8,0,0,1,4.5-5.05A4.8,4.8,0,0,1,22,8.967C22,11.87,19.053,16.006,13.915,20.313Z"/></svg>
+        <svg viewBox="0 0 24 24" class="svg-filled" xmlns="http://www.w3.org/2000/svg"><path d="M17.5,1.917a6.4,6.4,0,0,0-5.5,3.3,6.4,6.4,0,0,0-5.5-3.3A6.8,6.8,0,0,0,0,8.967c0,4.547,4.786,9.513,8.8,12.88a4.974,4.974,0,0,0,6.4,0C19.214,18.48,24,13.514,24,8.967A6.8,6.8,0,0,0,17.5,1.917Z"/></svg>
+        <svg class="svg-celebrate" width="100" height="100" xmlns="http://www.w3.org/2000/svg"><polygon points="10,10 20,20"/><polygon points="10,50 20,50"/><polygon points="20,80 30,70"/><polygon points="90,10 80,20"/><polygon points="90,50 80,50"/><polygon points="80,80 70,70"/></svg>
+      </div>`;
+    }
     function favBtnHTML(item) {
       const on = isFav(item.id);
-      return `<button class="fav-heart ${on ? 'on' : ''}" data-id="${item.id}" onclick="event.stopPropagation();toggleFav('${item.id}')" aria-label="${lang === 'ar' ? (on ? 'إزالة من المفضلة' : 'أضف إلى المفضلة') : (on ? 'Remove from favorites' : 'Add to favorites')}">${on ? '<i class="fa-solid fa-heart"></i>' : '<i class="fa-regular fa-heart"></i>'}</button>`;
+      const lbl = lang === 'ar' ? (on ? 'إزالة من المفضلة' : 'أضف إلى المفضلة') : (on ? 'Remove from favorites' : 'Add to favorites');
+      return `<label class="fav-heart ${on ? 'on' : ''}" data-id="${item.id}" aria-label="${lbl}" onclick="event.stopPropagation()"><input type="checkbox" class="checkbox" ${on ? 'checked' : ''} onchange="toggleFav('${item.id}')">${heartSVGs()}</label>`;
     }
     function syncFavHearts() {
       document.querySelectorAll('.fav-heart').forEach(b => {
         const on = isFav(b.dataset.id);
         b.classList.toggle('on', on);
-        b.innerHTML = on ? '<i class="fa-solid fa-heart"></i>' : '<i class="fa-regular fa-heart"></i>';
+        const cb = b.querySelector('.checkbox');
+        if (cb) cb.checked = on;
         b.setAttribute('aria-label', lang === 'ar' ? (on ? 'إزالة من المفضلة' : 'أضف إلى المفضلة') : (on ? 'Remove from favorites' : 'Add to favorites'));
       });
       const sf = document.getElementById('pd-fav-btn');
-      if (sf) { const on = isFav(sf.dataset.id); sf.classList.toggle('on', on); sf.innerHTML = on ? '<i class="fa-solid fa-heart"></i>' : '<i class="fa-regular fa-heart"></i>'; }
+      if (sf) {
+        const on = isFav(sf.dataset.id);
+        sf.classList.toggle('on', on);
+        const cb = sf.querySelector('.checkbox');
+        if (cb) cb.checked = on;
+        sf.setAttribute('aria-label', lang === 'ar' ? (on ? 'إزالة من المفضلة' : 'أضف إلى المفضلة') : (on ? 'Remove from favorites' : 'Add to favorites'));
+      }
     }
     function renderFavRail() {
       const rail = document.getElementById('fav-rail');
@@ -1724,7 +1784,7 @@
       sheet.innerHTML = `
         <div class="pd-hero">
           ${img}
-          <button class="sheet-close pd-close pd-fav ${isFav(item.id) ? 'on' : ''}" id="pd-fav-btn" data-id="${item.id}" onclick="toggleFav('${item.id}')" aria-label="${lang === 'ar' ? (isFav(item.id) ? 'إزالة من المفضلة' : 'أضف إلى المفضلة') : (isFav(item.id) ? 'Remove from favorites' : 'Add to favorites')}">${isFav(item.id) ? '<i class="fa-solid fa-heart"></i>' : '<i class="fa-regular fa-heart"></i>'}</button>
+          <label class="sheet-close pd-close pd-fav ${isFav(item.id) ? 'on' : ''}" id="pd-fav-btn" data-id="${item.id}" aria-label="${lang === 'ar' ? (isFav(item.id) ? 'إزالة من المفضلة' : 'أضف إلى المفضلة') : (isFav(item.id) ? 'Remove from favorites' : 'Add to favorites')}" onclick="event.stopPropagation()"><input type="checkbox" class="checkbox" ${isFav(item.id) ? 'checked' : ''} onchange="toggleFav('${item.id}')">${heartSVGs()}</label>
           <button class="sheet-close pd-close pd-copy" onclick="copyProductLink()" aria-label="${lang === 'ar' ? 'نسخ الرابط' : 'Copy link'}"><i class="fa-solid fa-link"></i></button>
           <button class="sheet-close pd-close pd-share" onclick="shareProduct()" aria-label="${lang === 'ar' ? 'مشاركة' : 'Share'}"><i class="fa-solid fa-share-nodes"></i></button>
           <button class="sheet-close pd-close" onclick="closeProductSheet()" aria-label="${lang === 'ar' ? 'إغلاق' : 'Close'}"><i class="fa-solid fa-xmark"></i></button>
