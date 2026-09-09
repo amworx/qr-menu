@@ -527,3 +527,29 @@
 - **lessons**: on non-overlay desktop browsers the 9px pill scrollbar reserves width - verified zero layout shift; keep horizontal rails hidden (edge fade) so only real vertical/horizontal scroll containers get styled thumbs
 - **tags**: ui, scrollbar, theme, webkit, firefox, dark-mode, light-mode, admin, polish
 
+
+## EVT-20260909-0006
+
+- **timestamp**: 2026-09-09
+- **mode**: BUILD / DEPLOY
+- **action**: Deploy offer price fix + admin deal preview + theme-aware scrollbars
+- **summary**: User approved deploy. Committed 64072b0 "feat: offer price after discount (order + admin deal preview) + theme-aware scrollbars" (3 files, +171/-17: index.html, admin.html, memory/events.md; supabase/.temp/ left untracked) and pushed origin main. GitHub Pages build status=built (2026-09-09T20:02:36Z, no error). Live-verified 8/8 markers: index dealAfterValue, offers value field, .ol-muted dash, --scr-thumb scrollbar vars; admin updateDealPreview, price_preview i18n, .deal-preview.muted, scrollbar-width:thin.
+- **result**: Live. Live QR menu now shows offer after-discount price lines (dash instead of 0 when not determinable) and admin deal modal has live price preview; both pages have thin theme-aware pill scrollbars.
+- **files**: index.html, admin.html, memory/events.md
+- **errors**: none
+- **lessons**: none new
+- **tags**: deploy, pages, offers, pricing, scrollbar, live
+
+
+## EVT-20260909-0007
+
+- **timestamp**: 2026-09-09
+- **mode**: BUILD / DEPLOY
+- **action**: Fix cart bar FAB showing 0 for offers-only cart
+- **summary**: User reported offer price fix "not working". Reproduced on live site: order sheet + totals were correct once items were present (fixed + coffee = 14,900), but the FAB (cart bar) still displayed ? SYP when the cart contained ONLY an offer. root cause: updateCartBar() always rendered formatPrice(o.total) and an offers-only cart has total 0. Fix in index.html: when totalItems===0 && offerCount>0, FAB shows the determinable after-discount value (bundle/BOGO e.g. BOGO alone = 50,000) summed from offer.value, else a hint label `??? ???????`/`Add items` (.cart-total-hint CSS) instead of a misleading 0. Verified locally in AR: BOGO alone -> ?????? SYP, fixed alone -> hint, fixed+item -> ?????? SYP. Committed 24c20ba "fix: cart bar shows offer after-discount value or add-items hint instead of 0" (1 file +20/-2), pushed, Pages built, 4/4 live markers present (hint css, ar/en strings, standalone branch).
+- **result**: Live. No screen shows a bare 0 for an added offer anymore.
+- **files**: index.html, memory/events.md
+- **errors**: none
+- **lessons**: The offer fix surface includes the cart bar (FAB), not just the order sheet; when offers-only, the honest total is the determinable offer value or a guidance label, never 0. PWA: users must refresh (network-first SW) to get the new code.
+- **tags**: deploy, offers, pricing, cart-bar, pwa
+
