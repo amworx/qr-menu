@@ -653,3 +653,15 @@
 - **lessons**: LSSN-20260910-004 (absolute-positioned uiverse children need an explicit positioned wrapper) + LSSN-20260910-005 (theme is chosen via `data-theme` attr; don't flip classes)
 - **tags**: uiverse, splash, loader, deploy, theme, data-theme
 
+## EVT-20260910-0007
+
+- **timestamp**: 2026-09-10
+- **mode**: BUILD / UI / DEPLOY / FIX
+- **action**: Fix RTL overlap of the slippery-robin-92 loader (box2 + box3 stacked)
+- **summary**: User reported the new wink loader was still broken: "three parts, two squares at top and a triangle at bottom; one square animated; the two squares overlap." Root cause: the loader is embedded in an RTL document (Arabic-first app) and its source CSS positions boxes via `margin-left` + hypothetical static position (no `left/top`). Under `dir=rtl`, the static position of abs-pos blocks is computed from right-aligned flow: box2 (margin-left:0) and box3 (margin-left:64) BOTH resolved to the same right-hand slot (x254-302 on 190-based loader) → perfectly stacked (live measurement: box2 x254-302 == box3 x254-302). The uiverse preview works only because it's LTR. Fix: replaced margin-based placement with direction-immune explicit `left/top` (box1 left:0/top:64, box2 left:0/top:0, box3 left:64/top:0) and set `direction:ltr` on `.loader`; `@keyframes wink` kept byte-identical (its margin-top still shifts the blink downward as in source because abs top:0 + margin-top add).
+- **result**: Verified localhost #ar (rtl): box2 x190-238, box3 x254-302, overlap false; 20-frame sampling over a full 1.8s cycle: box3 never intersects box2 (min gap 6px at ~400ms). #en (ltr): same slots, overlap false. `node --check` OK. Committed ff2b2ad (`fix: anchor loader boxes with explicit left/top so RTL static-position math cannot stack box2+box3`) + pushed; live fresh AR page verified: box1 190-302, box2 190-238, box3 254-302, overlap false, wink running.
+- **files**: index.html, docs/screenshots/2026-09-10-splash-slippery-robin-fixed-en.png, docs/screenshots/2026-09-10-splash-slippery-robin-live-fixed-ar.png
+- **errors**: none (root cause confirmed by measuring live rects: box2 == box3 rects before fix)
+- **lessons**: LSSN-20260910-006 (abs-pos margin/static-position layout is RTL-sensitive — uiverse components assume LTR)
+- **tags**: uiverse, splash, loader, rtl, direction, deploy, bug
+
