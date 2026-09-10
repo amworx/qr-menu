@@ -406,6 +406,9 @@ end $$;
 --   (rating between 1 and 5 and comment is null or comment = '' or length(comment) <= 500);
 -- create policy surveys_owner_select on surveys for select using
 --   (exists (select 1 from shops where shops.id = shop_id and shops.owner_email = auth.email()));
+-- create policy surveys_owner_delete on surveys for delete using
+--   (exists (select 1 from shops where shops.id = shop_id and shops.owner_email = auth.email()));
+-- (2026-09-10: Reviews tab added to admin — list/avg/star bars + delete. Policy applied.)
 -- Edge function: supabase/functions/submit-survey/index.ts
 --   supabase functions deploy submit-survey --project-ref pxgwxcurhzphmtvowdri --no-verify-jwt
 

@@ -128,6 +128,20 @@
     .order-id{font-weight:700;color:var(--accent);font-size:13px;white-space:nowrap}
     .order-note-inline{font-style:italic;color:var(--text3);margin-top:4px;max-width:220px;overflow-wrap:break-word}
 
+    /* Reviews tab (P2.9) */
+    .rev-summary{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch;margin-bottom:14px}
+    .rev-stat{flex:1 1 180px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+    .rev-stat .v{font-size:26px;font-weight:800;color:var(--accent);line-height:1.1}
+    .rev-stat .l{font-size:12px;color:var(--text2);margin-top:2px}
+    .rev-stars{color:#f5b301;letter-spacing:2px;font-size:14px}
+    .rev-stars .off{color:var(--bg3)}
+    .rev-bars{flex:2 1 280px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+    .rev-bar-row{display:grid;grid-template-columns:34px 1fr 44px;gap:10px;align-items:center;font-size:12px;color:var(--text2)}
+    .rev-bar-track{height:8px;border-radius:6px;background:var(--bg3);overflow:hidden}
+    .rev-bar-fill{height:100%;border-radius:6px;background:var(--accent)}
+    .rev-comment{white-space:pre-wrap;overflow-wrap:break-word;max-width:340px;color:var(--text)}
+    .rev-date{color:var(--text3);font-size:12px;white-space:nowrap}
+
     /* Deal modal dynamic fields */
     .deal-fields{display:none}
     .bundle-pick{display:flex;flex-wrap:wrap;gap:8px}
@@ -276,6 +290,7 @@
       <button onclick="showTab('badges')" data-tab="badges" data-i18n="tab_badges">Badges</button>
       <button onclick="showTab('allergens')" data-tab="allergens" data-i18n="tab_allergens">Allergens</button>
       <button onclick="showTab('orders')" data-tab="orders" data-i18n="tab_orders">Orders</button>
+      <button onclick="showTab('reviews')" data-tab="reviews" data-i18n="tab_reviews">Reviews</button>
       <button onclick="showTab('currencies')" data-tab="currencies" data-i18n="tab_currencies">Currencies</button>
     </nav>
     <div class="mobile-tabs" id="mobile-tabs">
@@ -286,6 +301,7 @@
       <button onclick="showTab('badges')" data-tab="badges" data-i18n="tab_badges">Badges</button>
       <button onclick="showTab('allergens')" data-tab="allergens" data-i18n="tab_allergens">Allergens</button>
       <button onclick="showTab('orders')" data-tab="orders" data-i18n="tab_orders">Orders</button>
+      <button onclick="showTab('reviews')" data-tab="reviews" data-i18n="tab_reviews">Reviews</button>
       <button onclick="showTab('currencies')" data-tab="currencies" data-i18n="tab_currencies">Currencies</button>
     </div>
     <div class="main-content" id="main-content">
@@ -347,6 +363,7 @@ const I18N = {
   tab_badges:       { en: 'Badges', ar: 'الشارات' },
   tab_allergens:    { en: 'Allergens', ar: 'مسببات الحساسية' },
   tab_orders:       { en: 'Orders', ar: 'الطلبات' },
+  tab_reviews:      { en: 'Reviews', ar: 'التقييمات' },
   tab_currencies:   { en: 'Currencies', ar: 'العملات' },
 
   new_category:     { en: '+ New Category', ar: '+ تصنيف جديد' },
@@ -608,7 +625,30 @@ const I18N = {
   reply_no_phone:   { en: 'No customer phone on this order', ar: 'لا يوجد رقم هاتف للعميل في هذا الطلب' },
   customer_phone:   { en: 'Customer phone', ar: 'هاتف العميل' },
   copy:             { en: 'Copy', ar: 'نسخ' },
-  copied:           { en: 'Copied', ar: 'تم النسخ' }
+  copied:           { en: 'Copied', ar: 'تم النسخ' },
+
+  // Reviews — customer satisfaction survey (P2.9)
+  reviews_hint:     { en: 'Star ratings and comments customers leave after placing an order.', ar: 'تقييمات النجوم والتعليقات التي يتركها العملاء بعد تقديم الطلب.' },
+  loading_reviews:  { en: 'Loading reviews…', ar: 'جارٍ تحميل التقييمات…' },
+  no_reviews:       { en: 'No reviews yet. When a customer rates their order it will appear here.', ar: 'لا توجد تقييمات بعد. عندما يقيّم العميل طلبه سيظهر هنا.' },
+  no_reviews_match: { en: 'No reviews match your search.', ar: 'لا توجد تقييمات تطابق البحث.' },
+  reviews_search:   { en: 'Search reviews…', ar: 'ابحث في التقييمات…' },
+  rating_all:       { en: 'All ratings', ar: 'كل التقييمات' },
+  sort:             { en: 'Sort', ar: 'الترتيب' },
+  sort_newest:      { en: 'Newest first', ar: 'الأحدث أولاً' },
+  sort_oldest:      { en: 'Oldest first', ar: 'الأقدم أولاً' },
+  sort_high:        { en: 'Highest rating', ar: 'الأعلى تقييماً' },
+  sort_low:         { en: 'Lowest rating', ar: 'الأدنى تقييماً' },
+  avg_rating:       { en: 'Average rating', ar: 'متوسط التقييم' },
+  total_reviews:    { en: 'Total reviews', ar: 'إجمالي التقييمات' },
+  stars_out_of:     { en: 'out of 5', ar: 'من 5' },
+  star_count_1:     { en: 'star', ar: 'نجمة' },
+  star_count_2:     { en: 'stars', ar: 'نجوم' },
+  comment:          { en: 'Comment', ar: 'التعليق' },
+  rating:           { en: 'Rating', ar: 'التقييم' },
+  no_comment:       { en: '(no comment)', ar: '(بدون تعليق)' },
+  review_deleted:   { en: 'Review deleted', ar: 'تم حذف التقييم' },
+  delete_review_q:  { en: 'Delete this review?', ar: 'حذف هذا التقييم؟' }
 };
 function t(key) { return (I18N[key] && I18N[key][lang]) || (I18N[key] && I18N[key].en) || key; }
 
@@ -805,6 +845,7 @@ function showTab(tab) {
     case 'badges': c.innerHTML = renderBadgesTab(); break;
     case 'allergens': c.innerHTML = renderAllergensTab(); break;
     case 'orders': c.innerHTML = `<div class="empty">${t('loading_orders')}</div>`; renderOrdersTab().then(html => { c.innerHTML = html; }); break;
+    case 'reviews': c.innerHTML = `<div class="empty">${t('loading_reviews')}</div>`; renderReviewsTab().then(html => { c.innerHTML = html; }); break;
     case 'currencies': c.innerHTML = renderCurrenciesTab(); break;
   }
 }
@@ -2194,6 +2235,163 @@ async function renderOrdersTab() {
     </div>
     <div id="order-more-wrap" style="text-align:center"></div>
   `;
+}
+
+// ─── REVIEWS (P2.9 customer satisfaction survey) ────────────
+let reviewsAll = [];
+let reviewHasMore = true;
+let reviewQuery = '';
+let reviewFilter = 'all';   // 'all' | '5' | '4' | '3' | '2' | '1'
+let reviewSort = 'newest';  // 'newest' | 'oldest' | 'high' | 'low'
+const REVIEW_PAGE = 200;
+
+async function loadReviews(reset) {
+  if (reset) { reviewsAll = []; reviewHasMore = true; }
+  if (!reviewHasMore) { renderReviewRows(); return; }
+  const from = reviewsAll.length;
+  const to = from + REVIEW_PAGE - 1;
+  const { data, error } = await sb.from('surveys')
+    .select('*')
+    .eq('shop_id', currentShop.id)
+    .order('created_at', { ascending: false })
+    .range(from, to);
+  if (error) return toast(t('error') + ': ' + error.message, true);
+  const rows = data || [];
+  reviewsAll = reviewsAll.concat(rows);
+  reviewHasMore = rows.length === REVIEW_PAGE;
+  renderReviewRows();
+}
+
+function filterReviews() {
+  let list = reviewsAll;
+  const q = reviewQuery.trim().toLowerCase();
+  if (q) list = list.filter(r => String(r.rating).includes(q) || (r.comment || '').toLowerCase().includes(q));
+  if (reviewFilter !== 'all') list = list.filter(r => String(r.rating) === reviewFilter);
+  if (reviewSort === 'oldest') list = [...list].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  else if (reviewSort === 'high') list = [...list].sort((a, b) => (b.rating || 0) - (a.rating || 0) || (new Date(b.created_at) - new Date(a.created_at)));
+  else if (reviewSort === 'low') list = [...list].sort((a, b) => (a.rating || 0) - (b.rating || 0) || (new Date(b.created_at) - new Date(a.created_at)));
+  else list = [...list].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  return list;
+}
+
+function reviewStarsHTML(rating) {
+  const full = '★'.repeat(rating || 0);
+  const empty = '★'.repeat(Math.max(0, 5 - (rating || 0)));
+  return `<span class="rev-stars"><span class="on">${full}</span><span class="off">${empty}</span></span>`;
+}
+
+function reviewRowHTML(r) {
+  const loc = lang === 'ar' ? 'ar-SY' : 'en-GB';
+  const dt = new Date(r.created_at).toLocaleString(loc, { dateStyle: 'short', timeStyle: 'short' });
+  const comment = (r.comment || '').trim()
+    ? `<div class="rev-comment">${esc(r.comment)}</div>`
+    : `<div class="rev-comment" style="color:var(--text3);font-style:italic">${t('no_comment')}</div>`;
+  return `
+    <tr>
+      <td data-label="${t('rating')}">${reviewStarsHTML(r.rating)} <small style="color:var(--text2)">${r.rating}/5</small></td>
+      <td data-label="${t('comment')}">${comment}</td>
+      <td data-label="${t('date')}"><span class="rev-date">${esc(dt)}</span></td>
+      <td data-label="${t('actions')}">
+        <button class="btn btn-ghost btn-sm" onclick="deleteReview('${r.id}')">${t('delete')}</button>
+      </td>
+    </tr>`;
+}
+
+function renderReviewSummary() {
+  const d = reviewDistro();
+  const avgEl = document.getElementById('rev-avg');
+  const avgStarsEl = document.getElementById('rev-avg-stars');
+  const totalEl = document.getElementById('rev-total');
+  const barsEl = document.getElementById('rev-bars');
+  if (avgEl) avgEl.innerHTML = reviewsAll.length ? d.avg.toFixed(1) + ' <small style="font-size:13px">/ 5</small>' : '— <small style="font-size:13px">/ 5</small>';
+  if (avgStarsEl) avgStarsEl.innerHTML = reviewsAll.length ? reviewStarsHTML(Math.round(d.avg)) : '';
+  if (totalEl) totalEl.textContent = reviewsAll.length;
+  if (barsEl) barsEl.innerHTML = reviewsAll.length ? d.rows : `<div style="color:var(--text3);font-size:13px;text-align:center;padding:10px">${t('no_reviews')}</div>`;
+}
+
+function renderReviewRows() {
+  const tbody = document.getElementById('reviews-tbody');
+  if (!tbody) return;
+  const list = filterReviews();
+  const count = document.getElementById('review-count');
+  if (count) count.textContent = `${t('showing')} ${list.length} ${t('of')} ${reviewsAll.length}${reviewHasMore ? '+' : ''}`;
+  const more = document.getElementById('review-more-wrap');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty">${reviewsAll.length ? t('no_reviews_match') : t('no_reviews')}</td></tr>`;
+    if (more) more.innerHTML = '';
+  } else {
+    tbody.innerHTML = list.map(reviewRowHTML).join('');
+    if (more) more.innerHTML = reviewHasMore
+      ? `<button class="btn btn-ghost" onclick="loadReviews(false)">${t('load_more')}</button>`
+      : '';
+  }
+  renderReviewSummary();
+}
+
+function reviewDistro() {
+  const buckets = [0, 0, 0, 0, 0];
+  reviewsAll.forEach(r => { const i = Math.min(Math.max(parseInt(r.rating) || 0, 1), 5) - 1; buckets[i]++; });
+  const total = reviewsAll.length || 1;
+  const avg = reviewsAll.length ? (reviewsAll.reduce((s, r) => s + (parseInt(r.rating) || 0), 0) / reviewsAll.length) : 0;
+  const rows = buckets.map((n, i) => {
+    const star = 5 - i;
+    const pct = Math.round((n / total) * 100);
+    return `<div class="rev-bar-row"><span>${star}★</span><div class="rev-bar-track"><div class="rev-bar-fill" style="width:${pct}%"></div></div><span>${n}</span></div>`;
+  }).join('');
+  return { avg, total: reviewsAll.length, rows };
+}
+
+async function renderReviewsTab() {
+  loadReviews(true);
+  const d = reviewDistro();
+  return `
+    <h3>${t('tab_reviews')}</h3>
+    <div class="rev-summary">
+      <div class="rev-stat">
+        <div class="v" id="rev-avg">${reviewsAll.length ? d.avg.toFixed(1) : '—'} <small style="font-size:13px">/ 5</small></div>
+        <div class="l">${t('avg_rating')}</div>
+        <div class="rev-stars" id="rev-avg-stars" style="margin-top:6px">${reviewsAll.length ? reviewStarsHTML(Math.round(d.avg)) : ''}</div>
+      </div>
+      <div class="rev-stat">
+        <div class="v" id="rev-total">${reviewsAll.length}</div>
+        <div class="l">${t('total_reviews')}</div>
+      </div>
+      <div class="rev-bars" id="rev-bars">
+        ${reviewsAll.length ? d.rows : `<div style="color:var(--text3);font-size:13px;text-align:center;padding:10px">${t('no_reviews')}</div>`}
+      </div>
+    </div>
+    <div class="item-toolbar">
+      <input class="item-search" id="review-search" placeholder="${t('reviews_search')}" value="${esc(reviewQuery)}" oninput="reviewQuery=this.value; renderReviewRows();">
+      <select id="review-rating-filter" aria-label="${t('rating')}" onchange="reviewFilter=this.value; renderReviewRows();">
+        <option value="all" ${reviewFilter==='all'?'selected':''}>${t('rating_all')}</option>
+        ${[5,4,3,2,1].map(n => `<option value="${n}" ${reviewFilter===String(n)?'selected':''}>${n}★</option>`).join('')}
+      </select>
+      <select id="review-sort" aria-label="${t('sort')}" onchange="reviewSort=this.value; renderReviewRows();">
+        <option value="newest" ${reviewSort==='newest'?'selected':''}>${t('sort_newest')}</option>
+        <option value="oldest" ${reviewSort==='oldest'?'selected':''}>${t('sort_oldest')}</option>
+        <option value="high" ${reviewSort==='high'?'selected':''}>${t('sort_high')}</option>
+        <option value="low" ${reviewSort==='low'?'selected':''}>${t('sort_low')}</option>
+      </select>
+      <button class="btn btn-ghost" onclick="loadReviews(true)">⟳ ${t('refresh')}</button>
+      <span class="item-count" id="review-count"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>${t('rating')}</th><th>${t('comment')}</th><th>${t('date')}</th><th></th></tr></thead>
+        <tbody id="reviews-tbody"></tbody>
+      </table>
+    </div>
+    <div id="review-more-wrap" style="text-align:center"></div>
+  `;
+}
+
+async function deleteReview(id) {
+  if (!confirm(t('delete_review_q'))) return;
+  const { error } = await sb.from('surveys').delete().eq('id', id);
+  if (error) return toast(t('error') + ': ' + error.message, true);
+  reviewsAll = reviewsAll.filter(r => String(r.id) !== String(id));
+  showTab('reviews');
+  toast(t('review_deleted'));
 }
 
 // ─── HELPERS ────────────────────────────────────────────────
