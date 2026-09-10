@@ -677,6 +677,18 @@
 - **lessons**: none new
 - **tags**: uiverse, splash, loader, duration, deploy
 
+## EVT-20260910-0013
+
+- **timestamp**: 2026-09-10
+- **mode**: BUILD / UI / DEPLOY
+- **action**: Theme-aware animated heart badge + celebrate glow for light theme
+- **summary**: User reported the like/favorite heart animation looked wrong on light theme — badge background (`rgba(0,0,0,.42)` dark glass) never adapted, so on white cards (`--card: #fffdf8`) the dark blob looked misplaced; celebrate particles had no backdrop glow so the burst wasn't prominent. Fix (1) Light badge: `background:rgba(255,253,248,.85)` warm white glass, `border:rgba(210,180,140,.55)`, `box-shadow:0 2px 10px rgba(120,80,30,.18)` coffee shadow; `.on` state: `rgba(255,140,180,.35)` soft pink + `rgba(255,91,137,.65)` border + pink shadow. (2) Dark badge: `.on` border `rgba(255,255,255,.35)` added for better visibility. (3) Celebrate glow: `drop-shadow(0 0 6px + 0 0 14px)` on particles in dark; in light, stronger `drop-shadow(0 0 7px + 0 0 18px #ff5b89)` + `stroke-width:2.6px` + dual animation (`keyframes-svg-celebrate .55s` + `keyframes-celebrate-glow .55s` for radial pulse). `.pd-fav` (product sheet heart) unchanged — sits over hero image, dark glass correct on both themes. Verified: dark `--bg:#0d0a07` → badge `rgba(0,0,0,.42)`, `.on` `rgba(190,24,93,.72)`, no shadow; light `--bg:#faf5ee` → badge `rgba(255,253,248,.85)`, `.on` `rgba(255,140,180,.35)`, coffee/pink shadows; celebrate filter confirmed pink `drop-shadow` active on checked toggle.
+- **result**: Commit a03672c pushed (`fix: theme-aware heart badge + celebrate glow on light theme`). Live build pending (has stale dark-only badge).
+- **files**: index.html (lines 248–289 heart CSS, theme overrides)
+- **errors**: none
+- **lessons**: none new
+- **tags**: heart, favorites, animation, theme, light-theme, glow, uiverse, deploy
+
 ## EVT-20260910-0011
 
 - **timestamp**: 2026-09-10
