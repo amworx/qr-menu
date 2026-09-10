@@ -127,6 +127,15 @@
     .hero-util:hover{background:var(--hero-util-bg-hover)}
     .hero-util:active{transform:scale(.94)}
     .hero-util.on{background:var(--hero-util-bg-on)}
+    /* Animated hamburger icon (JulanDeAlb tall-swan-6, MIT) — morphs to X while sheet is open */
+    .hero-util .hb-svg{height:22px;width:22px;display:block;transition:transform 600ms cubic-bezier(0.4,0,0.2,1)}
+    .hero-util .hb-line{
+      fill:none;stroke:var(--hero-util-color);stroke-linecap:round;stroke-linejoin:round;stroke-width:3;
+      transition:stroke-dasharray 600ms cubic-bezier(0.4,0,0.2,1),stroke-dashoffset 600ms cubic-bezier(0.4,0,0.2,1);
+    }
+    .hero-util .hb-line-top-bottom{stroke-dasharray:12 63}
+    .hero-util.on .hb-svg{transform:rotate(-45deg)}
+    .hero-util.on .hb-line-top-bottom{stroke-dasharray:20 300;stroke-dashoffset:-32.42}
     .util-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:none;align-items:flex-end;justify-content:center}
     .util-modal.visible{display:flex}
     .util-sheet{
@@ -269,7 +278,7 @@
     :root[data-theme="light"] .fav-heart{--glow:rgba(255,91,137,.8)}
     :root[data-theme="light"] .fav-heart .svg-celebrate{filter:drop-shadow(0 0 7px #ff5b89) drop-shadow(0 0 18px #ff5b89);stroke-width:2.6px}
     /* Radial pulse ring behind the heart when first favorited */
-    .fav-heart .checkbox:checked~.svg-container .svg-celebrate{animation:keyframes-svg-celebrate .55s,keyframes-celebrate-glow .55s}
+    .fav-heart .checkbox:checked~.svg-container .svg-celebrate{animation:keyframes-svg-celebrate .55s forwards,keyframes-celebrate-glow .55s forwards}
 
     @keyframes keyframes-svg-filled{
       0%{transform:scale(0)}
@@ -635,7 +644,7 @@
 
   <!-- Shop header (injected) + hero utility button -->
   <header class="hero" id="shop-header" style="display:none">
-    <button class="hero-util" id="hero-util-btn" onclick="toggleUtilitySheet()" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false"><i class="fa-solid fa-sliders"></i></button>
+    <button class="hero-util" id="hero-util-btn" onclick="toggleUtilitySheet()" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false"><svg class="hb-svg" viewBox="0 0 32 32" aria-hidden="true"><path class="hb-line hb-line-top-bottom" d="M27 10 13 10C10.8 10 9 8.2 9 6 9 3.5 10.8 2 13 2 15.2 2 17 3.8 17 6L17 26C17 28.2 18.8 30 21 30 23.2 30 25 28.2 25 26 25 23.8 23.2 22 21 22L7 22"></path><path class="hb-line" d="M7 16 27 16"></path></svg></button>
     <div class="hero-inner" id="hero-inner"></div>
   </header>
 
