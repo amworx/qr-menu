@@ -88,23 +88,30 @@
     .loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:14px}
     .loading-screen p{color:var(--text2);font-size:14px;letter-spacing:.3px}
 
-    .splash{position:relative;width:150px;height:150px}
-    .splash .Strich1{position:absolute;width:130px;height:50px;background:var(--text);border-radius:25px;transform:rotate(45deg);box-shadow:0 4px 10px rgba(0,0,0,.4);z-index:0}
-    .splash .Strich2{position:absolute;width:130px;height:50px;background:var(--text);border-radius:25px;transform:rotate(-90deg);box-shadow:0 4px 10px rgba(0,0,0,.4);z-index:0}
-    .splash .bubble{position:absolute;top:0;left:15px;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#ffb3c1,#e64980,#ff8787);animation:dropAndShift 5s ease-in-out infinite;z-index:1}
-    .splash .bubble1{position:absolute;top:0;left:8px;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#edb3ff,#ac49e6,#fb87ff);animation:dropAndShift 6s ease-in-out infinite;z-index:2}
-    .splash .bubble2{position:absolute;top:0;left:12px;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#b3d8ff,#4963e6,#87a7ff);animation:dropAndShift 4s ease-in-out infinite;z-index:3}
-    .splash .bubble3{position:absolute;top:0;left:10px;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#b3ffbc,#35a32f,#75ba61);animation:dropAndShift 7s ease-in-out infinite;z-index:4}
-    .splash .bubble4{position:absolute;top:0;left:14px;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#ffe3c2,#f08c2e,#ffc987);animation:dropAndShift 5.5s ease-in-out infinite;z-index:5}
+    /* ═══ LOADING — uiverse slippery-robin-92 loader (wink) ═══ */
+    .loader{position:relative;width:112px;height:112px}
+    .loader .box1,
+    .loader .box2,
+    .loader .box3{
+      border:16px solid var(--text);
+      box-sizing:border-box;
+      position:absolute;
+      display:block;
+    }
+    .loader .box1{width:112px;height:48px;margin-top:64px;margin-left:0px}
+    .loader .box2{width:48px;height:48px;margin-top:0px;margin-left:0px}
+    .loader .box3{width:48px;height:48px;margin-top:0px;margin-left:64px;animation:infinite 1.8s wink}
 
-    @keyframes dropAndShift{
-      0%{transform:translate(0px,15px)}
-      16.67%{transform:translate(80px,13px)}
-      33.34%{transform:translate(40px,10px)}
-      50.01%{transform:translate(40px,-30px)}
-      66.68%{transform:translate(40px,55px)}
-      83.35%{transform:translate(40px,10px)}
-      100%{transform:translate(0px,15px)}
+    @keyframes wink{
+      0%{width:48px;height:10px;rotate:-25deg;margin-top:10px}
+      12.5%{width:48px;height:10px;rotate:-45deg;margin-top:5px}
+      25%{width:48px;height:48px}
+      37.5%{width:48px;height:48px}
+      50%{width:48px;height:48px}
+      62.5%{width:48px;height:48px}
+      75%{width:48px;height:48px}
+      87.5%{width:48px;height:48px}
+      100%{width:48px;height:48px;rotate:0deg}
     }
 
     /* ═══ HERO UTILITY BUTTON + SHEET ═══ */
@@ -602,14 +609,10 @@
 <body>
   <!-- Loading -->
   <div class="loading-screen" id="loading">
-    <div class="splash" aria-hidden="true">
-      <div class="Strich1"></div>
-      <div class="Strich2"></div>
-      <div class="bubble"></div>
-      <div class="bubble1"></div>
-      <div class="bubble2"></div>
-      <div class="bubble3"></div>
-      <div class="bubble4"></div>
+    <div class="loader" aria-hidden="true">
+      <div class="box1"></div>
+      <div class="box2"></div>
+      <div class="box3"></div>
     </div>
     <p id="loading-text">جارٍ تحميل القائمة...</p>
   </div>
