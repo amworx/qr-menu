@@ -677,6 +677,18 @@
 - **lessons**: none new
 - **tags**: uiverse, splash, loader, duration, deploy
 
+## EVT-20260910-0011
+
+- **timestamp**: 2026-09-10
+- **mode**: BUILD / UI / DEPLOY
+- **action**: Keep splash screen visible longer; user clarified they meant the SPLASH SCREEN duration, not the animation keyframes
+- **summary**: User clarified: "don't mean the animation duration itself, I mean the splash screen… make the animation work normal just make the splash screen last longer." Previously `#loading` was hidden immediately after data loaded + render() (splash gone in <1s). Fix: `render(); setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 3000);` — splash now remains ~3.8s total (0.3s load + 3s timer). Animation keyframes left as-is (border-width+height wink, 6.4s cycle).
+- **result**: Verified with an init-script poller: localhost #loading display 'flex' from ~273ms → hidden at ~4125ms (~3.85s visible); live (?v=5) 'flex' from ~474ms → 'none' at ~4267ms (~3.8s visible). Commit 799ed80 pushed (`feat: keep splash visible 3s after data load so the wink loader is seen`).
+- **files**: index.html
+- **errors**: none
+- **lessons**: none new (user intent: "splash screen duration" ≠ "animation keyframe duration" — clarify screens vs animations)
+- **tags**: splash, loader, timing, ux, deploy
+
 ## EVT-20260910-0010
 
 - **timestamp**: 2026-09-10
