@@ -665,3 +665,15 @@
 - **lessons**: LSSN-20260910-006 (abs-pos margin/static-position layout is RTL-sensitive — uiverse components assume LTR)
 - **tags**: uiverse, splash, loader, rtl, direction, deploy, bug
 
+## EVT-20260910-0008
+
+- **timestamp**: 2026-09-10
+- **mode**: BUILD / UI / DEPLOY
+- **action**: Extend wink loader cycle 1.8s -> 2.4s
+- **summary**: User asked to "extend animation duration a bit" after the RTL fix. Changed `.loader .box3` `animation:infinite 1.8s wink` → `animation:infinite 2.4s wink`. No other changes; geometry/RTL anchoring untouched.
+- **result**: Localhost disk check confirmed rule 2.4s; live deploy computed `2.4s/wink` (fresh SW-cleared page). Commit b952a0a pushed (`tweak: extend wink loader cycle 1.8s -> 2.4s`).
+- **files**: index.html
+- **errors**: none (note: a previously-open localhost tab still showed 1.8s due to its own SW cache — cleared SW + reload resolved; disk had the new value)
+- **lessons**: none new
+- **tags**: uiverse, splash, loader, duration, deploy
+
