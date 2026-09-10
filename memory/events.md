@@ -749,3 +749,15 @@
 - **errors**: none
 - **lessons**: LSSN-20260910-007 (CSS `animation` shorthand resets `animation-fill-mode` — always re-declare `forwards` when listing multiple animations whose final keyframe must persist)
 - **tags**: uiverse, favorite-heart, celebrate, fill-mode, hamburger, hero-util, deploy
+
+## EVT-20260910-0015
+
+- **timestamp**: 2026-09-10
+- **mode**: BUILD / UI / DATA / DEPLOY
+- **action**: Admin Reviews tab — list customer survey ratings, avg + star breakdown, filter/sort, delete
+- **summary**: User: "does admin dashboard contains customer reviews?" — it did NOT (customer-side P2.9 survey existed: star modal in index.html + submit-survey edge function + surveys table with owner SELECT RLS, but no admin UI). User: "yes add it" then "add a filter/sorting options to reviews page". Built `reviews` tab in admin.html: sidebar + mobile-tabs button, i18n EN/AR, summary cards (avg /5 — initially showed "—" because summary was computed before async load; fixed with `renderReviewSummary()` called from `renderReviewRows()` to re-render avg/total/stars/bars after data lands), star distribution bars (5→1★, % width fill), paginated load (REVIEW_PAGE=200) + search, rating filter dropdown (all/5/4/3/2/1), sort dropdown (newest/oldest/highest rating/lowest rating). Delete button per row. Added `surveys_owner_delete` RLS policy (DO block guarded by pg_policies; admin delete worked via anon client because owner_email matches). Verified localhost EN+AR + mobile 390px (toolbar controls stack full-width via existing @media rule; review rows have data-label for card mode): avg 3.0/5, filter 5★→[5], 1★→[1], sort high→[5,3,1], low→[1,3,5], delete dialog + toast, zero JS errors. Cleaned all test rows (only real review id=3 kept). Updated docs/schema.sql with the delete policy.
+- **result**: Success. Commits 79f0dbc (feat) pushed; Pages build at 2026-09-10.
+- **files**: admin.html, docs/schema.sql, Supabase (surveys_owner_delete policy)
+- **errors**: none
+- **lessons**: none new (reused Orders tab pattern)
+- **tags**: reviews, surveys, admin-tab, rls, filter, sort, deploy
