@@ -677,3 +677,15 @@
 - **lessons**: none new
 - **tags**: uiverse, splash, loader, duration, deploy
 
+## EVT-20260910-0009
+
+- **timestamp**: 2026-09-10
+- **mode**: BUILD / UI / DEPLOY
+- **action**: Extend wink loader cycle 2.4s -> 3.2s
+- **summary**: User: "more duration". `.loader .box3` `animation:infinite 2.4s wink` → `3.2s wink`. Progression now 1.8 → 2.4 → 3.2s (~+33% each step).
+- **result**: Live verified computed `3.2s/wink`, box2/box3 still not overlapping. Commit a13e4c3 pushed (`tweak: extend wink loader cycle 2.4s -> 3.2s`).
+- **files**: index.html
+- **errors**: none
+- **lessons**: none new
+- **tags**: uiverse, splash, loader, duration, deploy
+
