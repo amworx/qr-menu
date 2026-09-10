@@ -689,6 +689,18 @@
 - **lessons**: none new (user intent: "splash screen duration" ≠ "animation keyframe duration" — clarify screens vs animations)
 - **tags**: splash, loader, timing, ux, deploy
 
+## EVT-20260910-0012
+
+- **timestamp**: 2026-09-10
+- **mode**: BUILD / UI / DEPLOY
+- **action**: Restore wink animation cycle to default 1.8s
+- **summary**: User: "restore the animation duration to default". `.loader .box3` animation `6.4s wink` → `1.8s wink` (matches the original uiverse slippery-robin-92). Splash screen hold (3s timer from EVT-20260910-0011) left untouched — the user wanted only the blink cadence restored, not the splash visibility.
+- **result**: Localhost fresh page computed `1.8s/wink`. Commit e613464 pushed (`tweak: restore wink cycle to default 1.8s`).
+- **files**: index.html
+- **errors**: none
+- **lessons**: none new
+- **tags**: uiverse, splash, loader, duration, deploy
+
 ## EVT-20260910-0010
 
 - **timestamp**: 2026-09-10
