@@ -792,7 +792,8 @@
       document.documentElement.style.setProperty('--primary-2', shop.accent_color || shop.primary_color || '#c96a12');
 
       render();
-      document.getElementById('loading').style.display = 'none';
+      // Keep splash visible for 3s so the wink loader is seen
+      setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 3000);
 
       // Deep link (P1.10): ?item=<id> opens the product sheet after first paint
       const deepItem = new URLSearchParams(window.location.search).get('item');
