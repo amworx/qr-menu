@@ -181,3 +181,13 @@
 - **Problem**: massive-falcon-52's pills are hardcoded `#000`; on the app's near-black dark theme they'd be invisible.
 - **Fix**: `.splash .Strich1/.Strich2` use `var(--text)` (cream on dark, cocoa on light), keeping the original colorful bubble gradients untouched (they pop on both themes).
 - **Lesson**: Before porting a light-theme uiverse component into a dark-first app, audit every hardcoded luminance (pill/ball/text colors) against both theme blocks; brightly-colored accents usually survive, base shapes often need a theme var.
+
+## LSSN-20260910-004 — uiverse components with `position:absolute` children assume the site's preview wrapper supplies the positioning context
+- **Problem**: slippery-robin-92 loads its three bordered "QR" boxes with `position:absolute` but its own CSS never sets a positioned ancestor — on uiverse it works because the preview container provides one implicitly. Dropped straight into the app, the boxes would anchor to the nearest positioned ancestor (or the viewport).
+- **Fix**: Add `position:relative` to the embedding wrapper (`.loader{position:relative;width:112px;height:112px}`) so `box1/box2/box3`'s `margin-top/margin-left` offsets land exactly as in the source.
+- **Lesson**: Ported uiverse markup with absolute children needs an explicit positioned wrapper in the target app; verify rects in-browser (box1 112x48@(0,64), box2/box3 48x48@(0,0)/(64,0)) rather than assuming the CSS "just works".
+
+## LSSN-20260910-005 — This app's theme selector is `:root[data-theme="dark|light"]`, not a body/class
+- **Problem**: Testing the loader in light mode: toggled `classList` `.dark`/`.light` on `<html>` and read `getComputedStyle` — the border stayed cream, suggesting the theme var didn't change.
+- **Fix**: `document.documentElement.dataset.theme = 'light'`; then computed border = rgb(41,29,18) cocoa, bg rgb(250,245,238) cream.
+- **Lesson**: Check the real CSS selector before flipping themes in tests (`Select-String -- "--bg:"` shows `:root[data-theme=...]`). getComputedStyle after 200ms reflects the flip; a `.light` class on `<html>` does nothing here.

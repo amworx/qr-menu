@@ -641,3 +641,15 @@
 - **errors**: none
 - **tags**: mock, uiverse, category-switcher, radio, glassmorphism, design-only
 
+## EVT-20260910-0006
+
+- **timestamp**: 2026-09-10
+- **mode**: BUILD / UI / DEPLOY / FIX
+- **action**: Replace splash loader with uiverse slippery-robin-92 (wink loader)
+- **summary**: User rejected the massive-falcon-52 adaptation as distorted vs source and asked for a different loader: `https://uiverse.io/MetaBlue2000/slippery-robin-92`. Extracted CSS + HTML from the uiverse page: `.loader` 112x112, three `box1/box2/box3` siblings with 16px borders forming a QR-like frame (box1 112x48 bottom bar `margin-top:64px`, box2 48x48 top-left, box3 48x48 top-right blinking via `@keyframes wink` 1.8s infinite: height 48→10 with `rotate:-25deg/-45deg` then back). Flat sibling structure this time (no nesting trap). Adaptation kept geometry + keyframes verbatim; changed border color `#f5f5f5` → `var(--text)` for theme ink; added `position:relative` to `.loader` so the absolute boxes anchor to it (the uiverse preview supplies that implicitly). Removed all `.splash`/`.Strich1/2`/`.bubble*`/`dropAndShift` CSS+markup (incl. the extra `.bubble4` added earlier). `#loading`/`#loading-text` contract preserved.
+- **result**: Verified localhost fresh (SW cleared): loader 112x112 centered, boxes at exact source rects (box1 112x48@(0,64), box2 48x48@(0,0), box3 48x48@(64,0), 16px border), `wink 1.8s infinite` running, mid-blink pause captured (box3 57x49 rotated), dark cream rgb(245,239,230) / light cocoa rgb(41,29,18) ink, loading auto-hides, menu renders, `node --check` OK. Screenshots dark/light/mobile (375). Committed b6ab4dd (`fix: replace splash loader with uiverse slippery-robin-92 wink loader (faithful geometry, theme-aware ink)`) + pushed; live fresh page verified: `.loader` with box1/box2/box3, `wink` animation, splash markup gone.
+- **files**: index.html, docs/screenshots/2026-09-10-splash-slippery-robin-dark.png, docs/screenshots/2026-09-10-splash-slippery-robin-light.png, docs/screenshots/2026-09-10-splash-slippery-robin-mobile-ar.png
+- **errors**: First live check served stale SW index.html (hasLoader:false, old splash present) — fixed by unregister+clear caches+hard reload. First light-theme assertion used classList `.dark/.light` but themes are `:root[data-theme="dark|light"]` — flipped the attribute (border then read rgb(41,29,18)).
+- **lessons**: LSSN-20260910-004 (absolute-positioned uiverse children need an explicit positioned wrapper) + LSSN-20260910-005 (theme is chosen via `data-theme` attr; don't flip classes)
+- **tags**: uiverse, splash, loader, deploy, theme, data-theme
+
