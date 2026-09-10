@@ -737,3 +737,15 @@
 - **lessons**: none new
 - **tags**: uiverse, splash, loader, duration, deploy
 
+
+## EVT-20260910-0014
+
+- **timestamp**: 2026-09-10
+- **mode**: BUILD / UI / DEPLOY
+- **action**: Heart pulse rays vanish after burst; menu icon -> JulanDeAlb tall-swan-6 hamburger
+- **summary**: User: "when toggling the favorite icon the pulse rays should disappear as in the original source" and "also change the menu icon to be https://uiverse.io/JulanDeAlb/tall-swan-6". (1) Root cause: `.fav-heart .checkbox:checked~.svg-container .svg-celebrate` used the `animation` shorthand (`keyframes-svg-celebrate .55s,keyframes-celebrate-glow .55s`) which resets `animation-fill-mode` to `none` — after the burst the element reverted to its visible base state, so the rays stayed on screen. Fix: add explicit `forwards` to both animations so the `display:none;opacity:0` end-state persists, matching the original plastic-moth-91 source. Verified on localhost: at 140ms rays visible (display:block, opacity:.9, 38px), at 900ms gone (display:none, opacity:0). (2) tall-swan-6 is JulanDeAlb's animated hamburger checkbox (morphs to X). No hamburger existed in the app; the only header menu control is the hero-util settings button (`fa-sliders`, opens the utility sheet). Replaced the icon with the tall-swan-6 SVG (viewBox 0 0 32 32, `.hb-svg` 22x22, `.hb-line` stroke `var(--hero-util-color)`, `.hb-line-top-bottom` dasharray 12 63). The existing `.on` class (already toggled by open/closeUtilitySheet) drives the checked state: `.on .hb-svg` rotate(-45deg), `.on .hb-line-top-bottom` dasharray 20 300 + dashoffset -32.42. No JS changes needed. Verified localhost EN+AR: morphs to X opening sheet, back to hamburger closing, RTL button mirrored (right:25), aria-label الإعدادات.
+- **result**: Success. Commit e124c25 pushed (`fix: heart pulse rays vanish after burst (fill-mode forwards); menu icon -> JulanDeAlb tall-swan-6 hamburger`). Pages build pending live verify.
+- **files**: index.html
+- **errors**: none
+- **lessons**: LSSN-20260910-007 (CSS `animation` shorthand resets `animation-fill-mode` — always re-declare `forwards` when listing multiple animations whose final keyframe must persist)
+- **tags**: uiverse, favorite-heart, celebrate, fill-mode, hamburger, hero-util, deploy
