@@ -785,3 +785,15 @@
 - **errors**: none (benign 404 favicon.ico only)
 - **lessons**: LSSN-20260911-011 (write-path fixes verified in code rather than live DB writes), LSSN-20260911-012 (async fn return of a promise wraps it — memoization must be tested with a sentinel, not identity)
 - **tags**: whole-app, edge-cases, double-submit, discount-cap, xss-escape, price-guard, memoize, deferred
+
+## EVT-20260911-0018
+
+- **timestamp**: 2026-09-11
+- **mode**: REVIEW / BUILD
+- **action**: Investigated "orders are not appearing in admin dashboard" — found silent insert-failure fallback; fixed + hardened
+- **summary**: User reported orders missing from admin. Verified the full pipeline live: anon insert -> order 16, admin Orders tab shows it, exact sendWhatsApp payload -> 17, real UI flow (Add -> sheet -> Send) -> 18, admin loads [18,17,16]. orders table was empty before probes (cnt=0) with orders_id_seq already at 15 -> ~15 consumed-but-empty ids = fingerprint of inserted-but-failed (or deleted) order rows. ROOT CAUSE: sendWhatsApp inserted first, but the catch swallowed every error and fell back to a client-only T<epoch> number: the customer still got WhatsApp + "WhatsApp opened" toast while the order never reached the DB and the dashboard silently stayed empty. Secondary bug: dealAfterValue('bogo') returned buy_qty*unit regardless of cart eligibility, so the order sheet displayed a price for a BOGO whose item was not in the cart (e.g. 50,000 SYP next to Offer #1 with 0 Manakish). FIXED in index.html: (1) insert now retries once (attempt<2 && orderNo==null) for transient failures (IPv6-only DB from mobile networks); (2) if still unsaved, console.warn + red toast "لم يُحفظ الطلب في لوحة التحكم" + the literal WhatsApp message carries "⚠️ لم يُحفظ الطلب في لوحة التحكم — أُرسل عبر واتساب فقط" so the shop sees the order is not in the dashboard; (3) dealAfterValue('bogo') returns null unless cart[d.item_id] >= buy+get, so the sheet shows "—" for ineligible BOGO.
+- **result**: Success. Local tests: BOGO ineligible -> "—" (was 50,000), stubbed insert failure -> warning toast + ⚠️ marker in wa.me URL + cart reset, real insert success -> Order #19 + toast. Live ?v=dbg2 verified hasRetry=true, hasWarn=true, bogValue=null, sheet "—". Probes 16-19 deleted via Management API (cnt=0, seq=19 normal). Commit 4b59eac pushed (Pages live).
+- **files**: index.html
+- **errors**: none
+- **lessons**: LSSN-20260911-015
+- **tags**: orders, sendWhatsApp, silent-failure, fallback, retry, bogo, dashboard
