@@ -218,3 +218,23 @@
 - **Problem**: surveys_insert was `(rating 1..5 and comment is null or comment='''' or length(comment)<=500)` — due to AND/OR precedence, any short non-empty comment made the whole check TRUE regardless of rating; only the table CHECK (surveys_rating_check) blocked rating=99.
 - **Fix**: Re-applied as `(rating between 1 and 5) and (comment is null or comment = '''' or length(comment) <= 500)`. Verified via anon REST insert: bad rating now errors 42501 (policy layer) instead of 23514 (check layer).
 - **Lesson**: When authoring RLS WITH CHECK expressions, group every disjunct with parentheses and verify each branch independently (anon-key probe); never rely on a table CHECK to silently backstop a policy bug.
+
+## LSSN-20260911-011 - Verify write-path Db fixes in code, not by mutating production data
+- **Problem**: Whole-app audit produced fixes in saveItem/deleteBadge/saveDeal paths that write to the live DB; running them as probe tests would create or destroy real rows in the owner's shop.
+- **Fix**: Exercise only the guard/render/read branches in the browser (double-submit noops, last-currency block, empty-filter pager, XSS string output, memoization sentinel, clipboard). For write-path mutations (price cleanup, badge cleanup, currency select, percent clamp), verify the exact code path by reading the function they live in.
+- **Lesson**: In a live single-shop app, prefer "test the guard, read the mutation" over "probe the mutation then restore" — a failed restore can silently corrupt shop data, and the guard tests are the parts most likely to regress anyway.
+
+## LSSN-20260911-012 - An async function wrapping a memoized promise breaks identity checks
+- **Problem**: showDashboard() returns `dashboardPromise` inside `async function` — an async fn always wraps its return in a NEW promise, so `p1 === p2` is false even when the memoization works. The false negative looked like the guard was broken.
+- **Fix**: Test memoization by replacing the stored promise with a sentinel and asserting the function does NOT reassign it (`dashboardPromise === sentinel` still true after the call returns).
+- **Lesson**: When testing promise-memoization, never compare promise identities returned from an async function; check that the memo slot did not get a new promise instead.
+
+## LSSN-20260911-013 - Additive discounts can exceed subtotal; cap the LINES, not just the total
+- **Problem**: With several offers, raw savings sum could exceed the subtotal; the total was capped but the line items still showed the uncapped savings, so the WhatsApp receipt and admin order view could disagree with the total (-120 in offers vs -100 discount).
+- **Fix**: computeOrder caps discount to subtotal and scales each discount line proportionally (with a remainder on the last line) so `sum(discountLines) === discount` always; the receipt renders the capped lines.
+- **Lesson**: Every derived-money list must be consistent with its own total — cap the components when you cap the aggregate, or shared consumers (receipt, order record, admin view) will render contradictions.
+
+## LSSN-20260911-014 - Cart state must reset when the order leaves; guards prevent duplicate sends
+- **Problem**: After sendWhatsApp the cart stayed populated; a later press would build the SAME order again (duplicate orders). A double-click on Send could also fire two inserts while the first was still in flight.
+- **Fix**: waSending flag guards re-entry during the async insert/open; after window.open the whole cart (items, offers, notes, variants) is cleared and the UI re-rendered; survey prompt follows 900ms later.
+- **Lesson**: Order-flows are state machines: an in-flight guard (double-submit) AND a terminal state transition (cart reset) are both required to make send-once semantics real.
