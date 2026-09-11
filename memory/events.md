@@ -761,3 +761,15 @@
 - **errors**: none
 - **lessons**: none new (reused Orders tab pattern)
 - **tags**: reviews, surveys, admin-tab, rls, filter, sort, deploy
+
+## EVT-20260911-0016
+
+- **timestamp**: 2026-09-11
+- **mode**: REVIEW / BUILD
+- **action**: Deep edge-case & bug pass on the Reviews tab (admin) + fixes
+- **summary**: User: "do a deep edge cases and bugs" on the just-shipped Reviews tab. Audited by reading code, checking live pg_policies + information_schema via Management API, and reproducing in-browser. Found & FIXED: (1) Load-more button was hidden whenever the filtered list was empty — if a rating filter matched nothing in the first 200 loaded reviews while more pages existed, the user was stuck (reproduced: "عرض 0 من 200+" + no button). Now the Load More button renders whenever reviewHasMore regardless of filter results. (2) Duplicate rows on rapid double-refresh: two concurrent loadReviews(true) both appended page 0 (reproduced length 2 / unique 1). Added reviewFetchToken counter; stale responses are dropped; also switched range to page+1 so hasMore is exact (kills off-by-one where an exact-multiple total left a phantom Load More). (3) deleteReview called showTab('reviews') = full reload + pagination reset after every delete; now filters locally + renderReviewRows(). (4) RLS surveys_insert with_check had an OR-precedence bug: `(rating 1..5 and comment is null or comment='''' or length(comment)<=500)` let any short comment bypass the rating bound (masked only by the table CHECK surveys_rating_check). Re-applied the policy as `(rating between 1 and 5) and (comment is null or comment = '''' or length(comment) <= 500)`; verified anon insert of rating=99 now fails at policy layer (42501). NOT bugs (checked & dismissed): XSS (comment/date/rating escaped or typed), tab-switch race (fetch is not awaited before innerHTML swap), i18n completeness, RLS ownership on delete (owner_email via shops join). Tested localhost EN+AR, desktop+mobile: race=1/1 unique, empty-filter keeps Load More, delete in place (total 1), no console errors. Cleaned all probe rows; only real review id=3 remains.
+- **result**: Success. Commit 4fa6b51 pushed; Pages build at 2026-09-11.
+- **files**: admin.html, docs/schema.sql, Supabase (surveys_insert policy)
+- **errors**: none
+- **lessons**: LSSN-20260911-008 (empty-filter UI must keep the pagination control reachable), LSSN-20260911-009 (concurrent list loads need a token guard), LSSN-20260911-010 (RLS OR-precedence)
+- **tags**: reviews, edge-cases, race, pagination, rls, delete, review

@@ -203,3 +203,18 @@
 - **Root cause**: The rule was written as the `animation` shorthand (`animation:keyframes-svg-celebrate .55s,keyframes-celebrate-glow .55s`). The shorthand resets every `animation-*` longhand it doesn't mention, so `animation-fill-mode` reverted to `none`; when the animation ended, the element fell back to its base style (visible). The original source used `animation-fill-mode:forwards` + a `display:none` end keyframe.
 - **Fix**: `.fav-heart .checkbox:checked~.svg-container .svg-celebrate{animation:keyframes-svg-celebrate .55s forwards,keyframes-celebrate-glow .55s forwards}`. Verified: rays visible at 140ms (opacity .9, 38px), gone at 900ms (display:none, opacity:0).
 - **Lesson**: Any time you list keyframe animations in the `animation` shorthand, re-declare `forwards` if the final keyframe state must persist (display:none / opacity:0). Prefer longhands (`animation-name/animation-duration/animation-fill-mode`) when layering styles from different sources to avoid surprise resets.
+
+## LSSN-20260911-008 - Empty-filter results must still expose the pagination control
+- **Problem**: Applying a rating filter that matched nothing in the first loaded page hid the Load More button, so deeper matching reviews were unreachable; count said "Showing 0 of 200+".
+- **Fix**: renderReviewRows renders the Load More button whenever `reviewHasMore` (and data exists), independent of the filtered list length; the empty row stays as the table message but does not remove the pager.
+- **Lesson**: In paginated list UIs, treat "filter matched nothing (yet)" and "no data at all" as different states: the former keeps the pager visible so users can load deeper pages.
+
+## LSSN-20260911-009 - Concurrent list loads duplicate rows unless guarded by a request token
+- **Problem**: Firing loadReviews(true) twice in a row (double-click Refresh) started two fetches with the same range; both appended `from=0` results -> duplicate rows (reproduced length 2, unique 1).
+- **Fix**: `reviewFetchToken = ++reviewFetchToken` at call entry; after the await, `if (token !== reviewFetchToken) return;` drops stale responses. Fetch REVIEW_PAGE+1 rows so `reviewHasMore = (fetched > REVIEW_PAGE)` is exact, eliminating the extra phantom fetch on exact-multiple totals.
+- **Lesson**: Any async loader that concatenates into a shared array needs an in-flight token (or AbortController) — double-clicks and rapid tab re-renders are the normal trigger, not an exotic case.
+
+## LSSN-20260911-010 - RLS policy boolean logic needs explicit parentheses; table CHECKs are only a second fence
+- **Problem**: surveys_insert was `(rating 1..5 and comment is null or comment='''' or length(comment)<=500)` — due to AND/OR precedence, any short non-empty comment made the whole check TRUE regardless of rating; only the table CHECK (surveys_rating_check) blocked rating=99.
+- **Fix**: Re-applied as `(rating between 1 and 5) and (comment is null or comment = '''' or length(comment) <= 500)`. Verified via anon REST insert: bad rating now errors 42501 (policy layer) instead of 23514 (check layer).
+- **Lesson**: When authoring RLS WITH CHECK expressions, group every disjunct with parentheses and verify each branch independently (anon-key probe); never rely on a table CHECK to silently backstop a policy bug.
