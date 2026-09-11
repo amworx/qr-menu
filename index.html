@@ -2051,9 +2051,12 @@
       }
       if (dt === 'bogo') {
         if (!d.item_id) return null;
+        const qty = cart[d.item_id] || 0;
+        const buy = Number(d.buy_qty) || 1, get = Number(d.get_qty) || 1;
+        if (qty < buy + get) return null; // not eligible for this cart — do not show a price
         const u = itemUnitPrice(d.item_id);
         if (!u) return null;
-        return (Number(d.buy_qty) || 1) * u;
+        return buy * u;
       }
       const s = dealSavings(d);
       if (s <= 0) return null;
@@ -2348,28 +2351,37 @@
         toast(lang === 'ar' ? 'حدّد موقع التوصيل على الخريطة أولاً' : 'Set the delivery location on the map first', true);
         return;
       }
-      try {
-        const { data, error } = await sb.from('orders').insert({
-          shop_id: shop.id,
-          currency: activeCurrency,
-          subtotal: Math.round(o.subtotal * 100) / 100,
-          discount: Math.round(o.discount * 100) / 100,
-          total: Math.round(o.total * 100) / 100,
-          items: o.itemsList,
-          offers: o.offers,
-          discount_lines: o.discountLines,
-          note,
-          order_mode: orderMode,
-          table_label: tableLabel,
-          outlet_id: (selectedOutlet() || {}).id || null,
-          outlet_label: outletLabel(selectedOutlet()),
-          customer_phone: customerPhoneInput,
-          delivery_address: orderMode === 'delivery' ? deliveryAddr : '',
-          delivery_lat: orderMode === 'delivery' ? deliveryLat : null,
-          delivery_lng: orderMode === 'delivery' ? deliveryLng : null
-        }).select('id').single();
-        if (!error && data && data.id) orderNo = data.id;
-      } catch (e) { /* keep client-only fallback below */ }
+      // Insert the order (RLS: public INSERT for the owner's shop). One retry:
+      // transient failures (e.g. the IPv6-only DB from some mobile networks)
+      // must not silently drop the record. If it still fails we open WhatsApp
+      // anyway so the customer keeps their fallback, but we clearly warn both
+      // the customer and the shop that the order was NOT saved to the dashboard.
+      for (let attempt = 0; attempt < 2 && orderNo == null; attempt++) {
+        try {
+          const { data, error } = await sb.from('orders').insert({
+            shop_id: shop.id,
+            currency: activeCurrency,
+            subtotal: Math.round(o.subtotal * 100) / 100,
+            discount: Math.round(o.discount * 100) / 100,
+            total: Math.round(o.total * 100) / 100,
+            items: o.itemsList,
+            offers: o.offers,
+            discount_lines: o.discountLines,
+            note,
+            order_mode: orderMode,
+            table_label: tableLabel,
+            outlet_id: (selectedOutlet() || {}).id || null,
+            outlet_label: outletLabel(selectedOutlet()),
+            customer_phone: customerPhoneInput,
+            delivery_address: orderMode === 'delivery' ? deliveryAddr : '',
+            delivery_lat: orderMode === 'delivery' ? deliveryLat : null,
+            delivery_lng: orderMode === 'delivery' ? deliveryLng : null
+          }).select('id').single();
+          if (!error && data && data.id) orderNo = data.id;
+        } catch (e) { /* keep client-only fallback below */ }
+      }
+      const unsaved = !orderNo;
+      if (unsaved) console.warn('[sendWhatsApp] order insert failed — WhatsApp fallback only: order will NOT appear in the dashboard');
       if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ' + (lang === 'ar' ? 'فتح واتساب...' : 'Opening WhatsApp...'); }
 
       const displayNo = orderNo || ('T' + String(Date.now()).slice(-6));
@@ -2422,6 +2434,9 @@
       }
       lines.push(`${totalLabel}: *${formatPrice(o.total, activeCurrency)}*`);
       if (note) { lines.push(''); lines.push(`${lang === 'ar' ? 'ملاحظات' : 'Notes'}: ${note}`); }
+      // If the DB insert failed, mark the message so the shop knows this order
+      // was NOT saved to the dashboard and must be handled from the WhatsApp text.
+      if (unsaved) lines.push(lang === 'ar' ? '⚠️ لم يُحفظ الطلب في لوحة التحكم — أُرسل عبر واتساب فقط' : '⚠️ Order NOT saved to dashboard — WhatsApp only');
       // WhatsApp's wa.me redirect drops non-BMP (emoji) characters, so strip
       // surrogate pairs from titles/notes but keep a BMP-safe star marker.
       const msg = encodeURIComponent(lines.join('\n').replace(/[\uD800-\uDFFF]/g, ''));
@@ -2429,7 +2444,7 @@
       window.open(phone ? `https://wa.me/${phone}?text=${msg}` : `https://wa.me/?text=${msg}`, '_blank');
       toast(orderNo
         ? (lang === 'ar' ? `تم إنشاء الطلب رقم #${orderNo}` : `Order #${orderNo} placed`)
-        : (lang === 'ar' ? 'تم فتح واتساب' : 'WhatsApp opened'));
+        : (lang === 'ar' ? '⚠️ لم يُحفظ الطلب في لوحة التحكم — سيصل عبر واتساب فقط' : '⚠️ Order not saved to dashboard — WhatsApp only'), !orderNo);
       // Order leaves the cart — reset it so a later press starts a fresh order
       // (prevents duplicate orders from a stale cart).
       cart = {}; cartOffers = {}; cartNotes = {}; selectedVariants = {};
