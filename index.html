@@ -781,9 +781,11 @@
       window.location.hash = lang;
 
       const slug = new URLSearchParams(window.location.search).get('shop');
-      let query = sb.from('shops').select('*').eq('is_active', true);
+      try {
+        let query = sb.from('shops').select('*').eq('is_active', true);
       if (slug) query = query.eq('slug', slug);
-      const { data: shops } = await query.limit(1);
+      const { data: shops, error: shopErr } = await query.limit(1);
+      if (shopErr) throw shopErr;
 
       if (!shops || shops.length === 0) {
         document.getElementById('loading').innerHTML = '<p style="color:var(--text2)">لا يوجد متجر / No shop found.</p>';
@@ -792,27 +794,33 @@
       shop = shops[0];
       activeCurrency = shop.currency_default || 'SYP';
 
-      const { data: cats } = await sb.from('categories').select('*').eq('shop_id', shop.id).eq('is_active', true).order('sort_order');
+      const { data: cats, error: catErr } = await sb.from('categories').select('*').eq('shop_id', shop.id).eq('is_active', true).order('sort_order');
+      if (catErr) throw catErr;
       categories = cats || [];
 
-      const { data: its } = await sb.from('items').select('*, item_prices(*)').eq('shop_id', shop.id).eq('is_available', true).order('sort_order');
+      const { data: its, error: itemErr } = await sb.from('items').select('*, item_prices(*)').eq('shop_id', shop.id).eq('is_available', true).order('sort_order');
+      if (itemErr) throw itemErr;
       items = (its || []).filter(i => (i.item_prices || []).some(p => p.is_visible));
 
       const now = new Date().toISOString();
-      const { data: dls } = await sb.from('deals').select('*').eq('shop_id', shop.id).eq('is_active', true)
+      const { data: dls, error: dealErr } = await sb.from('deals').select('*').eq('shop_id', shop.id).eq('is_active', true)
         .or(`starts_at.is.null,starts_at.lte.${now}`).or(`ends_at.is.null,ends_at.gte.${now}`).order('sort_order');
+      if (dealErr) throw dealErr;
       deals = dls || [];
 
       // Outlets (P2.8): only shops with >=2 active outlets show the branch selector
-      const { data: outs } = await sb.from('outlets').select('*').eq('shop_id', shop.id).eq('is_active', true).order('sort_order');
+      const { data: outs, error: outErr } = await sb.from('outlets').select('*').eq('shop_id', shop.id).eq('is_active', true).order('sort_order');
+      if (outErr) throw outErr;
       outlets = outs || [];
       const savedOut = localStorage.getItem('qm-outlet-id');
       selectedOutletId = outlets.some(o => o.id === savedOut) ? savedOut : (outlets.length ? outlets[0].id : null);
 
       // Badges + allergens catalogs (P3)
-      const { data: bgs } = await sb.from('shop_badges').select('*').eq('shop_id', shop.id).eq('is_active', true).order('sort_order');
+      const { data: bgs, error: bgErr } = await sb.from('shop_badges').select('*').eq('shop_id', shop.id).eq('is_active', true).order('sort_order');
+      if (bgErr) throw bgErr;
       allBadges = bgs || [];
-      const { data: alg } = await sb.from('shop_allergens').select('*').eq('shop_id', shop.id).eq('is_active', true).order('sort_order');
+      const { data: alg, error: algErr } = await sb.from('shop_allergens').select('*').eq('shop_id', shop.id).eq('is_active', true).order('sort_order');
+      if (algErr) throw algErr;
       allAllergens = alg || [];
 
       document.documentElement.style.setProperty('--primary', shop.primary_color || '#e08a2e');
@@ -834,8 +842,12 @@
       const tabParam = new URLSearchParams(window.location.search).get('table');
       const tabVal = tabParam ? String(tabParam).trim() : '';
       if (tabVal) tableLabel = tabVal;
-      initVoice();
-      setupPWA();
+        initVoice();
+        setupPWA();
+      } catch (e) {
+        console.error('init failed', e);
+        document.getElementById('loading').innerHTML = '<div style="text-align:center;padding:40px 16px"><p style="color:var(--primary);font-size:18px;font-weight:800">' + (lang === 'ar' ? 'تعذّر تحميل المتجر' : 'Could not load the shop') + '</p><p style="color:var(--text2);font-size:13px;margin-top:8px">' + (lang === 'ar' ? 'تحقق من اتصالك بالإنترنت وحاول مجدداً' : 'Check your connection and try again') + '</p><button onclick="location.reload()" style="margin-top:16px;padding:10px 24px;border:none;border-radius:999px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer">' + (lang === 'ar' ? 'إعادة المحاولة' : 'Retry') + '</button></div>';
+      }
     })();
 
     // ─── RENDER ─────────────────────────────────────────────
@@ -940,7 +952,7 @@
       deferredPrompt.prompt();
       deferredPrompt.userChoice.then(() => { deferredPrompt = null; showInstallBanner(false); });
     }
-    function loadFavs() { try { return JSON.parse(localStorage.getItem('qm_favs') || '[]'); } catch (e) { return []; } }
+    function loadFavs() { try { const v = JSON.parse(localStorage.getItem('qm_favs') || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
     function saveFavs() { try { localStorage.setItem('qm_favs', JSON.stringify(favs)); } catch (e) {} }
     function isFav(id) { return favs.includes(id); }
     function toggleFav(id) {
@@ -1295,8 +1307,8 @@
     function itemMetaHTML(item) {
       if (!item || (item.kcal == null && item.prep_time_min == null)) return '';
       const parts = [];
-      if (item.kcal != null) parts.push(`<span class="meta-kcal"><i class="fa-solid fa-fire"></i> ${item.kcal} kcal</span>`);
-      if (item.prep_time_min != null) parts.push(`<span class="meta-prep"><i class="fa-regular fa-clock"></i> ${lang === 'ar' ? `~${item.prep_time_min} دقيقة` : `~${item.prep_time_min} min`}</span>`);
+      if (item.kcal != null) parts.push(`<span class="meta-kcal"><i class="fa-solid fa-fire"></i> ${esc(item.kcal)} kcal</span>`);
+      if (item.prep_time_min != null) parts.push(`<span class="meta-prep"><i class="fa-regular fa-clock"></i> ${lang === 'ar' ? `~${esc(item.prep_time_min)} دقيقة` : `~${esc(item.prep_time_min)} min`}</span>`);
       return `<div class="item-meta">${parts.join('')}</div>`;
     }
 
@@ -1869,6 +1881,11 @@
       if (!id) return;
       const item = items.find(i => i.id === id);
       const note = document.getElementById('pd-note')?.value?.trim() || '';
+      // Adding/updating requires a price in the active currency (removal is always allowed)
+      if (sheetQty > 0 && !itemPriceAvailable(item)) {
+        toast(lang === 'ar' ? 'لا يوجد سعر لهذا الصنف بالعملة الحالية' : 'This item has no price in the current currency', true);
+        return;
+      }
       if (note) cartNotes[id] = note; else delete cartNotes[id];
       if (itemHasVariants(item)) selectedVariants[id] = sheetVariant;
       if (sheetQty <= 0) { delete cart[id]; delete cartNotes[id]; delete selectedVariants[id]; }
@@ -1882,17 +1899,25 @@
 
     // Cart
     function incCart(id) {
+      if (!itemPriceAvailable(id)) {
+        toast(lang === 'ar' ? 'لا يوجد سعر لهذا الصنف بالعملة الحالية' : 'This item has no price in the current currency', true);
+        return;
+      }
       cart[id] = Math.min((cart[id] || 0) + 1, 99);
       renderItems(); updateCartBar();
       if (document.getElementById('order-modal')?.classList.contains('visible')) renderOrderSheet();
     }
     function decCart(id) {
-      if (cart[id]) { cart[id]--; if (cart[id] <= 0) delete cart[id]; }
+      if (cart[id]) { cart[id]--; if (cart[id] <= 0) { delete cart[id]; delete cartNotes[id]; } }
       renderItems(); updateCartBar(); if (document.getElementById('order-modal')?.classList.contains('visible')) renderOrderSheet();
     }
     function setCartQty(id, val) {
       const q = parseInt(val, 10) || 0;
-      if (q <= 0) delete cart[id]; else cart[id] = Math.min(q, 99);
+      if (q > 0 && !itemPriceAvailable(id)) {
+        toast(lang === 'ar' ? 'لا يوجد سعر لهذا الصنف بالعملة الحالية' : 'This item has no price in the current currency', true);
+        return;
+      }
+      if (q <= 0) { delete cart[id]; delete cartNotes[id]; } else cart[id] = Math.min(q, 99);
       renderItems(); renderOrderSheet(); updateCartBar();
     }
     function removeItem(id) {
@@ -1933,6 +1958,15 @@
       const p = (item?.item_prices || []).find(x => x.currency === activeCurrency && x.is_visible);
       return p ? Number(p.price) || 0 : 0;
     }
+    // True when the item has ANY price row in the active currency (a genuine
+    // free item — price 0 with a visible row — still counts; a missing row means
+    // the currency hasn't been priced and the item must not become free).
+    function itemPriceAvailable(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return false;
+      if (itemHasVariants(item)) return item.variants.some((_, i) => variantPrice(item, i) != null);
+      return (item.item_prices || []).some(x => x.currency === activeCurrency && x.is_visible);
+    }
     // Card price cell: "From X" when the item has variants, plain price otherwise (P1.6)
     function cardPriceHTML(item) {
       if (!itemHasVariants(item)) {
@@ -1951,6 +1985,11 @@
     }
     function cartSubtotal() {
       return Object.entries(cart).reduce((s, [id, qty]) => s + itemUnitPrice(id) * qty, 0);
+    }
+    // Count of offers currently in the cart that still exist in the live deal list
+    // (a stale cartOffers key whose deal was deleted/deactivated must not count).
+    function cartOfferCount() {
+      return Object.keys(cartOffers).filter(id => deals.some(d => d.id === id)).length;
     }
     // Subtotal of the scope a deal applies to (item / category / all)
     function scopeSubtotalValue(d) {
@@ -2005,6 +2044,8 @@
       const subtotal = cartSubtotal();
       if (dt === 'bundle') {
         if (d.currency && d.currency !== activeCurrency) return null;
+        const ids = (d.bundle_items || []).map(x => (typeof x === 'string' ? x : (x.id || x)));
+        if (!ids.length || !ids.every(id => (cart[id] || 0) >= 1)) return null;
         const bp = Number(d.bundle_price) || 0;
         return bp > 0 ? bp : null;
       }
@@ -2038,8 +2079,21 @@
       }
       const subtotal = cartSubtotal();
       const discountLines = offers.filter(o => o.savings > 0)
-        .map(o => ({ id: o.id, title: o.title, title_ar: o.title_ar, amount: o.savings }));
-      const discount = Math.min(discountLines.reduce((s, x) => s + x.amount, 0), subtotal);
+        .map(o => ({ id: o.id, title: o.title, title_ar: o.title_ar, amount: Math.round(o.savings * 100) / 100 }));
+      let rawDiscount = discountLines.reduce((s, x) => s + x.amount, 0);
+      const discount = Math.min(rawDiscount, subtotal);
+      // Cap per-line amounts proportionally so displayed lines always sum to the shown discount
+      if (rawDiscount > discount) {
+        const scale = discount / rawDiscount;
+        let running = 0;
+        for (let i = 0; i < discountLines.length; i++) {
+          const lineAmount = i === discountLines.length - 1
+            ? Math.round((discount - running) * 100) / 100
+            : Math.round(discountLines[i].amount * scale * 100) / 100;
+          discountLines[i].amount = lineAmount;
+          running += lineAmount;
+        }
+      }
       const total = Math.max(subtotal - discount, 0);
       return { itemsList, offers, subtotal, discountLines, discount, total };
     }
@@ -2048,7 +2102,7 @@
       const fab = document.getElementById('cart-fab');
       const o = computeOrder();
       const totalItems = Object.values(cart).reduce((s, q) => s + q, 0);
-      const offerCount = Object.values(cartOffers).length;
+      const offerCount = cartOfferCount();
       if (totalItems === 0 && offerCount === 0) { fab.classList.remove('visible'); document.getElementById('cart-count').textContent = '0'; document.getElementById('cart-total').textContent = '0'; return; }
       const countEl = document.getElementById('cart-count');
       const totalEl = document.getElementById('cart-total');
@@ -2271,14 +2325,18 @@
     }
 
     // WhatsApp + order record
+    let waSending = false;
     async function sendWhatsApp() {
+      if (waSending) return; // guard double-submit while the order insert is in flight
+      waSending = true;
       const o = computeOrder();
       const totalItems = Object.values(cart).reduce((s, q) => s + q, 0);
-      const offerCount = Object.values(cartOffers).length;
-      if (totalItems === 0 && offerCount === 0) return;
+      const offerCount = cartOfferCount();
+      if (totalItems === 0 && offerCount === 0) { waSending = false; return; }
       const btn = document.querySelector('.order-whatsapp');
       const waLabel = lang === 'ar' ? 'إرسال الطلب عبر واتساب' : 'Send Order via WhatsApp';
       if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ' + (lang === 'ar' ? 'جارٍ تجهيز الطلب...' : 'Preparing order...'); }
+      const done = () => { waSending = false; if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-brands fa-whatsapp"></i> ' + waLabel; } };
 
       let orderNo = null;
       const note = document.getElementById('order-note')?.value?.trim() || '';
@@ -2286,7 +2344,7 @@
       if (customerPhoneInput) { customerPhone = customerPhoneInput; try { localStorage.setItem('qm-phone', customerPhoneInput); } catch (e) {} }
       // P3.1 — delivery requires a pin on the map
       if (orderMode === 'delivery' && (deliveryLat == null || deliveryLng == null)) {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-brands fa-whatsapp"></i> ' + waLabel; }
+        done();
         toast(lang === 'ar' ? 'حدّد موقع التوصيل على الخريطة أولاً' : 'Set the delivery location on the map first', true);
         return;
       }
@@ -2312,7 +2370,7 @@
         }).select('id').single();
         if (!error && data && data.id) orderNo = data.id;
       } catch (e) { /* keep client-only fallback below */ }
-      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-brands fa-whatsapp"></i> ' + waLabel; }
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ' + (lang === 'ar' ? 'فتح واتساب...' : 'Opening WhatsApp...'); }
 
       const displayNo = orderNo || ('T' + String(Date.now()).slice(-6));
       const lines = [];
@@ -2372,6 +2430,12 @@
       toast(orderNo
         ? (lang === 'ar' ? `تم إنشاء الطلب رقم #${orderNo}` : `Order #${orderNo} placed`)
         : (lang === 'ar' ? 'تم فتح واتساب' : 'WhatsApp opened'));
+      // Order leaves the cart — reset it so a later press starts a fresh order
+      // (prevents duplicate orders from a stale cart).
+      cart = {}; cartOffers = {}; cartNotes = {}; selectedVariants = {};
+      closeOrderSheet();
+      renderItems(); renderDeals(); renderFavRail(); updateCartBar();
+      done();
       // P2.9: ask for a rating shortly after the order leaves
       setTimeout(showSurvey, 900);
     }

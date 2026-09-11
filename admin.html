@@ -338,6 +338,7 @@ const ITEM_PAGE = 50;
 // Orders tab state (loaded set + filters + range pagination)
 let ordersAll = [];
 let orderHasMore = true;
+let orderFetchToken = 0; // guards stale rapid Load More clicks from appending duplicates
 let orderQuery = '', orderFilter = 'all', orderStatusFilter = 'all';
 const ORDER_PAGE = 200;
 const ORDER_STATUSES = ['new', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'];
@@ -527,6 +528,7 @@ const I18N = {
   visible:          { en: 'Visible', ar: 'ظاهر' },
   hidden:           { en: 'Hidden', ar: 'مخفي' },
   currencies_updated:{ en: 'Currencies updated', ar: 'تم تحديث العملات' },
+  last_currency_error:{ en: 'At least one currency must stay enabled', ar: 'يجب إبقاء عملة واحدة مفعّلة على الأقل' },
   default_currency_updated:{ en: 'Default currency updated', ar: 'تم تحديث العملة الافتراضية' },
 
   // Items — search & filters
@@ -574,6 +576,7 @@ const I18N = {
   add_variant:      { en: 'Add option', ar: 'إضافة خيار' },
   variant_name_en:  { en: 'Name (EN)', ar: 'الاسم (إنجليزي)' },
   variant_name_ar:  { en: 'Name (AR)', ar: 'الاسم (عربي)' },
+  remove_variant:   { en: 'Remove option', ar: 'إزالة الخيار' },
 
   // Badges catalog (P3)
   badges_hint:      { en: 'Custom badges you can attach to any menu item (e.g. Spicy, Vegan, Local). "New / Popular / Chef\u2019s Choice" are built-in toggles on each item.', ar: 'شارات مخصصة يمكنك إرفاقها بأي عنصر في القائمة (مثل: حار، نباتي، محلي). شارات "جديد / الأكثر طلباً / اختيار الشيف" هي مفاتيح مدمجة في كل عنصر.' },
@@ -626,6 +629,7 @@ const I18N = {
   customer_phone:   { en: 'Customer phone', ar: 'هاتف العميل' },
   copy:             { en: 'Copy', ar: 'نسخ' },
   copied:           { en: 'Copied', ar: 'تم النسخ' },
+  copy_failed:      { en: 'Copy failed', ar: 'فشل النسخ' },
 
   // Reviews — customer satisfaction survey (P2.9)
   reviews_hint:     { en: 'Star ratings and comments customers leave after placing an order.', ar: 'تقييمات النجوم والتعليقات التي يتركها العملاء بعد تقديم الطلب.' },
@@ -779,13 +783,19 @@ sb.auth.onAuthStateChange((event, session) => {
 async function logout() {
   await sb.auth.signOut();
   currentUser = null; currentShop = null;
+  dashboardPromise = null;
   document.getElementById('dashboard').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
   applyLang();
 }
 
 // ─── DASHBOARD ──────────────────────────────────────────────
+let dashboardPromise = null;
 async function showDashboard() {
+  // loginWithEmail + onAuthStateChange(SIGNED_IN) can race and both reach the
+  // "no shop yet → create" branch, producing duplicate default shops. Serialize.
+  if (dashboardPromise) return dashboardPromise;
+  dashboardPromise = (async () => {
   applyLang();
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
@@ -827,11 +837,15 @@ async function showDashboard() {
   allShopAllergens = allgs || [];
 
   showTab('shop');
+  })();
+  return dashboardPromise;
 }
 
 // ─── TABS ───────────────────────────────────────────────────
+let tabRenderNonce = 0; // guards slow async tab renders from overwriting a newer tab
 function showTab(tab) {
   currentTab = tab;
+  const nonce = ++tabRenderNonce;
   document.querySelectorAll('.sidebar button, .mobile-tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   const c = document.getElementById('main-content');
   const header = document.querySelector('.dash-header');
@@ -841,11 +855,11 @@ function showTab(tab) {
     case 'shop': c.innerHTML = renderShopTab(); shopLocInit(); break;
     case 'categories': c.innerHTML = renderCategoriesTab(); break;
     case 'items': c.innerHTML = renderItemsTab(); renderItemRows(); break;
-    case 'deals': c.innerHTML = `<div class="empty">${t('loading_deals')}</div>`; renderDealsTab().then(html => { c.innerHTML = html; }); break;
+    case 'deals': c.innerHTML = `<div class="empty">${t('loading_deals')}</div>`; renderDealsTab().then(html => { if (nonce === tabRenderNonce) c.innerHTML = html; }); break;
     case 'badges': c.innerHTML = renderBadgesTab(); break;
     case 'allergens': c.innerHTML = renderAllergensTab(); break;
-    case 'orders': c.innerHTML = `<div class="empty">${t('loading_orders')}</div>`; renderOrdersTab().then(html => { c.innerHTML = html; }); break;
-    case 'reviews': c.innerHTML = `<div class="empty">${t('loading_reviews')}</div>`; renderReviewsTab().then(html => { c.innerHTML = html; }); break;
+    case 'orders': c.innerHTML = `<div class="empty">${t('loading_orders')}</div>`; renderOrdersTab().then(html => { if (nonce === tabRenderNonce) c.innerHTML = html; }); break;
+    case 'reviews': c.innerHTML = `<div class="empty">${t('loading_reviews')}</div>`; renderReviewsTab().then(html => { if (nonce === tabRenderNonce) c.innerHTML = html; }); break;
     case 'currencies': c.innerHTML = renderCurrenciesTab(); break;
   }
 }
@@ -1110,36 +1124,43 @@ function removeOutletRow(btn) {
     wrap.innerHTML = `<p style="font-size:12px;color:var(--text2)">${t('outlets_hint')}</p>`;
   }
 }
+let outletsSaving = false;
 async function saveOutlets() {
-  const rows = [...document.querySelectorAll('#s-outlets .outlet-row')];
-  let idx = 0;
-  for (const row of rows) {
-    const name = row.querySelector('.o-name').value.trim();
-    const name_ar = row.querySelector('.o-name-ar').value.trim();
-    const whatsapp = row.querySelector('.o-wa').value.trim();
-    if (!name && !name_ar) continue; // skip blank rows
-    const payload = { name, name_ar, whatsapp, is_active: row.querySelector('.o-active').checked, sort_order: idx++ };
-    const id = row.dataset.oid || null;
-    if (id) {
-      const { error } = await sb.from('outlets').update(payload).eq('id', id);
-      if (error) return error;
-    } else {
-      const { error } = await sb.from('outlets').insert({ ...payload, shop_id: currentShop.id });
+  if (outletsSaving) return null; // guard double-click while inserts are in flight
+  outletsSaving = true;
+  try {
+    const rows = [...document.querySelectorAll('#s-outlets .outlet-row')];
+    let idx = 0;
+    for (const row of rows) {
+      const name = row.querySelector('.o-name').value.trim();
+      const name_ar = row.querySelector('.o-name-ar').value.trim();
+      const whatsapp = row.querySelector('.o-wa').value.trim();
+      if (!name && !name_ar) continue; // skip blank rows
+      const payload = { name, name_ar, whatsapp, is_active: row.querySelector('.o-active').checked, sort_order: idx++ };
+      const id = row.dataset.oid || null;
+      if (id) {
+        const { error } = await sb.from('outlets').update(payload).eq('id', id);
+        if (error) return error;
+      } else {
+        const { error } = await sb.from('outlets').insert({ ...payload, shop_id: currentShop.id });
+        if (error) return error;
+      }
+    }
+    for (const oid of removedOutletIds) {
+      const { error } = await sb.from('outlets').delete().eq('id', oid);
       if (error) return error;
     }
+    removedOutletIds = [];
+    // Re-render rows so saved rows carry their DB ids (otherwise a later delete
+    // of a just-added row is silently skipped because data-oid is empty).
+    const { data: outs } = await sb.from('outlets').select('*').eq('shop_id', currentShop.id).order('sort_order');
+    allOutlets = outs || [];
+    const wrap = document.getElementById('s-outlets');
+    if (wrap) wrap.innerHTML = outletsEditorRows(allOutlets);
+    return null;
+  } finally {
+    outletsSaving = false;
   }
-  for (const oid of removedOutletIds) {
-    const { error } = await sb.from('outlets').delete().eq('id', oid);
-    if (error) return error;
-  }
-  removedOutletIds = [];
-  // Re-render rows so saved rows carry their DB ids (otherwise a later delete
-  // of a just-added row is silently skipped because data-oid is empty).
-  const { data: outs } = await sb.from('outlets').select('*').eq('shop_id', currentShop.id).order('sort_order');
-  allOutlets = outs || [];
-  const wrap = document.getElementById('s-outlets');
-  if (wrap) wrap.innerHTML = outletsEditorRows(allOutlets);
-  return null;
 }
 
 // P1.11 — 7 rows (Mon..Sun) of open/close time inputs from shops.hours jsonb
@@ -1230,14 +1251,16 @@ async function saveCategory(id) {
 }
 
 async function toggleCategory(id, field, val) {
-  await sb.from('categories').update({ [field]: val }).eq('id', id);
+  const { error } = await sb.from('categories').update({ [field]: val }).eq('id', id);
+  if (error) return toast(t('error') + ': ' + error.message, true);
   const c = allCategories.find(x => x.id === id);
   if (c) c[field] = val;
 }
 
 async function deleteCategory(id) {
   if (!confirm(t('delete_category_q'))) return;
-  await sb.from('categories').delete().eq('id', id);
+  const { error } = await sb.from('categories').delete().eq('id', id);
+  if (error) return toast(t('error') + ': ' + error.message, true);
   allCategories = allCategories.filter(c => c.id !== id);
   showTab('categories');
   toast(t('category_deleted'));
@@ -1313,22 +1336,26 @@ async function saveBadge(id) {
 }
 
 async function toggleBadge(id, field, val) {
-  await sb.from('shop_badges').update({ [field]: val }).eq('id', id);
+  const { error } = await sb.from('shop_badges').update({ [field]: val }).eq('id', id);
+  if (error) return toast(t('error') + ': ' + error.message, true);
   const b = allShopBadges.find(x => x.id === id);
   if (b) b[field] = val;
 }
 async function updateBadgeColor(id, color) {
-  await sb.from('shop_badges').update({ color }).eq('id', id);
+  const { error } = await sb.from('shop_badges').update({ color }).eq('id', id);
+  if (error) return toast(t('error') + ': ' + error.message, true);
   const b = allShopBadges.find(x => x.id === id);
   if (b) b.color = color;
 }
 async function deleteBadge(id) {
   if (!confirm(t('delete_badge_q'))) return;
-  await sb.from('shop_badges').delete().eq('id', id);
+  const { error } = await sb.from('shop_badges').delete().eq('id', id);
+  if (error) return toast(t('error') + ': ' + error.message, true);
   // Clean the removed badge id off every item using it
   const using = allItems.filter(i => (i.custom_badges || []).includes(id));
   for (const it of using) {
-    await sb.from('items').update({ custom_badges: (it.custom_badges || []).filter(b => b !== id) }).eq('id', it.id);
+    const { error: itErr } = await sb.from('items').update({ custom_badges: (it.custom_badges || []).filter(b => b !== id) }).eq('id', it.id);
+    if (itErr) return toast(t('error') + ': ' + itErr.message, true);
     it.custom_badges = it.custom_badges.filter(b => b !== id);
   }
   allShopBadges = allShopBadges.filter(b => b.id !== id);
@@ -1408,19 +1435,22 @@ async function saveAllergen(id) {
 }
 
 async function toggleAllergen(id, field, val) {
-  await sb.from('shop_allergens').update({ [field]: val }).eq('id', id);
+  const { error } = await sb.from('shop_allergens').update({ [field]: val }).eq('id', id);
+  if (error) return toast(t('error') + ': ' + error.message, true);
   const a = allShopAllergens.find(x => x.id === id);
   if (a) a[field] = val;
 }
 async function deleteAllergen(id) {
   if (!confirm(t('delete_allergen_q'))) return;
   const a = allShopAllergens.find(x => x.id === id);
-  await sb.from('shop_allergens').delete().eq('id', id);
+  const { error } = await sb.from('shop_allergens').delete().eq('id', id);
+  if (error) return toast(t('error') + ': ' + error.message, true);
   // Clean the removed code off every item using it
   if (a) {
     const using = allItems.filter(i => (i.allergens || []).includes(a.code));
     for (const it of using) {
-      await sb.from('items').update({ allergens: (it.allergens || []).filter(c => c !== a.code) }).eq('id', it.id);
+      const { error: itErr } = await sb.from('items').update({ allergens: (it.allergens || []).filter(c => c !== a.code) }).eq('id', it.id);
+      if (itErr) return toast(t('error') + ': ' + itErr.message, true);
       it.allergens = it.allergens.filter(c => c !== a.code);
     }
   }
@@ -1542,7 +1572,7 @@ function openItemModal(id) {
         <label>${t('category')}</label>
         <select id="m-item-cat">
           <option value="">${t('none')}</option>
-          ${allCategories.map(c => `<option value="${c.id}" ${item?.category_id===c.id?'selected':''}>${c.name}</option>`).join('')}
+          ${allCategories.map(c => `<option value="${c.id}" ${item?.category_id===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
         </select>
       </div>
       <div class="field"><label>${t('sort_order')}</label><input type="number" id="m-item-sort" value="${item ? item.sort_order : (allItems.length + 1) * 10}"></div>
@@ -1668,18 +1698,30 @@ async function saveItem(id) {
     itemId = data.id;
   }
 
-  // Upsert prices
+  // Upsert prices, then prune rows whose currency was removed or whose price was cleared
   const currencies = currentShop.currencies || ['SYP'];
+  const { data: existingRows } = await sb.from('item_prices').select('*').eq('item_id', itemId);
+  const existingByCur = {};
+  (existingRows || []).forEach(r => { existingByCur[r.currency] = r; });
   for (const c of currencies) {
     const priceInput = document.getElementById(`m-price-${c}`);
     const visInput = document.getElementById(`m-price-vis-${c}`);
     if (!priceInput) continue;
-    const price = parseFloat(priceInput.value) || 0;
+    const price = parseFloat(priceInput.value);
     const isVisible = visInput?.checked ?? true;
-    if (price > 0 || id) {
+    if (price > 0) {
       await sb.from('item_prices').upsert({
         item_id: itemId, currency: c, price, is_visible: isVisible
       }, { onConflict: 'item_id,currency' });
+    } else if (existingByCur[c]) {
+      // Price cleared in the editor → delete the row instead of writing a misleading 0
+      await sb.from('item_prices').delete().eq('item_id', itemId).eq('currency', c);
+    }
+  }
+  // Remove orphan price rows for currencies that are no longer enabled on the shop
+  for (const r of (existingRows || [])) {
+    if (!currencies.includes(r.currency)) {
+      await sb.from('item_prices').delete().eq('item_id', itemId).eq('currency', r.currency);
     }
   }
 
@@ -1692,14 +1734,16 @@ async function saveItem(id) {
 }
 
 async function toggleItem(id, field, val) {
-  await sb.from('items').update({ [field]: val }).eq('id', id);
+  const { error } = await sb.from('items').update({ [field]: val }).eq('id', id);
+  if (error) return toast(t('error') + ': ' + error.message, true);
   const item = allItems.find(x => x.id === id);
   if (item) item[field] = val;
 }
 
 async function deleteItem(id) {
   if (!confirm(t('delete_item_q'))) return;
-  await sb.from('items').delete().eq('id', id);
+  const { error } = await sb.from('items').delete().eq('id', id);
+  if (error) return toast(t('error') + ': ' + error.message, true);
   allItems = allItems.filter(i => i.id !== id);
   showTab('items');
   toast(t('item_deleted'));
@@ -1765,7 +1809,11 @@ async function renderDealsTab() {
 function dealFieldsHTML(deal) {
   const d = deal || {};
   const type = d.deal_type || 'percent';
-  const currencies = (currentShop.currencies || ['SYP']).map(c => `<option value="${c}" ${d.currency===c?'selected':''}>${c}</option>`).join('');
+  // Always include the deal's own currency in the select, even if it was later
+  // removed from the shop list — otherwise saving silently rewrites the currency.
+  const curList = (currentShop.currencies || ['SYP']).slice();
+  if (d.currency && !curList.includes(d.currency)) curList.push(d.currency);
+  const currencies = curList.map(c => `<option value="${c}" ${d.currency===c?'selected':''}>${c}</option>`).join('');
   const itemOpts = allItems.map(i => `<option value="${i.id}" ${d.item_id===i.id?'selected':''}>${esc(i.name)}${i.name_ar ? ' — ' + esc(i.name_ar) : ''}</option>`).join('');
   const catOpts = allCategories.map(c => `<option value="${c.id}" ${d.category_id===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
   const bundleChecked = ids => (d.bundle_items || []).includes(ids) ? 'checked' : '';
@@ -1965,11 +2013,16 @@ async function saveDeal(id) {
   };
   if (scope === 'item') data.item_id = gv('m-deal-item') || null;
   if (scope === 'category') data.category_id = gv('m-deal-cat') || null;
-  if (dt === 'percent') data.discount_value = parseFloat(gv('m-deal-percent-value')) || 0;
+  if (dt === 'percent') data.discount_value = Math.min(parseFloat(gv('m-deal-percent-value')) || 0, 100);
   if (dt === 'fixed') { data.discount_value = parseFloat(gv('m-deal-fixed-value')) || 0; data.currency = gv('m-deal-fixed-currency'); }
   if (dt === 'bogo') { data.buy_qty = parseInt(gv('m-deal-buy')) || 1; data.get_qty = parseInt(gv('m-deal-get')) || 1; data.item_id = gv('m-deal-item-list') || null; }
   if (dt === 'bundle') { data.bundle_items = dealBundleItems(); data.bundle_price = parseFloat(gv('m-deal-bundle-price')) || 0; data.currency = gv('m-deal-bundle-currency'); }
-  if (dt === 'min_order') { data.min_total = parseFloat(gv('m-deal-min')) || 0; data.reward_type = gv('m-deal-reward-type'); data.discount_value = parseFloat(gv('m-deal-reward-value')) || 0; }
+  if (dt === 'min_order') {
+    data.min_total = parseFloat(gv('m-deal-min')) || 0;
+    data.reward_type = gv('m-deal-reward-type');
+    const rv = parseFloat(gv('m-deal-reward-value')) || 0;
+    data.discount_value = data.reward_type === 'percent' ? Math.min(rv, 100) : rv;
+  }
   let error;
   if (id) {
     ({ error } = await sb.from('deals').update(data).eq('id', id));
@@ -1983,12 +2036,14 @@ async function saveDeal(id) {
 }
 
 async function toggleDeal(id, val) {
-  await sb.from('deals').update({ is_active: val }).eq('id', id);
+  const { error } = await sb.from('deals').update({ is_active: val }).eq('id', id);
+  if (error) return toast(t('error') + ': ' + error.message, true);
 }
 
 async function deleteDeal(id) {
   if (!confirm(t('delete_deal_q'))) return;
-  await sb.from('deals').delete().eq('id', id);
+  const { error } = await sb.from('deals').delete().eq('id', id);
+  if (error) return toast(t('error') + ': ' + error.message, true);
   showTab('deals');
   toast(t('deal_deleted'));
 }
@@ -2028,22 +2083,35 @@ function renderCurrenciesTab() {
   `;
 }
 
+let currencyToggling = false;
 async function toggleCurrency(c) {
-  let currencies = currentShop.currencies || ['SYP'];
-  if (currencies.includes(c)) {
-    currencies = currencies.filter(x => x !== c);
-  } else {
-    currencies.push(c);
+  if (currencyToggling) return; // guard double-click race
+  currencyToggling = true;
+  try {
+    let currencies = currentShop.currencies || ['SYP'];
+    if (currencies.includes(c)) {
+      if (currencies.length <= 1) {
+        toast(t('last_currency_error'), true);
+        return;
+      }
+      currencies = currencies.filter(x => x !== c);
+    } else {
+      currencies.push(c);
+    }
+    const { error } = await sb.from('shops').update({ currencies }).eq('id', currentShop.id);
+    if (error) return toast(t('error') + ': ' + error.message, true);
+    currentShop.currencies = currencies;
+    // If removed currency was default, switch to first available
+    if (!currencies.includes(currentShop.currency_default) && currencies.length > 0) {
+      const { error: defErr } = await sb.from('shops').update({ currency_default: currencies[0] }).eq('id', currentShop.id);
+      if (defErr) return toast(t('error') + ': ' + defErr.message, true);
+      currentShop.currency_default = currencies[0];
+    }
+    showTab('currencies');
+    toast(t('currencies_updated'));
+  } finally {
+    currencyToggling = false;
   }
-  await sb.from('shops').update({ currencies }).eq('id', currentShop.id);
-  currentShop.currencies = currencies;
-  // If removed currency was default, switch to first available
-  if (!currencies.includes(currentShop.currency_default) && currencies.length > 0) {
-    await sb.from('shops').update({ currency_default: currencies[0] }).eq('id', currentShop.id);
-    currentShop.currency_default = currencies[0];
-  }
-  showTab('currencies');
-  toast(t('currencies_updated'));
 }
 
 async function updateDefaultCurrency() {
@@ -2055,7 +2123,8 @@ async function updateDefaultCurrency() {
 
 async function toggleCurrencySelector() {
   const val = document.getElementById('s-show-cur-sel').checked;
-  await sb.from('shops').update({ show_currency_selector: val }).eq('id', currentShop.id);
+  const { error } = await sb.from('shops').update({ show_currency_selector: val }).eq('id', currentShop.id);
+  if (error) return toast(t('error') + ': ' + error.message, true);
   currentShop.show_currency_selector = val;
 }
 
@@ -2063,19 +2132,21 @@ async function toggleCurrencySelector() {
 // RLS: owner can SELECT orders for their shop (bigserial id desc = newest first).
 // Paginated via .range() so the list can grow without unbounded memory.
 async function loadOrders(reset) {
-  if (reset) { ordersAll = []; orderHasMore = true; }
+  if (reset) { ordersAll = []; orderHasMore = true; orderFetchToken++; }
   if (!orderHasMore) { renderOrderRows(); return; }
+  const token = orderFetchToken;
   const from = ordersAll.length;
-  const to = from + ORDER_PAGE - 1;
+  const to = from + ORDER_PAGE; // fetch one extra row to detect "has more" without an extra empty call
   const { data, error } = await sb.from('orders')
     .select('*')
     .eq('shop_id', currentShop.id)
     .order('id', { ascending: false })
     .range(from, to);
   if (error) return toast(t('error') + ': ' + error.message, true);
+  if (token !== orderFetchToken) return; // a reset happened while we were fetching — drop stale rows
   const rows = data || [];
-  ordersAll = ordersAll.concat(rows);
-  orderHasMore = rows.length === ORDER_PAGE;
+  ordersAll = ordersAll.concat(rows.slice(0, ORDER_PAGE));
+  orderHasMore = rows.length > ORDER_PAGE;
   renderOrderRows();
 }
 
@@ -2122,7 +2193,7 @@ function openReplyModal(id) {
       </div>
     </div>
     <div class="field"><label>${t('reply_msg')}</label><textarea id="m-reply-text" rows="3">${lang === 'ar' ? 'مرحباً، بخصوص طلبك رقم ' + o.id + ' — ' : 'Hello, regarding your order #' + o.id + ' — '}</textarea></div>
-    <p style="font-size:12px;color:var(--text2)">${lang === 'ar' ? `الطلب الحالي: ${statusLabel(o.status || 'new')} — الإجمالي ${o.total} ${o.currency || 'SYP'}` : `Current status: ${statusLabel(o.status || 'new')} — Total ${o.total} ${o.currency || 'SYP'}`}</p>
+    <p style="font-size:12px;color:var(--text2)">${lang === 'ar' ? `الطلب الحالي: ${statusLabel(o.status || 'new')} — الإجمالي ${esc(o.total)} ${esc(o.currency || 'SYP')}` : `Current status: ${statusLabel(o.status || 'new')} — Total ${esc(o.total)} ${esc(o.currency || 'SYP')}`}</p>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button>
       <button class="btn btn-primary" onclick="sendReply('${o.id}')">${t('send_whatsapp')}</button>
@@ -2134,7 +2205,9 @@ function openReplyModal(id) {
 function copyReplyPhone() {
   const v = gv('m-reply-phone');
   if (!v) return toast(t('reply_no_phone'), true);
-  navigator.clipboard?.writeText(v).then(() => toast(t('copied'))).catch(() => toast(t('copied')));
+  navigator.clipboard?.writeText(v)
+    .then(() => toast(t('copied')))
+    .catch(() => toast(t('copy_failed'), true));
 }
 
 function sendReply(id) {
@@ -2148,7 +2221,9 @@ function sendReply(id) {
   window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(safe), '_blank');
   // Persist the reply phone back on the order for future use
   if (o && o.customer_phone !== phone) {
-    sb.from('orders').update({ customer_phone: phone }).eq('id', id).then(() => { if (o) o.customer_phone = phone; });
+    sb.from('orders').update({ customer_phone: phone }).eq('id', id)
+      .then(({ error }) => { if (!error && o) o.customer_phone = phone; })
+      .catch(() => { /* the reply still opened; phone just isn't persisted */ });
   }
   closeModal();
 }
@@ -2156,7 +2231,7 @@ function sendReply(id) {
 function orderRowHTML(o) {
   const loc = lang === 'ar' ? 'ar-SY' : 'en-GB';
   const dt = new Date(o.created_at).toLocaleString(loc, { dateStyle: 'short', timeStyle: 'short' });
-  const cur = o.currency || 'SYP';
+  const cur = esc(o.currency || 'SYP'); // currency originates from public order inserts — never trust raw
   const items = (o.items || []).map(it => {
     const nm = lang === 'ar' ? (it.name_ar || it.name) : it.name;
     return `<div class="ln"><span class="lname">${esc(nm)} × ${it.qty}</span><span>${esc(it.unit_price)} ${cur}</span></div>`;
@@ -2201,7 +2276,11 @@ function renderOrderRows() {
   const more = document.getElementById('order-more-wrap');
   if (!list.length) {
     tbody.innerHTML = `<tr><td colspan="9" class="empty">${ordersAll.length ? t('no_orders_match') : t('no_orders')}</td></tr>`;
-    if (more) more.innerHTML = '';
+    // Keep the Load More button even when the current filter matches nothing —
+    // the user may have more rows to page through.
+    if (more) more.innerHTML = orderHasMore && ordersAll.length
+      ? `<button class="btn btn-ghost" onclick="loadOrders(false)">${t('load_more')}</button>`
+      : '';
     return;
   }
   tbody.innerHTML = list.map(orderRowHTML).join('');
