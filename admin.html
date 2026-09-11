@@ -283,25 +283,25 @@
   </div>
   <div class="dash-body">
     <nav class="sidebar">
-      <button class="active" onclick="showTab('shop')" data-tab="shop" data-i18n="tab_shop">Shop Settings</button>
-      <button onclick="showTab('categories')" data-tab="categories" data-i18n="tab_categories">Categories</button>
+      <button class="active" onclick="showTab('orders')" data-tab="orders" data-i18n="tab_orders">Orders</button>
       <button onclick="showTab('items')" data-tab="items" data-i18n="tab_items">Menu Items</button>
       <button onclick="showTab('deals')" data-tab="deals" data-i18n="tab_deals">Deals &amp; Offers</button>
+      <button onclick="showTab('categories')" data-tab="categories" data-i18n="tab_categories">Categories</button>
+      <button onclick="showTab('reviews')" data-tab="reviews" data-i18n="tab_reviews">Reviews</button>
+      <button onclick="showTab('shop')" data-tab="shop" data-i18n="tab_shop">Shop Settings</button>
       <button onclick="showTab('badges')" data-tab="badges" data-i18n="tab_badges">Badges</button>
       <button onclick="showTab('allergens')" data-tab="allergens" data-i18n="tab_allergens">Allergens</button>
-      <button onclick="showTab('orders')" data-tab="orders" data-i18n="tab_orders">Orders</button>
-      <button onclick="showTab('reviews')" data-tab="reviews" data-i18n="tab_reviews">Reviews</button>
       <button onclick="showTab('currencies')" data-tab="currencies" data-i18n="tab_currencies">Currencies</button>
     </nav>
     <div class="mobile-tabs" id="mobile-tabs">
-      <button onclick="showTab('shop')" data-tab="shop" data-i18n="tab_shop">Shop Settings</button>
-      <button onclick="showTab('categories')" data-tab="categories" data-i18n="tab_categories">Categories</button>
+      <button class="active" onclick="showTab('orders')" data-tab="orders" data-i18n="tab_orders">Orders</button>
       <button onclick="showTab('items')" data-tab="items" data-i18n="tab_items">Menu Items</button>
       <button onclick="showTab('deals')" data-tab="deals" data-i18n="tab_deals">Deals &amp; Offers</button>
+      <button onclick="showTab('categories')" data-tab="categories" data-i18n="tab_categories">Categories</button>
+      <button onclick="showTab('reviews')" data-tab="reviews" data-i18n="tab_reviews">Reviews</button>
+      <button onclick="showTab('shop')" data-tab="shop" data-i18n="tab_shop">Shop Settings</button>
       <button onclick="showTab('badges')" data-tab="badges" data-i18n="tab_badges">Badges</button>
       <button onclick="showTab('allergens')" data-tab="allergens" data-i18n="tab_allergens">Allergens</button>
-      <button onclick="showTab('orders')" data-tab="orders" data-i18n="tab_orders">Orders</button>
-      <button onclick="showTab('reviews')" data-tab="reviews" data-i18n="tab_reviews">Reviews</button>
       <button onclick="showTab('currencies')" data-tab="currencies" data-i18n="tab_currencies">Currencies</button>
     </div>
     <div class="main-content" id="main-content">
@@ -836,7 +836,15 @@ async function showDashboard() {
   const { data: allgs } = await sb.from('shop_allergens').select('*').eq('shop_id', currentShop.id).order('sort_order');
   allShopAllergens = allgs || [];
 
-  showTab('shop');
+  // Stay on the tab the admin was using (persisted across refresh/login),
+  // defaulting to Orders — the most-used view.
+  const knTabs = ['shop', 'categories', 'items', 'deals', 'badges', 'allergens', 'orders', 'reviews', 'currencies'];
+  let savedTab = 'orders';
+  try {
+    const st = localStorage.getItem('qm-admin-tab');
+    if (st && knTabs.includes(st)) savedTab = st;
+  } catch (e) {}
+  showTab(savedTab);
   })();
   return dashboardPromise;
 }
@@ -845,6 +853,7 @@ async function showDashboard() {
 let tabRenderNonce = 0; // guards slow async tab renders from overwriting a newer tab
 function showTab(tab) {
   currentTab = tab;
+  try { localStorage.setItem('qm-admin-tab', tab); } catch (e) {}
   const nonce = ++tabRenderNonce;
   document.querySelectorAll('.sidebar button, .mobile-tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   const c = document.getElementById('main-content');
