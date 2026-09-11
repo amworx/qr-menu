@@ -243,3 +243,9 @@
 - **Problem**: sendWhatsApp caught every insert error and continued to a client-only T<epoch> order number. The customer got WhatsApp + a green "WhatsApp opened" toast, but no row reached the orders table — so the dashboard stayed empty while the shop kept receiving WhatsApp texts. ~15 consumed-but-empty bigserial ids showed this had happened repeatedly.
 - **Fix**: Retry the insert once (a duplicate saved row is visible and fixable; a silent loss is not); if it still fails, log a warning, show an error-styled toast, and append "⚠️ لم يُحفظ الطلب في لوحة التحكم" to the actual WhatsApp text so the fallback is self-documenting. Also gate dealAfterValue('bogo') on cart eligibility so the sheet can't show a price for an offer that isn't applying.
 - **Lesson**: Any fallback path that changes the outcome for the user must surface the change of state to the humans involved — silent degradation is indistinguishable from data loss. Money/order flows especially: if the primary write failed, say so out loud (customer + shop), or "orders are not appearing in the dashboard" becomes the standing bug report.
+
+## LSSN-20260911-016 - Persisted UI state must be validated on restore; switch-without-default is a blank-panel trap
+- **Problem**: On refresh the admin always reset to the first tab; fixing it with localStorage was easy, but restoring an unvalidated value into showTab() (whose switch has no default case) would render an empty main-content panel forever if the value was ever corrupt/legacy/edited.
+- **Fix**: showTab() persists the tab on every switch; on dashboard load restore only if the value is in a hard-coded allow-list of the 9 known tabs, else fall back to 'orders'.
+- **Lesson**: Whenever you persist UI state that feeds a dispatcher, validate against the known domain on restore — never trust localStorage, and give the dispatcher a default branch so a bad value degrades gracefully instead of blanking the UI.
+
