@@ -2244,21 +2244,26 @@ let reviewQuery = '';
 let reviewFilter = 'all';   // 'all' | '5' | '4' | '3' | '2' | '1'
 let reviewSort = 'newest';  // 'newest' | 'oldest' | 'high' | 'low'
 const REVIEW_PAGE = 200;
+let reviewFetchToken = 0;   // guards against out-of-order responses (race fixes)
 
 async function loadReviews(reset) {
+  const token = ++reviewFetchToken;
   if (reset) { reviewsAll = []; reviewHasMore = true; }
   if (!reviewHasMore) { renderReviewRows(); return; }
   const from = reviewsAll.length;
-  const to = from + REVIEW_PAGE - 1;
+  // fetch page+1 rows: the extra row tells us whether more pages exist,
+  // avoiding the off-by-one where an exact-multiple total leaves a phantom "Load more"
+  const to = from + REVIEW_PAGE;
   const { data, error } = await sb.from('surveys')
     .select('*')
     .eq('shop_id', currentShop.id)
     .order('created_at', { ascending: false })
     .range(from, to);
   if (error) return toast(t('error') + ': ' + error.message, true);
-  const rows = data || [];
+  if (token !== reviewFetchToken) return;      // a newer load started; drop stale response
+  const rows = (data || []).slice(0, REVIEW_PAGE);
   reviewsAll = reviewsAll.concat(rows);
-  reviewHasMore = rows.length === REVIEW_PAGE;
+  reviewHasMore = (data || []).length > REVIEW_PAGE;
   renderReviewRows();
 }
 
@@ -2318,13 +2323,14 @@ function renderReviewRows() {
   const more = document.getElementById('review-more-wrap');
   if (!list.length) {
     tbody.innerHTML = `<tr><td colspan="4" class="empty">${reviewsAll.length ? t('no_reviews_match') : t('no_reviews')}</td></tr>`;
-    if (more) more.innerHTML = '';
   } else {
     tbody.innerHTML = list.map(reviewRowHTML).join('');
-    if (more) more.innerHTML = reviewHasMore
-      ? `<button class="btn btn-ghost" onclick="loadReviews(false)">${t('load_more')}</button>`
-      : '';
   }
+  // Always keep "Load more" reachable while more pages exist — even when the
+  // current filter yields no rows (matches may appear on later pages).
+  if (more) more.innerHTML = reviewHasMore && reviewsAll.length
+    ? `<button class="btn btn-ghost" onclick="loadReviews(false)">${t('load_more')}</button>`
+    : '';
   renderReviewSummary();
 }
 
@@ -2390,7 +2396,7 @@ async function deleteReview(id) {
   const { error } = await sb.from('surveys').delete().eq('id', id);
   if (error) return toast(t('error') + ': ' + error.message, true);
   reviewsAll = reviewsAll.filter(r => String(r.id) !== String(id));
-  showTab('reviews');
+  renderReviewRows();   // updates table + summary without a full reload
   toast(t('review_deleted'));
 }
 

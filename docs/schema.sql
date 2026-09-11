@@ -403,12 +403,16 @@ end $$;
 -- create index if not exists surveys_shop_id_idx on surveys(shop_id);
 -- alter table surveys enable row level security;
 -- create policy surveys_insert on surveys for insert with check
---   (rating between 1 and 5 and comment is null or comment = '' or length(comment) <= 500);
+--   (rating between 1 and 5 and (comment is null or comment = '' or length(comment) <= 500));
 -- create policy surveys_owner_select on surveys for select using
 --   (exists (select 1 from shops where shops.id = shop_id and shops.owner_email = auth.email()));
 -- create policy surveys_owner_delete on surveys for delete using
 --   (exists (select 1 from shops where shops.id = shop_id and shops.owner_email = auth.email()));
 -- (2026-09-10: Reviews tab added to admin — list/avg/star bars + delete. Policy applied.)
+-- (2026-09-11: FIX surveys_insert with_check — prior version had OR-precedence bug
+--   `(rating 1..5 and comment is null or comment='' or length<=500)` letting any
+--   short comment bypass the rating bound; masked only by the table CHECK.
+--   Re-applied as `(rating 1..5) AND (comment valid)` so RLS itself enforces.)
 -- Edge function: supabase/functions/submit-survey/index.ts
 --   supabase functions deploy submit-survey --project-ref pxgwxcurhzphmtvowdri --no-verify-jwt
 
