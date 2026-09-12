@@ -858,3 +858,14 @@
 - **errors**: None during runtime. Console only shows the expected cdn.tailwindcss.com 'not for production' warning (deliberate: repo has no build step) and the pre-existing favicon.ico 404.
 - **lessons**: (1) data-i18n + lucide icons conflict: applyLang's textContent wipes child icons — keep icons as `<i data-lucide>` siblings and put data-i18n on an inner span; rewrite button content via innerHTML when it must contain an icon. (2) A single debounced MutationObserver calling lucide.createIcons() after any innerHTML render is a zero-maintenance way to iconify dynamic content (no per-render refresh calls needed). (3) Tailwind Play CDN is the right fit for this no-build static repo, but emits a console warning — acceptable, documented in decisions.
 - **tags**: redesign, dashboard, tailwind, lucide, icons, ui, admin, rtl, animation, glassmorphism
+
+## EVT-20260912-0024
+
+- **timestamp**: 2026-09-12
+- **mode**: MEMORY / DEPLOY
+- **action**: Commit + push admin dashboard redesign to GitHub Pages
+- **summary**: User approved deploy. Committed ec77957 "feat: admin dashboard redesign - Tailwind + Lucide icons + modern glass UI" (admin.html +376/-132) and d35e3e7 "docs: memory EVT-20260912-0023 + LSSN-017 + DEC-004 (admin redesign)" (3 memory files), pushed origin main (14f50e2..d35e3e7). Left untracked (pre-existing, unrelated): supabase/.temp/, docs/mocks/, two 2026-09-10 splash screenshots.
+- **result**: GitHub Pages rebuilt (live admin.html bytes 165928 == main branch, matches). Live-verified in a real browser on https://amworx.github.io/qr-menu/admin.html?cb=redesign-v1: title "لوحة تحكم QR Menu" (Arabic-first), dashboard rendered with persisted session (live login cookie present from prior session), 26 Lucide SVGs (globe/qr-code/log-in brand, globe/log-out header, receipt-text/utensils/badge-percent/layout-grid/star/store/tags/shield-alert/coins/activity x2 sidebar+mobile-tabs), 0 unconverted `<i data-lucide>`, Tailwind rule active (.rounded-2xl resolves), font computed "Cairo, Inter, system-ui, sans-serif", body bg rgb(10,15,30) dark ink, brand label "لوحة تحكم QR Menu". Console: only the expected cdn.tailwindcss.com production warning + pre-existing favicon 404; zero JS errors.
+- **errors**: GitHub Pages builds API returns 404 without a token (GET /repos/{owner}/{repo}/pages/builds/latest and /pages both) — scripted a raw-branch marker check + live byte-size + live DOM assertions instead. Equivalent verification achieved.
+- **lessons**: (reused) verify a Pages deploy via raw main markers immediately, then byte-size equality + live DOM/browser checks — avoids token-gated API 404s; keep feature and docs memory as two commits per repo style.
+- **tags**: deploy, pages, redesign, tailwind, lucide, live-verify, admin
