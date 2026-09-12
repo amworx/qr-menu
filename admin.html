@@ -55,6 +55,10 @@
     a{color:var(--accent);text-decoration:none}
     button{cursor:pointer;font-family:inherit}
     input,select,textarea{font-family:inherit;background:rgba(10,15,30,.55);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:9px 13px;font-size:14px;width:100%;transition:border-color .2s,box-shadow .2s}
+    /* body-qualified so the Tailwind Play-CDN preflight (font-size:100%) can't override the admin scale */
+    body input,body select,body textarea{font-size:14px}
+    body input::placeholder,body textarea::placeholder{color:var(--text3);opacity:.85}
+    body input:focus::placeholder,body textarea:focus::placeholder{opacity:.55}
     input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(249,115,22,.15)}
     textarea{resize:vertical;min-height:60px}
     label{font-size:12px;color:var(--text2);margin-bottom:5px;display:block;font-weight:600}
@@ -124,7 +128,7 @@
     /* Variant editor (P1.6) */
     .var-list{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
     .var-row{display:grid;grid-template-columns:1fr 1fr 30px;gap:6px;align-items:center;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:10px}
-    .var-row input{width:100%;padding:8px 9px;border:1px solid var(--border);border-radius:8px;background:rgba(10,15,30,.55);font-size:12.5px;color:var(--text);min-width:0}
+    .var-row input{width:100%;padding:8px 9px;border:1px solid var(--border);border-radius:8px;background:rgba(10,15,30,.55);font-size:13px;color:var(--text);min-width:0}
     .var-prices{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
     .mv-del{width:30px;height:30px;border-radius:8px;background:var(--card2);border:1px solid var(--border2);color:var(--text2);cursor:pointer;font-size:13px;transition:all .15s}
     .mv-del:hover{border-color:var(--danger);color:var(--danger);transform:scale(1.05)}
@@ -134,8 +138,8 @@
     /* Hours editor (P1.11) */
     .hours-list{display:flex;flex-direction:column;gap:8px}
     .hours-row{display:grid;grid-template-columns:1fr 96px 20px 96px;gap:8px;align-items:center;padding:10px 12px;background:var(--card2);border:1px solid var(--border);border-radius:12px}
-    .hours-day{font-size:12.5px;font-weight:700;color:var(--text2)}
-    .hours-row input{width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:8px;background:rgba(10,15,30,.55);font-size:12.5px;color:var(--text);min-width:0;font-family:inherit}
+    .hours-day{font-size:13px;font-weight:700;color:var(--text2)}
+    .hours-row input{width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:8px;background:rgba(10,15,30,.55);font-size:13px;color:var(--text);min-width:0;font-family:inherit}
     .hours-sep{text-align:center;color:var(--text3);font-size:13px}
     @media (max-width:520px){.hours-row{grid-template-columns:1fr 88px 16px 88px;gap:6px}}
     .checkbox input{accent-color:var(--accent);width:16px;height:16px}
@@ -210,7 +214,7 @@
     .deal-preview.muted{color:var(--text2);border-style:solid}
     .deal-preview .dp-ex{font-size:11px;color:var(--text2);width:100%}
     .deal-preview .dp-cell{display:flex;flex-direction:column;gap:2px}
-    .deal-preview .dp-cell small{font-size:10.5px;color:var(--text2)}
+    .deal-preview .dp-cell small{font-size:11px;color:var(--text2)}
     .deal-preview .dp-strike{text-decoration:line-through;color:var(--text2);font-weight:600}
     .deal-preview .dp-new b{color:var(--accent2);font-size:15px}
     .deal-preview .dp-arrow{color:var(--text3)}
@@ -232,7 +236,7 @@
 
     /* Currency chips */
     .currency-chips{display:flex;gap:6px;flex-wrap:wrap}
-    .currency-chip{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid var(--border2);color:var(--text2);cursor:pointer;transition:.15s}
+    .currency-chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;border:1px solid var(--border2);color:var(--text2);cursor:pointer;transition:.15s}
     .currency-chip:hover{border-color:var(--accent);color:var(--text)}
     .currency-chip.on{background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border-color:transparent;box-shadow:0 5px 14px -8px rgba(249,115,22,.7)}
 
@@ -267,6 +271,20 @@
       *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
     }
 
+    /* ─── UX polish: focus, numbers, skeletons, sticky headers ─── */
+    :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    .num{font-variant-numeric:tabular-nums}
+    .sk-block{border-radius:8px;background:linear-gradient(100deg,rgba(148,163,184,.08) 40%,rgba(148,163,184,.18) 50%,rgba(148,163,184,.08) 60%);background-size:200% 100%;animation:skShimmer 1.2s linear infinite}
+    @keyframes skShimmer{to{background-position:-200% 0}}
+    .sk-zone{display:flex;flex-direction:column;gap:8px}
+    .sk-row{display:grid;gap:14px;padding:16px;border:1px solid var(--border);border-radius:12px;background:rgba(10,15,30,.3)}
+    .sk-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+    .sk-card{display:flex;flex-direction:column;gap:12px;border:1px solid var(--border);border-radius:var(--radius);padding:22px;background:var(--card)}
+    .empty .empty-ic{width:34px;height:34px;color:var(--text3);opacity:.65;margin-bottom:2px}
+    /* Long tables scroll inside their own container with a sticky header */
+    .table-wrap{max-height:calc(100vh - 320px);overflow:auto;overscroll-behavior:contain}
+    .table-wrap thead th{position:sticky;top:0;z-index:5;background:rgba(17,26,48,.97);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+
     /* Mobile tab bar */
     .mobile-tabs{display:none;background:rgba(10,15,30,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:8px;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;position:static}
     .mobile-tabs::-webkit-scrollbar{display:none}
@@ -293,10 +311,11 @@
       :root{--header-h:104px}
 
       /* Prevent iOS auto-zoom on small inputs */
-      input,select,textarea{font-size:16px}
+      body input,body select,body textarea{font-size:16px}
+      label{font-size:13px}
 
       /* Tables become stacked cards */
-      .table-wrap{overflow:visible;margin-bottom:12px}
+      .table-wrap{max-height:none;overflow:visible;margin-bottom:12px}
       .table-wrap table,.table-wrap thead,.table-wrap tbody,.table-wrap tr,.table-wrap td{display:block}
       .table-wrap thead{display:none}
       .table-wrap tbody{display:flex;flex-direction:column;gap:12px}
@@ -321,6 +340,12 @@
       .btn-group{flex-wrap:wrap}
       .item-toolbar input,.item-toolbar select{flex:1 1 100%}
       .item-count{margin-inline-start:0}
+      .table-wrap td.empty{flex-direction:column;align-items:center;gap:8px}
+      .table-wrap td.empty .empty-ic{margin:0}
+
+      /* Thumb-friendly toast on phones */
+      .toast{left:16px;right:16px;bottom:16px;max-width:none;justify-content:flex-start}
+      .main-content{padding-bottom:52px}
     }
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
@@ -338,7 +363,7 @@
     <h1 id="auth-title">لوحة تحكم QR Menu</h1>
     <p id="auth-sub">سجّل الدخول بالبريد الإلكتروني للمشرف — بدون رمز.</p>
     <div class="field">
-      <label id="auth-email-label">البريد الإلكتروني</label>
+      <label id="auth-email-label" for="auth-email">البريد الإلكتروني</label>
       <input type="email" id="auth-email" placeholder="you@email.com" value="amworxx@gmail.com">
     </div>
     <button class="login-btn" id="login-btn" onclick="loginWithEmail()"><i data-lucide="log-in"></i> دخول</button>
@@ -393,7 +418,7 @@
 </div>
 
 <!-- Toast -->
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- ═══════════════ MODAL ═══════════════ -->
 <div class="modal-overlay" id="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal()">
@@ -450,6 +475,7 @@ const I18N = {
   login_failed:     { en: 'Login failed', ar: 'فشل تسجيل الدخول' },
   session_not_created:{ en: 'Session was not created', ar: 'لم يتم إنشاء الجلسة' },
   error:            { en: 'Error', ar: 'خطأ' },
+  confirm_title:    { en: 'Confirm deletion', ar: 'تأكيد الحذف' },
 
   tab_shop:         { en: 'Shop Settings', ar: 'إعدادات المتجر' },
   tab_categories:   { en: 'Categories', ar: 'التصنيفات' },
@@ -537,6 +563,7 @@ const I18N = {
   no_orders:        { en: 'No orders yet. When a customer places an order it will appear here.', ar: 'لا توجد طلبات بعد. عندما يضع العميل طلباً سيظهر هنا.' },
   no_orders_match:  { en: 'No orders match your search.', ar: 'لا توجد طلبات تطابق البحث.' },
   orders_search:    { en: 'Search order number…', ar: 'ابحث عن رقم الطلب…' },
+  order_filter:     { en: 'Filter', ar: 'تصفية' },
   orders_all:       { en: 'All orders', ar: 'كل الطلبات' },
   orders_today:     { en: 'Today', ar: 'اليوم' },
   refresh:          { en: 'Refresh', ar: 'تحديث' },
@@ -989,11 +1016,11 @@ function showTab(tab) {
     case 'shop': c.innerHTML = renderShopTab(); shopLocInit(); break;
     case 'categories': c.innerHTML = renderCategoriesTab(); break;
     case 'items': c.innerHTML = renderItemsTab(); renderItemRows(); break;
-    case 'deals': c.innerHTML = `<div class="empty">${t('loading_deals')}</div>`; renderDealsTab().then(html => { if (nonce === tabRenderNonce) c.innerHTML = html; }); break;
+    case 'deals': c.innerHTML = skeletonTable(5, 4); renderDealsTab().then(html => { if (nonce === tabRenderNonce) c.innerHTML = html; }); break;
     case 'badges': c.innerHTML = renderBadgesTab(); break;
     case 'allergens': c.innerHTML = renderAllergensTab(); break;
-    case 'orders': c.innerHTML = `<div class="empty">${t('loading_orders')}</div>`; renderOrdersTab().then(html => { if (nonce === tabRenderNonce) c.innerHTML = html; }); break;
-    case 'reviews': c.innerHTML = `<div class="empty">${t('loading_reviews')}</div>`; renderReviewsTab().then(html => { if (nonce === tabRenderNonce) c.innerHTML = html; }); break;
+    case 'orders': c.innerHTML = skeletonTable(8, 4); renderOrdersTab().then(html => { if (nonce === tabRenderNonce) c.innerHTML = html; }); break;
+    case 'reviews': c.innerHTML = skeletonTable(4, 4); renderReviewsTab().then(html => { if (nonce === tabRenderNonce) c.innerHTML = html; }); break;
     case 'currencies': c.innerHTML = renderCurrenciesTab(); break;
     case 'usage': c.innerHTML = renderUsageTab(); loadUsageStats(); break;
   }
@@ -1068,7 +1095,7 @@ function renderShopTab() {
         <button class="btn" type="button" onclick="shopLocGeolocate()"><i data-lucide="locate-fixed"></i> ${t('my_location')}</button>
       </div>
       <div id="shop-map" class="shop-map" dir="ltr"></div>
-      <p style="font-size:11px;color:var(--text3);margin-top:6px">${t('map_pin_hint')}</p>
+      <p style="font-size:12px;color:var(--text3);margin-top:6px">${t('map_pin_hint')}</p>
       <div class="loc-pin-row">
         <span class="loc-pin-coord">${t('lat')}: <b id="s-lat-txt">${s.location_lat != null ? s.location_lat.toFixed(5) : t('pin_not_set')}</b></span>
         <span class="loc-pin-coord">${t('lng')}: <b id="s-lng-txt">${s.location_lng != null ? s.location_lng.toFixed(5) : t('pin_not_set')}</b></span>
@@ -1393,7 +1420,7 @@ async function toggleCategory(id, field, val) {
 }
 
 async function deleteCategory(id) {
-  if (!confirm(t('delete_category_q'))) return;
+  if (!(await confirmAction(t('delete_category_q')))) return;
   const { error } = await sb.from('categories').delete().eq('id', id);
   if (error) return toast(t('error') + ': ' + error.message, true);
   allCategories = allCategories.filter(c => c.id !== id);
@@ -1483,7 +1510,7 @@ async function updateBadgeColor(id, color) {
   if (b) b.color = color;
 }
 async function deleteBadge(id) {
-  if (!confirm(t('delete_badge_q'))) return;
+  if (!(await confirmAction(t('delete_badge_q')))) return;
   const { error } = await sb.from('shop_badges').delete().eq('id', id);
   if (error) return toast(t('error') + ': ' + error.message, true);
   // Clean the removed badge id off every item using it
@@ -1576,7 +1603,7 @@ async function toggleAllergen(id, field, val) {
   if (a) a[field] = val;
 }
 async function deleteAllergen(id) {
-  if (!confirm(t('delete_allergen_q'))) return;
+  if (!(await confirmAction(t('delete_allergen_q')))) return;
   const a = allShopAllergens.find(x => x.id === id);
   const { error } = await sb.from('shop_allergens').delete().eq('id', id);
   if (error) return toast(t('error') + ': ' + error.message, true);
@@ -1602,7 +1629,7 @@ function renderItemsTab() {
       <button class="btn btn-primary" onclick="openItemModal()">${t('new_item')}</button>
     </div>
     <div class="item-toolbar">
-      <input class="item-search" id="item-search" placeholder="${t('items_search')}" value="${esc(itemQuery)}" oninput="itemQuery=this.value; itemShown=${ITEM_PAGE}; renderItemRows();">
+      <input class="item-search" id="item-search" aria-label="${t('items_search')}" placeholder="${t('items_search')}" value="${esc(itemQuery)}" oninput="itemQuery=this.value; itemShown=${ITEM_PAGE}; renderItemRows();">
       <select id="item-cat-filter" onchange="itemCat=this.value; itemShown=${ITEM_PAGE}; renderItemRows();">
         <option value="">${t('all_categories')}</option>
         ${allCategories.map(c => `<option value="${c.id}" ${itemCat===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
@@ -1649,13 +1676,13 @@ function renderItemRows() {
   if (count) count.textContent = `${t('showing')} ${slice.length} ${t('of')} ${list.length}`;
   const more = document.getElementById('item-more-wrap');
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="empty">${t('no_match')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="empty"><i data-lucide="search-x" class="empty-ic"></i>${t('no_match')}</td></tr>`;
     if (more) more.innerHTML = '';
     return;
   }
   tbody.innerHTML = slice.map(item => {
     const cat = allCategories.find(c => c.id === item.category_id);
-    const prices = (item.item_prices || []).map(p => p.is_visible ? `${p.currency} ${p.price}` : `<s>${p.currency} ${p.price}</s>`).join(' · ');
+    const prices = (item.item_prices || []).map(p => p.is_visible ? `<span class="num">${p.currency} ${fmt(p.price)}</span>` : `<s class="num">${p.currency} ${fmt(p.price)}</s>`).join(' · ');
     return `
       <tr>
         <td data-label="${t('order')}">${item.sort_order}</td>
@@ -1876,7 +1903,7 @@ async function toggleItem(id, field, val) {
 }
 
 async function deleteItem(id) {
-  if (!confirm(t('delete_item_q'))) return;
+  if (!(await confirmAction(t('delete_item_q')))) return;
   const { error } = await sb.from('items').delete().eq('id', id);
   if (error) return toast(t('error') + ': ' + error.message, true);
   allItems = allItems.filter(i => i.id !== id);
@@ -1934,7 +1961,7 @@ async function renderDealsTab() {
             </td>
           </tr>
         `).join('')}
-        ${(!deals||deals.length===0) ? '<tr><td colspan="5" class="empty">' + t('no_deals') + '</td></tr>' : ''}
+        ${(!deals||deals.length===0) ? '<tr><td colspan="5" class="empty"><i data-lucide="badge-percent" class="empty-ic"></i>' + t('no_deals') + '</td></tr>' : ''}
       </tbody>
     </table>
     </div>
@@ -2176,7 +2203,7 @@ async function toggleDeal(id, val) {
 }
 
 async function deleteDeal(id) {
-  if (!confirm(t('delete_deal_q'))) return;
+  if (!(await confirmAction(t('delete_deal_q')))) return;
   const { error } = await sb.from('deals').delete().eq('id', id);
   if (error) return toast(t('error') + ': ' + error.message, true);
   showTab('deals');
@@ -2369,11 +2396,11 @@ function orderRowHTML(o) {
   const cur = esc(o.currency || 'SYP'); // currency originates from public order inserts — never trust raw
   const items = (o.items || []).map(it => {
     const nm = lang === 'ar' ? (it.name_ar || it.name) : it.name;
-    return `<div class="ln"><span class="lname">${esc(nm)} × ${it.qty}</span><span>${esc(it.unit_price)} ${cur}</span></div>`;
+    return `<div class="ln"><span class="lname">${esc(nm)} × ${it.qty}</span><span class="num">${fmt(it.unit_price)} ${cur}</span></div>`;
   }).join('');
   const offers = (o.offers || []).map(off => {
     const nm = lang === 'ar' ? (off.summary || off.title_ar || off.title) : (off.title || off.summary);
-    return `<div class="ln off"><span class="lname">${esc(nm)}</span><span class="neg">−${esc(off.savings)} ${cur}</span></div>`;
+    return `<div class="ln off"><span class="lname">${esc(nm)}</span><span class="neg num">−${fmt(off.savings)} ${cur}</span></div>`;
   }).join('');
   const noteHtml = o.note ? `<div class="order-note-inline">${t('note')}: ${esc(o.note)}</div>` : '';
   const dlHtml = o.order_mode === 'delivery' && (o.delivery_lat != null || (o.delivery_address || '').trim())
@@ -2393,9 +2420,9 @@ function orderRowHTML(o) {
       </td>
       <td data-label="${t('items_label')}"><div class="order-lines">${items}${noteHtml}${dlHtml}</div></td>
       <td data-label="${t('offers')}">${offers ? `<div class="order-lines">${offers}</div>` : '<span style="color:var(--text3)">—</span>'}</td>
-      <td data-label="${t('subtotal')}">${esc(o.subtotal)} ${cur}</td>
-      <td data-label="${t('discount')}"><span class="neg">−${esc(o.discount)} ${cur}</span></td>
-      <td data-label="${t('total')}"><strong>${esc(o.total)} ${cur}</strong></td>
+      <td data-label="${t('subtotal')}"><span class="num">${fmt(o.subtotal)} ${cur}</span></td>
+      <td data-label="${t('discount')}"><span class="neg num">−${fmt(o.discount)} ${cur}</span></td>
+      <td data-label="${t('total')}"><strong class="num">${fmt(o.total)} ${cur}</strong></td>
       <td data-label="${t('reply')}">
         <button class="btn btn-ghost btn-sm" onclick="openReplyModal(${JSON.stringify(o.id)})">${t('reply')}</button>
       </td>
@@ -2410,7 +2437,7 @@ function renderOrderRows() {
   if (count) count.textContent = `${t('showing')} ${list.length} ${t('of')} ${ordersAll.length}${orderHasMore ? '+' : ''}`;
   const more = document.getElementById('order-more-wrap');
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="9" class="empty">${ordersAll.length ? t('no_orders_match') : t('no_orders')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="empty"><i data-lucide="${ordersAll.length ? 'search-x' : 'inbox'}" class="empty-ic"></i>${ordersAll.length ? t('no_orders_match') : t('no_orders')}</td></tr>`;
     // Keep the Load More button even when the current filter matches nothing —
     // the user may have more rows to page through.
     if (more) more.innerHTML = orderHasMore && ordersAll.length
@@ -2429,12 +2456,12 @@ async function renderOrdersTab() {
   return `
     <h3>${t('tab_orders')}</h3>
     <div class="item-toolbar">
-      <input class="item-search" id="order-search" placeholder="${t('orders_search')}" value="${esc(orderQuery)}" oninput="orderQuery=this.value; renderOrderRows();">
-      <select id="order-filter" onchange="orderFilter=this.value; renderOrderRows();">
+      <input class="item-search" id="order-search" aria-label="${t('orders_search')}" placeholder="${t('orders_search')}" value="${esc(orderQuery)}" oninput="orderQuery=this.value; renderOrderRows();">
+      <select id="order-filter" aria-label="${t('order_filter')}" onchange="orderFilter=this.value; renderOrderRows();">
         <option value="all" ${orderFilter==='all'?'selected':''}>${t('orders_all')}</option>
         <option value="today" ${orderFilter==='today'?'selected':''}>${t('orders_today')}</option>
       </select>
-      <select id="order-status-filter" onchange="orderStatusFilter=this.value; renderOrderRows();">
+      <select id="order-status-filter" aria-label="${t('order_status')}" onchange="orderStatusFilter=this.value; renderOrderRows();">
         <option value="all" ${orderStatusFilter==='all'?'selected':''}>${t('st_all')}</option>
         ${ORDER_STATUSES.map(s => `<option value="${s}" ${orderStatusFilter===s?'selected':''}>${t('st_' + s)}</option>`).join('')}
       </select>
@@ -2536,7 +2563,7 @@ function renderReviewRows() {
   if (count) count.textContent = `${t('showing')} ${list.length} ${t('of')} ${reviewsAll.length}${reviewHasMore ? '+' : ''}`;
   const more = document.getElementById('review-more-wrap');
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="4" class="empty">${reviewsAll.length ? t('no_reviews_match') : t('no_reviews')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="empty"><i data-lucide="${reviewsAll.length ? 'search-x' : 'star'}" class="empty-ic"></i>${reviewsAll.length ? t('no_reviews_match') : t('no_reviews')}</td></tr>`;
   } else {
     tbody.innerHTML = list.map(reviewRowHTML).join('');
   }
@@ -2606,7 +2633,7 @@ async function renderReviewsTab() {
 }
 
 async function deleteReview(id) {
-  if (!confirm(t('delete_review_q'))) return;
+  if (!(await confirmAction(t('delete_review_q')))) return;
   const { error } = await sb.from('surveys').delete().eq('id', id);
   if (error) return toast(t('error') + ': ' + error.message, true);
   reviewsAll = reviewsAll.filter(r => String(r.id) !== String(id));
@@ -2626,7 +2653,7 @@ function renderUsageTab() {
       <div id="usage-alerts" style="margin-top:10px"></div>
     </div>
     <div id="usage-body">
-      <div class="empty">${t('usage_loading')}</div>
+      ${skeletonCards(3)}
     </div>
   `;
 }
@@ -2635,7 +2662,7 @@ let usageLoadedOnce = false;
 async function loadUsageStats() {
   const body = document.getElementById('usage-body');
   if (!body) return;
-  body.innerHTML = `<div class="empty">${t('usage_loading')}</div>`;
+  body.innerHTML = skeletonCards(3);
 
   // GitHub Pages repo size (public API — no auth needed). Fail soft.
   let github = null;
@@ -2650,7 +2677,7 @@ async function loadUsageStats() {
   // Owner-gated RPC: returns null for non-owners, stats for the owner.
   const { data: usage, error } = await sb.rpc('get_usage_stats');
   if (error || !usage) {
-    body.innerHTML = `<div class="empty">${t('usage_error')}${error ? ' — ' + esc(error.message) : ''}</div>`;
+    body.innerHTML = `<div class="empty"><i data-lucide="server-crash" class="empty-ic"></i>${t('usage_error')}${error ? ' — ' + esc(error.message) : ''}</div>`;
     document.getElementById('usage-alerts').innerHTML =
       `<div class="alert critical">⚠ ${t('usage_error_owner')}</div>`;
     return;
@@ -2690,7 +2717,7 @@ function renderUsageBoard(u, g) {
       <div class="card">
         <h4>${t('usage_database')}</h4>
         <div style="font-size:13px;color:var(--text2);margin-bottom:6px">
-          ${u.db_size_mb} MB ${t('usage_limit_of')} ${u.db_limit_mb} MB
+          ${fmt(u.db_size_mb, 2)} MB ${t('usage_limit_of')} ${fmt(u.db_limit_mb)} MB
         </div>
         <div class="usage-bar"><div class="usage-fill" style="width:${dbPct}%;background:${barColor(dbPct)}"></div></div>
         <span class="usage-pct" style="color:${barColor(dbPct)}">${dbPct}% · ${t('usage_' + lvl(dbPct))}</span>
@@ -2699,7 +2726,7 @@ function renderUsageBoard(u, g) {
       <div class="card">
         <h4>${t('usage_mau')}</h4>
         <div style="font-size:13px;color:var(--text2);margin-bottom:6px">
-          ${u.users_active_30d} ${t('usage_limit_of')} ${u.mau_limit}
+          ${fmt(u.users_active_30d)} ${t('usage_limit_of')} ${fmt(u.mau_limit)}
         </div>
         <div class="usage-bar"><div class="usage-fill" style="width:${mauPct}%;background:${barColor(mauPct)}"></div></div>
         <span class="usage-pct" style="color:${barColor(mauPct)}">${mauPct}% · ${t('usage_' + lvl(mauPct))}</span>
@@ -2708,7 +2735,7 @@ function renderUsageBoard(u, g) {
       <div class="card">
         <h4>${t('usage_repo_size')}</h4>
         ${g
-          ? `<div style="font-size:13px;color:var(--text2);margin-bottom:6px">${g.size_mb} MB ${t('usage_limit_of')} ${g.limit_mb} MB</div>
+          ? `<div style="font-size:13px;color:var(--text2);margin-bottom:6px">${fmt(g.size_mb, 2)} MB ${t('usage_limit_of')} ${fmt(g.limit_mb)} MB</div>
              <div class="usage-bar"><div class="usage-fill" style="width:${ghPct}%;background:${barColor(ghPct)}"></div></div>
              <span class="usage-pct" style="color:${barColor(ghPct)}">${ghPct}% · ${t('usage_' + lvl(ghPct))}</span>`
           : `<div style="font-size:13px;color:var(--text2)">${t('usage_na')}</div>`}
@@ -2720,7 +2747,7 @@ function renderUsageBoard(u, g) {
           <thead><tr><th></th><th></th></tr></thead>
           <tbody>
             ${tables.map(([name, count]) => `
-              <tr><td style="color:var(--text2)">${esc(name)}</td><td style="text-align:right;font-weight:600">${count}</td></tr>`).join('') || `<tr><td style="color:var(--text2)">—</td></tr>`}
+              <tr><td style="color:var(--text2)">${esc(name)}</td><td class="num" style="text-align:right;font-weight:600">${fmt(count)}</td></tr>`).join('') || `<tr><td style="color:var(--text2)">—</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -2742,6 +2769,54 @@ function toast(msg, isError) {
   setTimeout(() => t.className = 'toast', 3000);
 }
 function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+
+// ─── UX helpers: numbers, skeletons, confirm modal ─────────
+function fmt(n, dec = 0) {
+  if (n == null || n === '') return '';
+  const v = Number(n);
+  if (Number.isNaN(v)) return String(n);
+  return v.toLocaleString(lang === 'ar' ? 'ar-SY' : 'en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
+const _SK_W = [36, 62, 45, 30, 30, 55, 40, 20, 25];
+function skeletonTable(cols, rows) {
+  return `<div class="sk-zone" role="status" aria-live="polite">${Array.from({ length: rows }, (_, r) => `
+    <div class="sk-row" style="grid-template-columns:repeat(${cols},1fr)">${Array.from({ length: cols }, (_, c) => `<div class="sk-block" style="height:13px;width:${_SK_W[(r + c) % _SK_W.length]}%"></div>`).join('')}</div>`).join('')}</div>`;
+}
+function skeletonCards(n = 3) {
+  return `<div class="sk-cards" role="status" aria-live="polite">${Array.from({ length: n }, () => `
+    <div class="sk-card"><div class="sk-block" style="width:38%;height:14px"></div><div class="sk-block" style="width:82%;height:12px"></div><div class="sk-block" style="width:55%;height:12px"></div></div>`).join('')}</div>`;
+}
+
+let _confirmResolve = null;
+function confirmAction(msg) {
+  return new Promise(res => {
+    _confirmResolve = res;
+    const m = document.getElementById('modal-overlay');
+    const c = document.getElementById('modal-content');
+    c.innerHTML = `
+      <h3>${t('confirm_title')}</h3>
+      <p style="font-size:14px;line-height:1.7;color:var(--text2)">${esc(msg)}</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="cf-cancel">${t('cancel')}</button>
+        <button class="btn btn-danger" id="cf-ok"><i data-lucide="trash-2"></i> ${t('delete')}</button>
+      </div>`;
+    m.style.display = 'flex';
+    refreshIcons();
+    const finish = v => { m.style.display = 'none'; const r = _confirmResolve; _confirmResolve = null; if (r) r(v); };
+    document.getElementById('cf-cancel').onclick = () => finish(false);
+    document.getElementById('cf-ok').onclick = () => finish(true);
+    // Overlay click cancels — capture phase stops the overlay's own closeModal() so the promise always resolves
+    m.addEventListener('click', function h(e) { if (e.target === m) { e.stopImmediatePropagation(); finish(false); } }, { capture: true, once: true });
+  });
+}
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const m = document.getElementById('modal-overlay');
+  if (!m || m.style.display === 'none') return;
+  if (_confirmResolve) { const r = _confirmResolve; _confirmResolve = null; m.style.display = 'none'; r(false); }
+  else closeModal();
+});
 </script>
 </body>
 </html>
