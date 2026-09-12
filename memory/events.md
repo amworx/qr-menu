@@ -904,3 +904,14 @@
 - **errors**: None at runtime.
 - **lessons**: (1) Tailwind Play-CDN preflight is injected after a repo's own <style> and uses bare type selectors — ANY admin UI size/color rule that must survive it needs a higher-specificity selector (body-qualified) or !important; watch for it after every Tailwind-CDN adoption. (2) Measured, not guessed: computed-style audits (querySelector + getComputedStyle incl. `::placeholder`) catch cascade overrides that a grep of font-size never shows. (3) getComputedStyle(el,'::placeholder') on an input WITHOUT a placeholder attribute returns the element color — gate placeholder audits to fields that actually have placeholders.
 - **tags**: typography, font-size, placeholder, tailwind, preflight, cascade, specificity, ux, admin, pending-commit
+
+## EVT-20260912-0028
+
+- **timestamp**: 2026-09-12
+- **mode**: MEMORY / DEPLOY
+- **action**: Commit + push admin UX polish + typography fix to GitHub Pages
+- **summary**: User approved deploy ("proceed"). Committed fbc9b64 "feat: admin UX polish - skeletons, money formatting, styled confirm modal, typography scale fix" (admin.html +115/-40 — EVT-0026 UX pass + EVT-0027 typography fix in one feature commit) and 4bc784b "docs: memory EVT-20260912-0025..0027 + PAT-012 (UX polish + typography fix)" (events.md + patterns.md), pushed origin main (72770c3..4bc784b). Rejected design proposals stay untracked in designs/; pre-existing untracked files (docs/mocks/, docs/screenshots/*-splash-*, supabase/.temp/) untouched.
+- **result**: raw.githubusercontent.com main admin.html byte-identical to local (SHA256 B906F89C5B75FB6961EF3120BDBCC1C9B0BC1748E9B53BA7215F91548D056417, 171289 bytes). GitHub Pages served the new build immediately (live SHA match on first poll). Live browser verification https://amworx.github.io/qr-menu/admin.html?cb=ux-v1 at 1440 + 390: persisted session, dashboard loads with Cairo + dark bg; auth input 14px desktop / 16px mobile; placeholder computed var(--text3) rgb(100,116,139); body-qualified placeholder rule present; items price renders "SYP ١٥٬٠٠٠" (AR, formatted); usage skeleton shows; mobile: tabs visible, sidebar hidden, no h-overflow; console clean (only the known Tailwind CDN production warning); zero JS errors.
+- **errors**: PS 5.1 has no [Convert]::ToHexString (used [BitConverter]::ToString). First byte check used Invoke-WebRequest .Content.Length which counts UTF-16 code units, not bytes — misleading on bilingual files.
+- **lessons**: (reused PB-001 approach) verify deploy via raw-main SHA256 + live SHA256 byte-equality using WebClient.DownloadData (never .Content.Length on non-ASCII files; PS5.1 wants BitConverter), then live DOM assertions — token-gated Pages status APIs stay unneeded.
+- **tags**: deploy, pages, ux, typography, live-verify, admin
