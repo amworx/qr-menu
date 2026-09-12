@@ -96,3 +96,11 @@ Reusable patterns extracted from repeated successes. Append only.
   3. Client: `await sb.from('orders').insert({...}).select('id').single()` → number = returned `id`; on failure use a client fallback (`'T' + String(Date.now()).slice(-6)`) so WhatsApp still opens with a number.
   4. WhatsApp deep links: strip surrogate pairs before `encodeURIComponent` (`str.replace(/[\uD800-\uDFFF]/g,'')`) and prefer BMP-safe markers (`★`) — the wa.me→api.whatsapp.com redirect replaces non-BMP emoji with U+FFFD.
 - **Ref**: docs/schema.sql orders; index.html `sendWhatsApp`; EVT-20260907-0014; LSSN-20260907-022.
+
+## PAT-20260912-012 — Single-file dashboard UX affordances (skeleton + confirm + numbers)
+- **When**: Building or polishing a single-file admin dashboard (vanilla HTML/CSS/JS, no build step) where async reads and destructive actions must feel responsive and safe.
+- **How**:
+  1. Skeleton loading: CSS shimmer `.sk-block` (fixed-size rounded bar with `linear-gradient(100deg,…)` + `background-size:200%` + keyframe animating `background-position`); tiny helpers `skeletonTable(cols,rows)` → `.sk-zone` of `.sk-row` grids and `skeletonCards(n)` → `.sk-cards`, both with `role="status" aria-live="polite"`. Swap into the tab container before an async fetch, replace with real markup on resolve.
+  2. Destructive confirm: promise-based `confirmAction(msg)` renders a title + message + Cancel/Danger buttons into the existing `#modal-overlay`. Always resolves: buttons close it; a global Escape keydown resolves false for confirms (else falls back to closeModal); overlay-click is handled with a capture-phase one-shot listener calling `stopImmediatePropagation()` so the overlay's own inline `closeModal()` (which would leave the promise hanging) never fires. Never use native confirm() in a themed app.
+  3. Numbers: `fmt(n, dec=0)` via `toLocaleString(lang === 'ar' ? 'ar-SY' : 'en-US', {min, max FractionDigits})` → grouping separators + Arabic-Indic digits natively (no manual digit mapping); add `.num{font-variant-numeric:tabular-nums}` for stable column width.
+- **Ref**: admin.html `fmt`/`skeletonTable`/`skeletonCards`/`confirmAction`; EVT-20260912-0026.
