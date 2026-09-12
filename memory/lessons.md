@@ -249,3 +249,9 @@
 - **Fix**: showTab() persists the tab on every switch; on dashboard load restore only if the value is in a hard-coded allow-list of the 9 known tabs, else fall back to 'orders'.
 - **Lesson**: Whenever you persist UI state that feeds a dispatcher, validate against the known domain on restore — never trust localStorage, and give the dispatcher a default branch so a bad value degrades gracefully instead of blanking the UI.
 
+## LSSN-20260912-017 - i18n textContent vs child icons: keep data-i18n on an inner span
+- **Problem**: After wiring Lucide icons into sidebar/tab buttons, the icons vanished on every language toggle.
+- **Root cause**: `applyLang()` sets `textContent` on every `[data-i18n]` element, which destroys any child `<i>`/`<svg>` icon nodes. The same trap applies to buttons rebuilt via `innerHTML` (e.g. login/logout).
+- **Fix**: Put the icon and the label in *siblings*: `<button><i data-lucide="x"></i><span data-i18n="key">Label</span></button>` — then `textContent` only touches the text span. For buttons whose content is regenerated in JS, write `innerHTML` including the `<i data-lucide>` and call `refreshIcons()` afterwards.
+- **Lesson**: When any dynamic i18n/localization pass uses `textContent`, icon nodes must never be descendants of the same element that gets its text overwritten. Design markup as icon-sibling + text-node, or always rebuild with innerHTML and re-iconify.
+

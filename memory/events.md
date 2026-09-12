@@ -810,3 +810,51 @@
 - **lessons**: LSSN-20260911-016
 - **tags**: admin, tabs, order, persistence, localStorage, refresh
 
+
+## EVT-20260911-0020
+
+- **timestamp**: 2026-09-11
+- **mode**: BUILD
+- **action**: Fix first-tab flash on admin refresh (tab persistence)
+- **summary**: User reported that on refresh the admin dashboard "goes back to the first tab then returns to the current tab". Root cause: statically the first nav button (orders) carries the hardcoded `class="active"`, and the saved-tab restore (`showTab(savedTab)`) only ran at the very END of async `showDashboard()` after all shop/categories/items/outlets/badges/allergens loads. So the first paint showed Orders active + Orders loading content, then jumped to the persisted tab. Fixed by applying the saved tab's nav highlight synchronously at the TOP of `showDashboard()` (before any await): read `localStorage 'qm-admin-tab'`, validate against a 9-entry allow-list (fallback 'orders'), toggle `.active` on `.sidebar button` + `.mobile-tabs button` immediately. The end-of-function `showTab(savedTab)` now just renders content (its own active-toggling re-applies harmlessly). Removed a dangling `applyActiveNav()` helper call introduced mid-edit (function never defined) — would have thrown ReferenceError. Verified locally on :8088 in Chrome: with saved tab `categories`, refresh paints Categories directly (both navs active, heading Categories, no flash); with no saved tab, defaults to Orders (الطلبات) and persists it; zero console errors on both paths.
+- **result**: Flash eliminated; persistence + reorder (orders->items->deals->categories->reviews->shop->badges->allergens->currencies) confirmed on sidebar and mobile-tabs. Working file: `C:\Users\HP\Documents\code_repo\qr-menu\admin.html`.
+- **files**: `admin.html`
+- **errors**: ReferenceError-avoided mid-edit (`applyActiveNav` never defined; removed before load)
+- **lessons**: When restoring persisted UI state, apply the state synchronously on the first paint — never after async data loads — or the user sees the default/hardcoded state flash first. Verify every helper referenced in an edit is actually defined before shipping.
+- **tags**: admin, tab-persistence, flash-fix, localStorage, nav-highlight, refresh
+
+## EVT-20260911-0021
+
+- **timestamp**: 2026-09-11
+- **mode**: RESEARCH
+- **action**: Audit hosting limits (GitHub Pages + Supabase free plan) for qr-menu
+- **summary**: Queried the live Supabase project (ref pxgwxcurhzphmtvowdri, org lfriyhojhdbxahmhwmnf, eu-west-1, ACTIVE_HEALTHY, created 2026-09-07) via Management API and the GitHub API for amworx/qr-menu. Findings: DB 11.07 MB used of 500 MB free (orders/items/shops/item_prices 64 kB each, surveys 48 kB, remainder 32-48 kB); auth.users = 1 user (1 ever signed in, 1 active last 30d) of 50k MAU; 2 edge functions ACTIVE (admin-login-gate v2, submit-survey v3). GitHub repo 2.93 MB total of 1 GB recommended Pages limit; Pages enabled on main. Plan field empty in project API (free tier per org).
+- **result**: All usage is orders of magnitude inside free limits. Headroom: DB 98%, MAU 99.998%, Pages storage 99.7%. The real existential risks are the soft limits (100 GB/mo Pages bandwidth, 5 GB/mo Supabase egress) and free-plan pausing after 7 days of inactivity.
+- **files**: none
+- **errors**: Management API paths /subscription and /usage return 404 (must use /database/query for usage SQL; plan not exposed via those endpoints)
+- **lessons**: Supabase Management API does not expose plan/usage via /subscription or /usage — use POST /v1/projects/{ref}/database/query for size/row metrics. Repo size from GitHub API is in KB.
+- **tags**: hosting, limits, supabase, github-pages, free-tier, research
+
+## EVT-20260912-0022
+
+- **timestamp**: 2026-09-12
+- **mode**: BUILD
+- **action**: Add Usage Watch & Alerts board to admin dashboard
+- **summary**: Added a new `usage` tab to admin.html (sidebar + mobile-tabs, after Currencies) showing live hosting limits: DB size vs 500 MB, Monthly Active Users vs 50k, GitHub Pages repo size vs 1 GB (loaded from public GitHub API with fail-soft), and per-table row counts. Alerts strip with three levels (ok <80%, warning >=80%, critical >=95%). Data comes from a new owner-gated SECURITY DEFINER Postgres function `public.get_usage_stats()` created via Management API (granted EXECUTE to authenticated; returns NULL for non-owners by checking request.jwt.claims email against shops.owner_email). No PAT/service key touches the browser. First iteration used reltuples estimates (returned -1 / empty); fixed to real count(*) per business table. i18n keys added (EN+AR, ~25 keys, key `tab_usage`). Threshold logic + render + CSS (.usage-bar/.usage-fill/.usage-pct/.alert.ok/.warning/.critical) implemented.
+- **result**: Verified live on localhost:8099 (new static server; :8088 died). Logged in as owner, opened usage tab: DB 11.09 MB/500 MB -> 2% OK, MAU 1/50000 -> 0% OK, repo 2.93 MB/1024 MB -> 0% OK, row counts (shop_allergens 14, items 10, categories 4, deals 3, outlets 2, surveys 1, shop_badges 1). Both AR and EN render correctly. Network: get_usage_stats RPC 200, GitHub API 200 (only 404 is pre-existing favicon.ico). Computed styles confirm green ok alert + green fill. Threshold boundaries unit-tested (80->warning, 95->critical).
+- **files**: `admin.html`, supabase function `public.get_usage_stats()`
+- **errors**: Server on :8088 died mid-test (fallback to stale cache in browser); restarted as Python http.server on :8099. Row-count reltuples returned -1 estimates -> replaced with count(*).
+- **lessons**: (1) For garage-scale apps, SECURITY DEFINER + request.jwt.claims gate is enough to expose usage stats safely without leaking PAT. (2) Postgres reltuples is an estimate (-1 until ANALYZE); use count(*) for exact per-table rows on small tables. (3) Browsers keep serving stale localhost assets if the old server dies — always verify served content (grep for the marker string) before testing.
+- **tags**: usage, alerts, dashboard, supabase, rpc, security-definer, github-pages, limits
+
+## EVT-20260912-0023
+
+- **timestamp**: 2026-09-12
+- **mode**: BUILD
+- **action**: Complete UI redesign of admin dashboard (modern, Tailwind + Lucide)
+- **summary**: Replaced the entire visual design of admin.html while preserving 100% of the JS logic. Head: swapped Inter-only for Cairo + Inter (Arabic-first RTL), added Tailwind Play CDN + inline tailwind.config (custom ember amber→orange + ink palettes, Cairo font stack), added Lucide web build (unpkg UMD), removed Font Awesome stylesheet. Style block fully rewritten to a dark-glass design system: ambient radial glow body::before, glass cards with backdrop-filter blur, ember gradient accents (buttons/chips/active tabs toggles), rev-stat gradient text, hover row highlight, focus rings, animations (fadeUp on tab content, popIn on auth/modal, toast slide, spinner) all guarded by prefers-reduced-motion. Static shell redesigned: auth screen with qr-code logo tile, header with brand mark + icons, sidebar + mobile-tabs nav with Lucide icons (icon + inner `<span data-i18n>` so applyLang textContent doesn't wipe icons). JS: added refreshIcons() + debounced MutationObserver that converts any `<i data-lucide>` to SVG after every dynamic render (40 ms); swapped all 6 Font Awesome usages (search/locate-fixed/eraser/x/x/map-pin) plus 3 hard-coded ⟳ refresh arrows (refresh-cw) to Lucide; applyLang() now writes innerHTML (globe icon + text) for lang/logout/login buttons and calls refreshIcons(); toast() now shows circle-check-big/circle-alert icons.
+- **result**: Verified live on localhost:8099 in a real browser. Login (edge function) works; all 10 tabs render EN + AR with zero JS errors; 26-38 Lucide SVGs render with 0 unconverted; side-nav flash-fix (localStorage tab restore) intact; mobile 375px: sidebar hidden, 10-icon mobile-tabs sticky at correct --header-h (99px) below the wrap-to-two-rows header; modal open/close works; toast (ok + error) renders icons. Discovered during verification the Luna model cannot read screenshots, so visual checks were done via computed-style + DOM assertions (lucide svg counts, backdropFilter blur(14px), bg rgb(10,15,30), font Cairo).
+- **files**: `admin.html`
+- **errors**: None during runtime. Console only shows the expected cdn.tailwindcss.com 'not for production' warning (deliberate: repo has no build step) and the pre-existing favicon.ico 404.
+- **lessons**: (1) data-i18n + lucide icons conflict: applyLang's textContent wipes child icons — keep icons as `<i data-lucide>` siblings and put data-i18n on an inner span; rewrite button content via innerHTML when it must contain an icon. (2) A single debounced MutationObserver calling lucide.createIcons() after any innerHTML render is a zero-maintenance way to iconify dynamic content (no per-render refresh calls needed). (3) Tailwind Play CDN is the right fit for this no-build static repo, but emits a console warning — acceptable, documented in decisions.
+- **tags**: redesign, dashboard, tailwind, lucide, icons, ui, admin, rtl, animation, glassmorphism
