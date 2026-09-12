@@ -915,3 +915,14 @@
 - **errors**: PS 5.1 has no [Convert]::ToHexString (used [BitConverter]::ToString). First byte check used Invoke-WebRequest .Content.Length which counts UTF-16 code units, not bytes — misleading on bilingual files.
 - **lessons**: (reused PB-001 approach) verify deploy via raw-main SHA256 + live SHA256 byte-equality using WebClient.DownloadData (never .Content.Length on non-ASCII files; PS5.1 wants BitConverter), then live DOM assertions — token-gated Pages status APIs stay unneeded.
 - **tags**: deploy, pages, ux, typography, live-verify, admin
+
+## EVT-20260912-0029
+
+- **timestamp**: 2026-09-12
+- **mode**: MEMORY
+- **action**: Delete rejected design proposals (designs/ folder + temp screenshots)
+- **summary**: User approved deleting the rejected proposals ("delete rejected proposals"). Removed `designs/` (dashboard-A-sunprint.html 50779 B, dashboard-B-brutal.html 79966 B, dashboard-C-terminal.html 73161 B — all untracked, 0 tracked) and the 6 comparison screenshots in %TEMP%\opencode\qm-designs\. Pre-existing untracked files left untouched (docs/mocks/, docs/screenshots/2026-09-10-splash-*.png, supabase/.temp/).
+- **result**: designs/ and temp qm-designs/ no longer exist; git status back to only pre-existing untracked entries. No commit needed for the deletion itself (files were never tracked); memory event committed.
+- **errors**: None.
+- **lessons**: Untracked scratch output from an exploration can be deleted without a git commit — but the decision/rejection record lives on in memory (EVT-20260912-0025 decision context: user kept the current design over A/B/C).
+- **tags**: cleanup, delete, designs, proposals, admin
